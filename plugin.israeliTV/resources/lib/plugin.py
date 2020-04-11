@@ -396,7 +396,7 @@ def prepare_list_items(show_list, handler_id):
 
     handler = handler_wrapper.handlers.get_handler(int(handler_id))
     for x in show_list.sub_objects:
-        if x.object_type in (handler.categories_enum.VIDEO_PAGE, ):
+        if x.object_type in (handler.categories_enum.VIDEO, ):
             func_call = play_episode
             is_playable = 'true'
             is_folder = False
