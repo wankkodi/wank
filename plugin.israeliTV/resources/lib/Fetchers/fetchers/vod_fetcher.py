@@ -50,10 +50,12 @@ class VODFetcher(BaseFetcher):
         :return:
         """
         self.objects = {
-            VODCategories.CHANNELS_MAIN:
-                self._prepare_main_single_sub_object(self.source_name, VODCategories.CHANNELS_MAIN),
-            VODCategories.SEARCH_MAIN: self._prepare_main_single_sub_object('Search', VODCategories.SEARCH_MAIN),
-            VODCategories.LIVE_VIDEO: self._prepare_main_single_sub_object('Live', VODCategories.LIVE_VIDEO),
+            self.categories_enum.CHANNELS_MAIN:
+                self._prepare_main_single_sub_object(self.source_name, self.categories_enum.CHANNELS_MAIN),
+            self.categories_enum.SEARCH_MAIN:
+                self._prepare_main_single_sub_object('Search', self.categories_enum.SEARCH_MAIN),
+            self.categories_enum.LIVE_VIDEO:
+                self._prepare_main_single_sub_object('Live', self.categories_enum.LIVE_VIDEO),
         }
 
     def _set_video_filter(self):
@@ -70,9 +72,9 @@ class VODFetcher(BaseFetcher):
         :return:
         """
         true_object = object_data.true_object
-        if true_object.object_type == VODCategories.CHANNELS_MAIN:
+        if true_object.object_type == self.categories_enum.CHANNELS_MAIN:
             return self._video_filters.channels_filters
-        elif true_object.object_type == VODCategories.SEARCH_MAIN:
+        elif true_object.object_type == self.categories_enum.SEARCH_MAIN:
             return self._video_filters.search_filters
         else:
             return self._video_filters.videos_filters
@@ -111,7 +113,7 @@ class VODFetcher(BaseFetcher):
         :param show_id: Show id.
         :return: Show data.
         """
-        available_shows = self.object_urls[VODCategories.CHANNELS_MAIN]
+        available_shows = self.object_urls[self.categories_enum.CHANNELS_MAIN]
         fit_shows = [x for x in available_shows.sub_objects if show_id == x.id]
         return fit_shows
 
@@ -156,11 +158,12 @@ class VODFetcher(BaseFetcher):
         Returns video initials from the given video data.
         :return: Tuple of (name, season, title, filename_title).
         """
-        if video_data.object_type == VODCategories.LIVE_VIDEO:
+        if video_data.object_type == self.categories_enum.LIVE_VIDEO:
             now_time = str(datetime.now())
             title = 'live_' + now_time
             filename_title = title
-            save_path = [self._clear_invalid_chars_from_filename(self.objects[VODCategories.CHANNELS_MAIN].title)]
+            save_path = [self._clear_invalid_chars_from_filename(
+                self.objects[self.categories_enum.CHANNELS_MAIN].title)]
 
         else:
             title = video_data.title
@@ -178,7 +181,7 @@ class VODFetcher(BaseFetcher):
 
         filename_title = self._clear_invalid_chars_from_filename(filename_title)
         tmp_super_object = video_data.super_object
-        while tmp_super_object.object_type != VODCategories.GENERAL_MAIN:
+        while tmp_super_object.object_type != self.categories_enum.GENERAL_MAIN:
             save_path.append(self._clear_invalid_chars_from_filename(tmp_super_object.title))
             tmp_super_object = tmp_super_object.super_object
         save_path.append(self.store_dir)
