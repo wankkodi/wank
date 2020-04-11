@@ -82,7 +82,7 @@ search_history = []
 # Main page routing
 @plugin.route('/')
 def choose_handler():
-    xbmc.log('Welcome to Israeli tv!')
+    log('Welcome to Israeli tv!')
     items = []
 
     # Live TV
@@ -195,9 +195,9 @@ def show_vod_programs(handler_id, args, page_number):
     if args == '_first_run':
         args = ''
     handler = handler_wrapper.handlers.get_handler(int(handler_id))
-    xbmc.log('Showing programs for handler {i} and ids: {ids}'.format(i=handler_id, ids=args))
+    log('Showing programs for handler {i} and ids: {ids}'.format(i=handler_id, ids=args))
     if len(args) > 0:
-        # xbmc.log(str([int(x) for x in args.split(separator)]))
+        # log(str([int(x) for x in args.split(separator)]))
         # import web_pdb
         # web_pdb.set_trace()
         show_list = handler.get_show_object(*(int(x) for x in args.split(separator)))
@@ -282,9 +282,9 @@ def show_search_programs(handler_id, args, page_number):
     if args == '_first_run':
         args = ''
     handler = handler_wrapper.handlers.get_handler(int(handler_id))
-    xbmc.log('Showing programs for handler {i} and ids: {ids}'.format(i=handler_id, ids=args))
+    log('Showing programs for handler {i} and ids: {ids}'.format(i=handler_id, ids=args))
     if len(args) > 0:
-        # xbmc.log(str([int(x) for x in args.split(separator)]))
+        # log(str([int(x) for x in args.split(separator)]))
         # import web_pdb
         # web_pdb.set_trace()
         show_list = handler.get_show_object(int(args))
@@ -322,9 +322,9 @@ def page_search_input_window(handler_id, args, page_number, start_page, end_page
 @plugin.route('/play_episode/<handler_id>/<args>')
 def play_episode(handler_id, args):
     handler = handler_wrapper.handlers.get_handler(int(handler_id))
-    xbmc.log('Playing videos for handler {i} and ids: {ids}'.format(i=handler_id, ids=args))
+    log('Playing videos for handler {i} and ids: {ids}'.format(i=handler_id, ids=args))
     episode = handler.get_show_object(*(int(x) for x in args.split(separator)))
-    xbmc.log('Site video links {0}.'.format(episode.url if type(episode.url) == str else episode.url.encode('utf-8')))
+    log('Site video links {0}.'.format(episode.url if type(episode.url) == str else episode.url.encode('utf-8')))
 
     # import web_pdb
     # web_pdb.set_trace()
@@ -336,7 +336,7 @@ def play_episode(handler_id, args):
 @plugin.route('/play_live_stream/<handler_id>')
 def play_live_stream(handler_id):
     handler = handler_wrapper.handlers.get_handler(int(handler_id))
-    xbmc.log('Playing live stream for handler {i}'.format(i=handler_id))
+    log('Playing live stream for handler {i}'.format(i=handler_id))
 
     video_data = handler.get_live_stream_video_link()
     play_video(handler, video_data)
@@ -352,7 +352,7 @@ def play_video(handler, video_data):
     else:
         video_i = 0
 
-    xbmc.log('Video page links {0}.'.format(video_data.video_sources[video_i]))
+    log('Video page links {0}.'.format(video_data.video_sources[video_i]))
     video_link = video_data.video_sources[video_i].link
 
     fetched_cookies = handler.session.cookies if video_data.cookies is None else video_data.cookies
@@ -376,7 +376,7 @@ def play_video(handler, video_data):
         for k, v in additional_headers.items():
             video_url += '&{0}={1}'.format(k, v)
     # play_item = xbmcgui.ListItem(path=video_url)
-    xbmc.log('Video link {0}.'.format(video_url))
+    log('Video link {0}.'.format(video_url))
 
     # import web_pdb
     # web_pdb.set_trace()
@@ -413,7 +413,7 @@ def prepare_list_items(show_list, handler_id):
             icon = 'DefaultFolder.png'
 
         ids = x.get_full_id_path()
-        xbmc.log('Ids for the title {t} are: {ids}'.format(t=x.title, ids=ids))
+        log('Ids for the title {t} are: {ids}'.format(t=x.title, ids=ids))
         args = separator.join([str(y) for y in ids])
         u = plugin.url_for(func_call, handler_id=handler_id, args=args, page_number=1)
         item = xbmcgui.ListItem(x.title)
@@ -509,6 +509,22 @@ def correct_youtube_url(embed_url):
     """
     split_url = urlparse(embed_url)
     return 'plugin://plugin.video.youtube/?action=play_video&videoid=%s' % split_url.path.split('/')[-1]
+
+
+def log(txt):
+    if sys.version_info < (3, 0):
+        # Log admits both unicode strings and str encoded with "utf-8" (or ascii). will fail with other str encodings.
+        if isinstance(txt, str):
+            # if it is str we assume it's "utf-8" encoded.
+            # will fail if called with other encodings (latin, etc) BE ADVISED!
+            txt = txt.decode("utf-8")
+        # At this point we are sure txt is a unicode string.
+        message = u'%s: %s' % (ADDON.getAddonInfo('id'), txt)
+        xbmc.log(msg=message.encode("utf-8"), level=xbmc.LOGDEBUG)
+        # I reencode to utf-8 because in many xbmc versions log doesn't admit unicode.
+    else:
+        message = '%s: %s' % (ADDON.getAddonInfo('id'), txt)
+        xbmc.log(msg=message, level=xbmc.LOGDEBUG)
 
 
 def run():
