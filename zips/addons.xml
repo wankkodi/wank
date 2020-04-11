@@ -1,5 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addons>
+<addon id="plugin.israeliTV" name="Israeli TV" version="0.0.1" provider-name="Alexander Leibenzon">
+    <requires>
+        <import addon="xbmc.python" version="2.25.0"/>
+        <import addon="script.module.routing"/>
+		<import addon="script.module.requests"/>
+		<!--import addon="script.module.html5lib"/-->
+		<import addon="script.module.m3u8"/>
+		<import addon="plugin.video.youtube"/>
+		<import addon="script.module.youtube.dl"/>
+		<!--import addon="resource.images.languageflags.colour"/-->
+		<import addon="inputstream.adaptive"/>
+		<!--import addon="script.module.web-pdb"/-->
+    </requires>
+    <extension point="xbmc.python.pluginsource" library="main.py">
+        <provides>video</provides>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+        <summary lang="en_GB">Watch israeli VOD libraries.</summary>
+        <description lang="en_GB"></description>
+        <language></language>
+        <platform>all</platform>
+        <license>GPL-3.0</license>
+        <forum></forum>
+        <website></website>
+        <email>leibenzon.kodi@gmail.com</email>
+        <source></source>
+        <news></news>
+        <disclaimer></disclaimer>
+        <assets>
+            <icon>resources/icon.png</icon>
+            <fanart>resources/fanart.jpg</fanart>
+        </assets>
+    </extension>
+</addon>
+
 <addon id="plugin.WankWankWank" name="WANK! WANK! WANK!" version="0.0.1" provider-name="A.B.A.">
     <requires>
         <import addon="xbmc.python" version="2.25.0"/>

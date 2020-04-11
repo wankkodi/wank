@@ -68,7 +68,7 @@ class VODFetcher(BaseFetcher):
         :param object_data: Data object.
         :return:
         """
-        true_object = object_data.ture_object
+        true_object = object_data.true_object
         if true_object.object_type == VODCategories.CHANNELS_MAIN:
             return self._video_filters.channels_filters
         elif true_object.object_type == VODCategories.SEARCH_MAIN:
