@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 from ..fetchers.vod_fetcher import VODFetcher
 # Video catalog
-from ..catalogs.vod_catalog import VODCatalogNode, VODCategories, VideoNode, VideoSource, VideoTypes
+from ..catalogs.vod_catalog import VODCatalogNode, Enum, VideoNode, VideoSource, VideoTypes
 # Regex
 import re
 
@@ -21,7 +21,35 @@ from ..id_generator import IdGenerator
 from .. import urljoin, urlparse
 
 
-class WallaCategories(VODCategories):
+class WallaCategories(Enum):
+    # Copy from VODCategories :(
+    PAGE = 0
+    VIDEO = 1
+    VIDEO_PAGE = 2
+    SEARCH_MAIN = 3
+    SEARCH_PAGE = 4
+    GENERAL_MAIN = 5
+    LIVE_VIDEO = 6
+    LIVE_SCHEDULE = 7
+
+    # Special VOD object types
+    CHANNELS_MAIN = ('VOD', 0)
+    GENERAL_CHANNEL_SUB_CATEGORY = (CHANNELS_MAIN, 0)
+    SHOWS_MAIN = ('VOD', 1)
+    MOVIES_MAIN = ('VOD', 2)
+    SERIES_MAIN = ('VOD', 3)
+    KIDS_MAIN = ('VOD', 4)
+    SHOW_GENRE = ('VOD', 5)
+    MOVIE_GENRE = ('VOD', 6)
+    KIDS_GENRE = ('VOD', 7)
+    SHOW_SEASON = ('VOD', 8)
+    SHOW = ('VOD', 9)
+    KIDS_SHOW = ('VOD', 10)
+    KIDS_SHOW_SEASON = ('VOD', 11)
+    TV_CHANNELS_MAIN = ('VOD', 12)
+    TV_CHANNEL = ('VOD', 13)
+
+    # Walla add-ons
     VIVA_MAIN = ('Walla', 0)
     VIVA_TITLES = ('Walla', 1)
     VIVA_SHORT = ('Walla', 2)
@@ -78,6 +106,18 @@ class Walla(VODFetcher):
         self.season_to_show = {}
         super(Walla, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, session_id)
 
+    def _prepare_main_sub_objects(self):
+        """
+        Prepares main sub objects.
+        :return:
+        """
+        self.objects = {
+            WallaCategories.CHANNELS_MAIN:
+                self._prepare_main_single_sub_object(self.source_name, WallaCategories.CHANNELS_MAIN),
+            WallaCategories.SEARCH_MAIN: self._prepare_main_single_sub_object('Search', WallaCategories.SEARCH_MAIN),
+            WallaCategories.LIVE_VIDEO: self._prepare_main_single_sub_object('Live', WallaCategories.LIVE_VIDEO),
+        }
+
     def _update_base_categories(self, base_object):
         """
         Fetches all the available shows.
@@ -117,7 +157,7 @@ class Walla(VODFetcher):
         :param element_object: Object element we want to fetch.
         :return:
         """
-        true_object = element_object.ture_object
+        true_object = element_object.true_object
         if true_object.object_type == WallaCategories.CHANNELS_MAIN:
             return self._update_base_categories(element_object)
         elif true_object.object_type == WallaCategories.MOVIES_MAIN:
@@ -136,7 +176,7 @@ class Walla(VODFetcher):
             return self._update_kid_titles(element_object)
         elif true_object.object_type in (WallaCategories.KIDS_SHOW, WallaCategories.KIDS_SHOW_SEASON):
             return self._update_kids_episodes(element_object)
-        elif true_object.object_type == WallaCategories.TV_CHANNELS:
+        elif true_object.object_type == WallaCategories.TV_CHANNELS_MAIN:
             return self._update_channel_categories(element_object)
         elif true_object.object_type == WallaCategories.TV_CHANNEL:
             return self._update_channel_subcategories(element_object)
