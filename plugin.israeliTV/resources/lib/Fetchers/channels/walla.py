@@ -57,7 +57,16 @@ class WallaCategories(Enum):
     YES = ('Walla', 4)
 
 
+class WallaCatalogNode(VODCatalogNode):
+    @property
+    def _false_object_types(self):
+        return WallaCategories.PAGE, WallaCategories.VIDEO_PAGE, WallaCategories.SEARCH_PAGE
+
+
+# todo: implement search
 class Walla(VODFetcher):
+    _catalog_node_object = WallaCatalogNode
+
     url_2_main_categories_mapping = {
         '/movies': WallaCategories.MOVIES_MAIN,
         '/tvshows': WallaCategories.SHOWS_MAIN,
@@ -139,14 +148,14 @@ class Walla(VODFetcher):
 
             if show.attrib['href'] not in self.url_2_main_categories_mapping:
                 raise RuntimeError('Unknown main category! Recheck the site structure at {u}'.format(u=self.base_url))
-            x = VODCatalogNode(catalog_manager=self.catalog_manager,
-                               obj_id=show.attrib['href'],
-                               title=show.xpath('./span/text()')[0],
-                               url=urljoin(self.base_url, show.attrib['href']),
-                               image_link=None,
-                               super_object=base_object,
-                               object_type=self.url_2_main_categories_mapping[show.attrib['href']],
-                               raw_data=None)
+            x = WallaCatalogNode(catalog_manager=self.catalog_manager,
+                                 obj_id=show.attrib['href'],
+                                 title=show.xpath('./span/text()')[0],
+                                 url=urljoin(self.base_url, show.attrib['href']),
+                                 image_link=None,
+                                 super_object=base_object,
+                                 object_type=self.url_2_main_categories_mapping[show.attrib['href']],
+                                 raw_data=None)
             sub_objects.append(x)
 
         base_object.add_sub_objects(sub_objects)
@@ -191,7 +200,7 @@ class Walla(VODFetcher):
         elif true_object.object_type == WallaCategories.YES:
             return self._update_yes_categories(element_object)
         else:
-            raise ValueError('Unknown url {u} type.'.format(u=element_object.url))
+            raise ValueError('Unknown url {u} type.'.format(u=element_object.object_type))
 
     def _update_movie_categories(self, super_object):
         """
@@ -218,14 +227,14 @@ class Walla(VODFetcher):
             if 'href' not in show.attrib or urljoin(self.base_url, show.attrib['href']) == super_object.url:
                 continue
             title = show.xpath('./span')
-            x = VODCatalogNode(catalog_manager=self.catalog_manager,
-                               obj_id=show.attrib['href'],
-                               title=title[0].text,
-                               url=urljoin(self.base_url, show.attrib['href']),
-                               image_link=None,
-                               super_object=super_object,
-                               object_type=object_type,
-                               raw_data=None)
+            x = WallaCatalogNode(catalog_manager=self.catalog_manager,
+                                 obj_id=show.attrib['href'],
+                                 title=title[0].text,
+                                 url=urljoin(self.base_url, show.attrib['href']),
+                                 image_link=None,
+                                 super_object=super_object,
+                                 object_type=object_type,
+                                 raw_data=None)
 
             sub_objects.append(x)
 
@@ -253,32 +262,31 @@ class Walla(VODFetcher):
             number_of_sub_pages = self._get_available_pages_from_tree(tree)
             if len(number_of_sub_pages) > 0:
                 self._add_category_sub_pages(super_object, WallaCategories.PAGE, req)
-                super_object = super_object.sub_objects[0]
+        else:
+            xpath = './/li/article/a[@itemprop="url"]'
+            shows = tree.xpath(xpath)
 
-        xpath = './/li/article/a[@itemprop="url"]'
-        shows = tree.xpath(xpath)
+            sub_objects = []
+            for episode in shows:
+                show_id = re.findall(r'\d+$', episode.attrib['href'])
+                additional_data = self._fetch_additional_title_data(show_id[0])
+                x = WallaCatalogNode(catalog_manager=self.catalog_manager,
+                                     obj_id=additional_data['id'],
+                                     title=additional_data['title'],
+                                     description=additional_data['subtitle'],
+                                     url=urljoin(self.base_url, episode.attrib['href']),
+                                     image_link=urljoin(self.base_url,
+                                                        episode.xpath('./div/picture/img/@src')[0]),
+                                     super_object=super_object,
+                                     duration=self._format_duration(additional_data['duration']),
+                                     date=additional_data['release_date'][0]
+                                     if len(additional_data['release_date']) > 0 else None,
+                                     object_type=object_type,
+                                     raw_data=additional_data,
+                                     )
+                sub_objects.append(x)
 
-        sub_objects = []
-        for episode in shows:
-            show_id = re.findall(r'\d+$', episode.attrib['href'])
-            additional_data = self._fetch_additional_title_data(show_id[0])
-            x = VODCatalogNode(catalog_manager=self.catalog_manager,
-                               obj_id=additional_data['id'],
-                               title=additional_data['title'],
-                               description=additional_data['subtitle'],
-                               url=urljoin(self.base_url, episode.attrib['href']),
-                               image_link=urljoin(self.base_url,
-                                                  episode.xpath('./div/picture/img/@src')[0]),
-                               super_object=super_object,
-                               duration=self._format_duration(additional_data['duration']),
-                               date=additional_data['release_date'][0]
-                               if len(additional_data['release_date']) > 0 else None,
-                               object_type=object_type,
-                               raw_data=additional_data,
-                               )
-            sub_objects.append(x)
-
-        super_object.add_sub_objects(sub_objects)
+            super_object.add_sub_objects(sub_objects)
 
     def _update_series_categories(self, super_object):
         """
@@ -322,14 +330,14 @@ class Walla(VODFetcher):
             if len(available_seasons) > 0:
                 new_seasons = []
                 for i, season in enumerate(available_seasons):
-                    new_object = VODCatalogNode(catalog_manager=self.catalog_manager,
-                                                obj_id=season.attrib['href'],
-                                                title=self.season_prefix + ' ' + season.xpath('./span/text()')[0],
-                                                url=urljoin(self.base_url, season.attrib['href']),
-                                                image_link=super_object.image_link,
-                                                super_object=super_object,
-                                                object_type=sub_season_object_type,
-                                                raw_data=None)
+                    new_object = WallaCatalogNode(catalog_manager=self.catalog_manager,
+                                                  obj_id=season.attrib['href'],
+                                                  title=self.season_prefix + ' ' + season.xpath('./span/text()')[0],
+                                                  url=urljoin(self.base_url, season.attrib['href']),
+                                                  image_link=super_object.image_link,
+                                                  super_object=super_object,
+                                                  object_type=sub_season_object_type,
+                                                  raw_data=None)
                     new_seasons.append(new_object)
                 super_object.add_sub_objects(new_seasons)
                 super_object = super_object.sub_objects[0]
@@ -357,22 +365,22 @@ class Walla(VODFetcher):
         for raw_episode in raw_episodes:
             img_url = \
                 self.episode_image_template.format(fl=raw_episode['media']['types']['46']['file'])
-            x = VODCatalogNode(catalog_manager=self.catalog_manager,
-                               obj_id=raw_episode['id'],
-                               title=raw_episode['title'],
-                               description=raw_episode['subtitle'],
-                               number=self.episode_prefix + ' ' + raw_episode['episodeNumber'],
-                               url=self.episode_url_template.format(eid=raw_episode['id']),
-                               image_link=img_url,
-                               super_object=super_object,
-                               duration=self._format_duration(raw_episode['duration'])
-                               if 'duration' in raw_episode else None,
-                               date=raw_episode['release_date'][0]
-                               if 'release_date' in raw_episode and
-                                  len(raw_episode['release_date']) > 0 else None,
-                               object_type=WallaCategories.VIDEO,
-                               raw_data=raw_episode,
-                               )
+            x = WallaCatalogNode(catalog_manager=self.catalog_manager,
+                                 obj_id=raw_episode['id'],
+                                 title=raw_episode['title'],
+                                 description=raw_episode['subtitle'],
+                                 number=self.episode_prefix + ' ' + raw_episode['episodeNumber'],
+                                 url=self.episode_url_template.format(eid=raw_episode['id']),
+                                 image_link=img_url,
+                                 super_object=super_object,
+                                 duration=self._format_duration(raw_episode['duration'])
+                                 if 'duration' in raw_episode else None,
+                                 date=raw_episode['release_date'][0]
+                                 if 'release_date' in raw_episode and
+                                    len(raw_episode['release_date']) > 0 else None,
+                                 object_type=WallaCategories.VIDEO,
+                                 raw_data=raw_episode,
+                                 )
             new_episodes.append(x)
 
         super_object.add_sub_objects(new_episodes)
@@ -394,14 +402,14 @@ class Walla(VODFetcher):
         for show in shows:
             if 'href' not in show.attrib or urljoin(self.base_url, show.attrib['href']) == super_object.url:
                 continue
-            x = VODCatalogNode(catalog_manager=self.catalog_manager,
-                               obj_id=show.attrib['href'],
-                               title=show.text,
-                               url=urljoin(self.base_url, show.attrib['href']),
-                               image_link=super_object.image_link,
-                               super_object=super_object,
-                               object_type='category_' + '_'.join(super_object.object_type.split('_')[1:]),
-                               raw_data=None)
+            x = WallaCatalogNode(catalog_manager=self.catalog_manager,
+                                 obj_id=show.attrib['href'],
+                                 title=show.text,
+                                 url=urljoin(self.base_url, show.attrib['href']),
+                                 image_link=super_object.image_link,
+                                 super_object=super_object,
+                                 object_type='category_' + '_'.join(super_object.object_type.split('_')[1:]),
+                                 raw_data=None)
 
             sub_objects.append(x)
 
@@ -439,14 +447,14 @@ class Walla(VODFetcher):
             ):
                 continue
 
-            x = VODCatalogNode(catalog_manager=self.catalog_manager,
-                               obj_id=category.attrib['href'],
-                               title=category.xpath('./span/text()')[0],
-                               url=urljoin(super_object.url, category.attrib['href']),
-                               image_link=super_object.image_link,
-                               super_object=super_object,
-                               object_type=self.viva_paths[url_path],
-                               raw_data=None)
+            x = WallaCatalogNode(catalog_manager=self.catalog_manager,
+                                 obj_id=category.attrib['href'],
+                                 title=category.xpath('./span/text()')[0],
+                                 url=urljoin(super_object.url, category.attrib['href']),
+                                 image_link=super_object.image_link,
+                                 super_object=super_object,
+                                 object_type=self.viva_paths[url_path],
+                                 raw_data=None)
             sub_objects.append(x)
 
         super_object.add_sub_objects(sub_objects)
@@ -480,14 +488,14 @@ class Walla(VODFetcher):
             show_id = re.findall(r'\d+$', show_url)[0]
             show_image = urljoin(super_object.url, show.xpath('./div/picture/img/@src')[0])
             show_title = show.xpath('./h3[@class="title "]/div/span[@class="text"]/text()')[0]
-            x = VODCatalogNode(catalog_manager=self.catalog_manager,
-                               obj_id=show_id,
-                               title=show_title,
-                               url=show_url,
-                               image_link=show_image,
-                               super_object=super_object,
-                               object_type=WallaCategories.VIVA_SHOW,
-                               raw_data=None)
+            x = WallaCatalogNode(catalog_manager=self.catalog_manager,
+                                 obj_id=show_id,
+                                 title=show_title,
+                                 url=show_url,
+                                 image_link=show_image,
+                                 super_object=super_object,
+                                 object_type=WallaCategories.VIVA_SHOW,
+                                 raw_data=None)
             raw_additional_data = json.loads(show.attrib['data-tooltip-event'])
             if 'subtitle' in raw_additional_data:
                 x.description = raw_additional_data['subtitle']
@@ -510,14 +518,14 @@ class Walla(VODFetcher):
         for subcategory in subcategories:
             if urljoin(super_object.url, subcategory.attrib['href']) == super_object.url:
                 continue
-            x = VODCatalogNode(catalog_manager=self.catalog_manager,
-                               obj_id=subcategory.attrib['href'],
-                               title=subcategory.text,
-                               url=urljoin(super_object.url, subcategory.attrib['href']),
-                               image_link=super_object.image_link,
-                               super_object=super_object,
-                               object_type=WallaCategories.VIVA_SHOW,
-                               )
+            x = WallaCatalogNode(catalog_manager=self.catalog_manager,
+                                 obj_id=subcategory.attrib['href'],
+                                 title=subcategory.text,
+                                 url=urljoin(super_object.url, subcategory.attrib['href']),
+                                 image_link=super_object.image_link,
+                                 super_object=super_object,
+                                 object_type=WallaCategories.VIVA_SHOW,
+                                 )
             sub_objects.append(x)
 
         super_object.add_sub_objects(sub_objects)
@@ -547,16 +555,16 @@ class Walla(VODFetcher):
             if urlparse(episode.attrib['href']).path.split('/')[1] != 'episode':
                 continue
             episode_id = re.findall(r'\d+$', episode.attrib['href'])
-            x = VODCatalogNode(catalog_manager=self.catalog_manager,
-                               obj_id=episode_id,
-                               title=episode.xpath('./h3[@class="title "]/div/span/text()')[0],
-                               url=urljoin(super_object.url, episode.attrib['href']),
-                               image_link=urljoin(self.base_url,
-                                                  episode.xpath('./div[@class=" figure "]/picture/img/@src')[0]),
-                               super_object=super_object,
-                               raw_data=episode,
-                               object_type=WallaCategories.VIDEO,
-                               )
+            x = WallaCatalogNode(catalog_manager=self.catalog_manager,
+                                 obj_id=episode_id,
+                                 title=episode.xpath('./h3[@class="title "]/div/span/text()')[0],
+                                 url=urljoin(super_object.url, episode.attrib['href']),
+                                 image_link=urljoin(self.base_url,
+                                                    episode.xpath('./div[@class=" figure "]/picture/img/@src')[0]),
+                                 super_object=super_object,
+                                 raw_data=episode,
+                                 object_type=WallaCategories.VIDEO,
+                                 )
             raw_additional_data = json.loads(episode.attrib['data-tooltip-event'])
             if 'subtitle' in raw_additional_data:
                 x.description = raw_additional_data['subtitle']
@@ -621,14 +629,14 @@ class Walla(VODFetcher):
             else:
                 object_type = WallaCategories.SHOW_GENRE
 
-            x = VODCatalogNode(catalog_manager=self.catalog_manager,
-                               obj_id=show.attrib['href'],
-                               title=image[0].attrib['title'].capitalize(),
-                               url=channel_url,
-                               image_link=urljoin(self.base_url, image[0].attrib['src']),
-                               super_object=super_object,
-                               object_type=object_type,
-                               )
+            x = WallaCatalogNode(catalog_manager=self.catalog_manager,
+                                 obj_id=show.attrib['href'],
+                                 title=image[0].attrib['title'].capitalize(),
+                                 url=channel_url,
+                                 image_link=urljoin(self.base_url, image[0].attrib['src']),
+                                 super_object=super_object,
+                                 object_type=object_type,
+                                 )
             sub_objects.append(x)
 
         super_object.add_sub_objects(sub_objects)
@@ -648,14 +656,14 @@ class Walla(VODFetcher):
         sub_objects = []
         for show in shows:
             url = urljoin(self.base_url, show.attrib['href'])
-            x = VODCatalogNode(catalog_manager=self.catalog_manager,
-                               obj_id=show.attrib['href'],
-                               title=show.text,
-                               url=url,
-                               image_link=super_object.image_link,
-                               super_object=super_object,
-                               object_type=WallaCategories.SHOW_GENRE,
-                               )
+            x = WallaCatalogNode(catalog_manager=self.catalog_manager,
+                                 obj_id=show.attrib['href'],
+                                 title=show.text,
+                                 url=url,
+                                 image_link=super_object.image_link,
+                                 super_object=super_object,
+                                 object_type=WallaCategories.SHOW_GENRE,
+                                 )
             sub_objects.append(x)
 
         super_object.add_sub_objects(sub_objects)

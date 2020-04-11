@@ -6,7 +6,10 @@ import m3u8
 
 # Multithreading
 from .multithreading import ThreadPool
-import multiprocessing as mp
+try:
+    import multiprocessing as mp
+except ImportError:
+    mp = None
 
 # OS
 from os import remove
@@ -255,11 +258,17 @@ class VideoFetchTools(object):
                   for i in range(ceil(filesize / VideoFetchTools.CHUNK_SIZE))]
         ranges[-1][2] = None  # Last range must be to the end of file, so it will be marked as None.
 
-        pool = mp.Pool(min(len(ranges), 64))
-        # pool = mp.Pool(min(len(ranges), 4))
-        chunks = pool.map(VideoFetchTools._download_youtube_chunk, ranges)
-        pool.close()
-        pool.join()
+        if mp is not None:
+            pool = mp.Pool(min(len(ranges), 64))
+            # pool = mp.Pool(min(len(ranges), 4))
+            chunks = pool.map(VideoFetchTools._download_youtube_chunk, ranges)
+            pool.close()
+            pool.join()
+        else:
+            chunks = [None] * len(ranges)
+            workers = ThreadPool(min(len(ranges), 64))  # 100 is the number of threads
+            for i, data_range in enumerate(ranges):
+                workers.add_task(VideoFetchTools._store_youtube_chunk_to_param, i, data_range, chunks)
 
         with open(filename, 'wb') as outfile:
             for chunk, chunk_range in zip(chunks, ranges):
@@ -302,46 +311,53 @@ class VideoFetchTools(object):
                 warnings.warn(str(err))
                 raise err
 
-
-class M3U8Tools(object):
     @staticmethod
-    def parse_hdrezka_request_header(header):
-        """
-        Get all the available playlists url of m3u.
-        :param header: address of m3u file
-        :return: parsed m3u8 object.
-        """
-        request = requests.utils.unquote(header)
-        request = requests.utils.parse_dict_header(request.replace('&', ','))
-        correct_m3u8_url = request['manifest_m3u8']
-        payload = request.copy()
-        payload.pop('manifest_m3u8')
-        response = requests.get(correct_m3u8_url, data=payload)
-        m3u8_object = m3u8.loads(response.text)
-        return m3u8_object
+    def _store_youtube_chunk_to_param(args):
+        i = args[0]
+        store = args[2]
+        new_args = args[1]
+        store[i] = VideoFetchTools._download_youtube_chunk(new_args)
 
-    @staticmethod
-    def parse_m38u_from_url(m3u8_url):
-        """
-        Get all the available playlists url of m3u.
-        :param m3u8_url: address of m3u file
-        :return: parsed m3u8 object.
-        """
-        m3u8_object = m3u8.load(m3u8_url)
-        return m3u8_object
 
-    @staticmethod
-    def get_available_playlists(m3u8_pbject):
-        """
-        Get all the available playlists url of m3u.
-        :param m3u8_pbject: m3u8 object
-        :return: lists of urls and durations of video fragments.
-        """
-        urls = [x.absolute_uri for x in m3u8_pbject.playlists]
-        bandwidths = [x.stream_info.bandwidth for x in m3u8_pbject.playlists]
-        resolutions = [x.stream_info.resolution for x in m3u8_pbject.playlists]
-
-        return urls, bandwidths, resolutions
+# class M3U8Tools(object):
+#     @staticmethod
+#     def parse_hdrezka_request_header(header):
+#         """
+#         Get all the available playlists url of m3u.
+#         :param header: address of m3u file
+#         :return: parsed m3u8 object.
+#         """
+#         request = requests.utils.unquote(header)
+#         request = requests.utils.parse_dict_header(request.replace('&', ','))
+#         correct_m3u8_url = request['manifest_m3u8']
+#         payload = request.copy()
+#         payload.pop('manifest_m3u8')
+#         response = requests.get(correct_m3u8_url, data=payload)
+#         m3u8_object = m3u8.loads(response.text)
+#         return m3u8_object
+#
+#     @staticmethod
+#     def parse_m38u_from_url(m3u8_url):
+#         """
+#         Get all the available playlists url of m3u.
+#         :param m3u8_url: address of m3u file
+#         :return: parsed m3u8 object.
+#         """
+#         m3u8_object = m3u8.load(m3u8_url)
+#         return m3u8_object
+#
+#     @staticmethod
+#     def get_available_playlists(m3u8_pbject):
+#         """
+#         Get all the available playlists url of m3u.
+#         :param m3u8_pbject: m3u8 object
+#         :return: lists of urls and durations of video fragments.
+#         """
+#         urls = [x.absolute_uri for x in m3u8_pbject.playlists]
+#         bandwidths = [x.stream_info.bandwidth for x in m3u8_pbject.playlists]
+#         resolutions = [x.stream_info.resolution for x in m3u8_pbject.playlists]
+#
+#         return urls, bandwidths, resolutions
 
 
 if __name__ == '__main__':

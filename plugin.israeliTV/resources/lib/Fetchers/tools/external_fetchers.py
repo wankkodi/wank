@@ -48,10 +48,11 @@ class ExternalFetcher(object):
     def __init__(self, session=None, user_agent=None, parser=None):
         self.session = session if session is not None else requests.session()
 
-        self.user_agents_manager = UserAgents()
         if user_agent is not None:
+            self.user_agents_manager = None
             self.user_agent = user_agent
         else:
+            self.user_agents_manager = UserAgents()
             user_agents = self.user_agents_manager.get_latest_user_agents(num_of_pages=5, os_filter='Windows',
                                                                           common_filter='Very common')
             self.user_agent = random.choice(user_agents)[0]

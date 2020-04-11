@@ -26,6 +26,7 @@ from ..id_generator import IdGenerator
 
 class VODFetcher(BaseFetcher):
     metaclass = ABCMeta
+    _catalog_node_object = VODCatalogNode
 
     @property
     def categories_enum(self):
@@ -68,7 +69,7 @@ class VODFetcher(BaseFetcher):
         :param object_data: Data object.
         :return:
         """
-        true_object = object_data.ture_object
+        true_object = object_data.true_object
         if true_object.object_type == VODCategories.CHANNELS_MAIN:
             return self._video_filters.channels_filters
         elif true_object.object_type == VODCategories.SEARCH_MAIN:
@@ -81,13 +82,13 @@ class VODFetcher(BaseFetcher):
         Prepares the object out of object url and object type and title.
         :return: Dictionary object with fields 'obj' and 'update_function'.
         """
-        return VODCatalogNode(catalog_manager=self.catalog_manager,
-                              obj_id='-'+str(object_type),
-                              super_object=self.dummy_super_object,
-                              title=title,
-                              url=self.object_urls[object_type],
-                              object_type=object_type,
-                              ) if object_type in self.object_urls else None
+        return self._catalog_node_object(catalog_manager=self.catalog_manager,
+                                         obj_id='-'+str(object_type),
+                                         super_object=self.dummy_super_object,
+                                         title=title,
+                                         url=self.object_urls[object_type],
+                                         object_type=object_type,
+                                         ) if object_type in self.object_urls else None
 
     def get_live_stream_info(self):
         """
@@ -114,7 +115,7 @@ class VODFetcher(BaseFetcher):
         fit_shows = [x for x in available_shows.sub_objects if show_id == x.id]
         return fit_shows
 
-    def _add_category_sub_pages(self, category_data, sub_object_type, page_request=None):
+    def _add_category_sub_pages(self, category_data, sub_object_type, page_request=None, clear_sub_elements=True):
         """
         Adds category sub pages.
         :param category_data: Category data object (PornCatalogCategoryNode).
@@ -122,7 +123,8 @@ class VODFetcher(BaseFetcher):
         :param page_request: Page request if such exist. In case it doesn't exist we fetch the object's url.
         :return:
         """
-        category_data.clear_sub_objects()
+        if clear_sub_elements is True:
+            category_data.clear_sub_objects()
         if self._use_web_server is True:
             raw_num_of_pages = self.data_server.fetch_request(category_data.url)
             if raw_num_of_pages['status'] is True:
@@ -136,16 +138,16 @@ class VODFetcher(BaseFetcher):
         else:
             num_of_pages = self._get_number_of_sub_pages(category_data, page_request)
 
-        new_pages = [VODCatalogNode(catalog_manager=self.catalog_manager,
-                                    obj_id=(IdGenerator.id_to_original_str(category_data.id), i),
-                                    title=category_data.title + ' | Page {p}'.format(p=i),
-                                    url=category_data.url,
-                                    page_number=i,
-                                    raw_data=category_data.raw_data,
-                                    additional_data=category_data.additional_data,
-                                    object_type=sub_object_type,
-                                    super_object=category_data,
-                                    )
+        new_pages = [self._catalog_node_object(catalog_manager=self.catalog_manager,
+                                               obj_id=(IdGenerator.id_to_original_str(category_data.id), i),
+                                               title=category_data.title + ' | Page {p}'.format(p=i),
+                                               url=category_data.url,
+                                               page_number=i,
+                                               raw_data=category_data.raw_data,
+                                               additional_data=category_data.additional_data,
+                                               object_type=sub_object_type,
+                                               super_object=category_data,
+                                               )
                      for i in range(1, num_of_pages + 1)]
         category_data.add_sub_objects(new_pages)
 
