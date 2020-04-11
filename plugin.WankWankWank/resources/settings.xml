@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings>
+    <category id="debug_group" label="32001">
+        <setting id="debug" type="bool" label="32001" default="false"/>
+    </category>
+    <category label="42000">
+        <setting id="pin_code" label="42001" type="lsep"/>
+        <setting label="42001" type="bool" id="is_pin_code" default="false">
+            <onclick>RunPlugin(plugin://plugin.WankWankWank/update_settings/update_is_pin_code)</onclick>
+        </setting>
+        <setting label="42002" type="action" default="0000"
+                 action="RunPlugin(plugin://plugin.WankWankWank/update_settings/update_pin_code)"
+                 option="close" enable="eq(-1,true)" subsetting="true"/>
+        <setting id="send_data" label="42003" type="lsep"/>
+        <setting label="42003" type="bool" id="is_send_data" default="false">
+            <onclick action="RunPlugin(plugin://plugin.WankWankWank/update_settings/update_is_pin_code)" />
+        </setting>
+    </category>
+</settings>

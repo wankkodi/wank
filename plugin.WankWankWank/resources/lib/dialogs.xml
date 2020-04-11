@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<body>
+    <category label="40000" id="welcome">
+        <title label="40001" id="welcome_title"/>
+        <text label="40002" id="welcome_message"/>
+        <error label="40003" id="block_error"/>
+        <error label="40004" id="got_blocked_error"/>
+        <error label="40005" id="got_blocked_error"/>
+    </category>
+
+    <category label="42000" id="general">
+        <subcategory label="42010" id="pin_code">
+            <text label="42011" id="enter_pin"/>
+            <text label="42012" id="validate_pin"/>
+            <title label="42013" id="incorrect_pin_error_title"/>
+            <error label="42014" id="incorrect_pin_length_error"/>
+            <error label="42015" id="incorrect_pin_entered_with_counter"/>
+            <error label="42016" id="incorrect_pin_entered"/>
+            <error label="42017" id="inconsistent_pin_code"/>
+            <title label="42020" id="change_pin_code"/>
+        </subcategory>
+        <subcategory label="42030" id="use_data">
+            <title label="42031" id="send_data_title"/>
+            <text label="42032" id="send_data_body"/>
+        </subcategory>
+    </category>
+
+    <settings>
+        <setting id="debug" type="bool" label="32001" default="false"/>
+        <category label="42000">
+            <setting label="42010" type="bool" id="is_pin_code" default="false"/>
+            <setting label="42020" type="action"
+                     action="RunPlugin(plugin://plugin.WankWankWank/update_settings/update_pin_code)"
+                     option="close" enable="eq(-1,true)" subsetting="true"/>
+            <setting type="sep"/>
+            <setting label="42030" type="bool" id="is_send_data" default="false"/>
+        </category>
+    </settings>
+</body>
+
