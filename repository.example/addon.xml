@@ -8,8 +8,8 @@
         </dir>
     </extension>
     <extension point="xbmc.addon.metadata">
-        <summary>REPO_NAME_HERE</summary>
-        <description>DESCRIPTION OF YOUR REPO HERE</description>
+        <summary>Wank Repository</summary>
+        <description>Home of the Wank! Wank! Wank! add-on</description>
         <disclaimer></disclaimer>
         <platform>all</platform>
         <assets>
