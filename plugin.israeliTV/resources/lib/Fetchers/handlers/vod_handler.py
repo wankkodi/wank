@@ -77,7 +77,7 @@ class SourceHandler(object):
         elif source_id == -15:
             self.title = 'sport1'
             self.main_module = Sport1
-            self.image = path.join(logo_dir, 'logo2-min.png')
+            self.image = path.join(logo_dir, 'sport1logo.png')
         elif source_id == -16:
             self.title = 'channel20'
             self.main_module = Channel20
@@ -85,7 +85,7 @@ class SourceHandler(object):
         elif source_id == -17:
             self.title = 'channel9'
             self.main_module = Channel9
-            self.image = path.join(logo_dir, 'logo9.png')
+            self.image = path.join(logo_dir, 'logo_ch9.png')
         elif source_id == -18:
             self.title = 'IBA (Archive)'
             self.main_module = IBA
