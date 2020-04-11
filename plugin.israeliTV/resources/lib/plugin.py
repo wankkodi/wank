@@ -14,7 +14,7 @@ import xbmc
 from Fetchers.handlers.vod_handler import HandlerManager
 
 # Types
-from Fetchers.catalogs.vod_catalog import VODCategories
+# from Fetchers.catalogs.vod_catalog import VODCategories
 
 # import sys
 from os import path, makedirs
@@ -117,7 +117,7 @@ def choose_live():
     items = []
     for handler_id in handler_wrapper.handlers.handlers:
         handler = handler_wrapper.handlers.get_handler(int(handler_id))
-        if VODCategories.LIVE_VIDEO not in handler.object_urls:
+        if handler.categories_enum.LIVE_VIDEO not in handler.object_urls:
             continue
 
         live_info = handler.get_live_stream_info()
@@ -171,7 +171,7 @@ def choose_search():
     items = []
     for handler_id, handler_data in handler_wrapper.handlers.handlers.items():
         handler = handler_wrapper.handlers.get_handler(int(handler_id))
-        if VODCategories.SEARCH_MAIN not in handler.object_urls:
+        if handler.categories_enum.SEARCH_MAIN not in handler.object_urls:
             continue
 
         u = plugin.url_for(prepare_search_sources, handler_id=handler_id)
@@ -394,13 +394,14 @@ def prepare_list_items(show_list, handler_id):
     # import web_pdb
     # web_pdb.set_trace()
 
+    handler = handler_wrapper.handlers.get_handler(int(handler_id))
     for x in show_list.sub_objects:
-        if x.object_type in (VODCategories.VIDEO_PAGE, ):
+        if x.object_type in (handler.categories_enum.VIDEO_PAGE, ):
             func_call = play_episode
             is_playable = 'true'
             is_folder = False
             icon = 'DefaultTVShows.png'
-        elif x.object_type in (VODCategories.LIVE_VIDEO, ):
+        elif x.object_type in (handler.categories_enum.LIVE_VIDEO, ):
             func_call = play_live_stream
             is_playable = 'true'
             is_folder = False
