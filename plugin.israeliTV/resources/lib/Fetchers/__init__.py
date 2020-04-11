@@ -1,4 +1,7 @@
-import html5lib
+try:
+    import html5lib
+except ImportError:
+    import Modules.html5lib as html5lib
 
 # Internet tools
 import sys
@@ -13,4 +16,4 @@ else:
 if sys.version_info >= (3, 4):
     from enum import Enum
 else:
-    from ..enum34 import Enum
+    from Modules.enum34 import Enum
