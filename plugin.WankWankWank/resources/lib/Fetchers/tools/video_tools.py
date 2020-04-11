@@ -6,7 +6,10 @@ import m3u8
 
 # Multithreading
 from .multithreading import ThreadPool
-import multiprocessing as mp
+try:
+    import multiprocessing as mp
+except ImportError:
+    mp = None
 
 # OS
 from os import remove
@@ -255,11 +258,17 @@ class VideoFetchTools(object):
                   for i in range(ceil(filesize / VideoFetchTools.CHUNK_SIZE))]
         ranges[-1][2] = None  # Last range must be to the end of file, so it will be marked as None.
 
-        pool = mp.Pool(min(len(ranges), 64))
-        # pool = mp.Pool(min(len(ranges), 4))
-        chunks = pool.map(VideoFetchTools._download_youtube_chunk, ranges)
-        pool.close()
-        pool.join()
+        if mp is not None:
+            pool = mp.Pool(min(len(ranges), 64))
+            # pool = mp.Pool(min(len(ranges), 4))
+            chunks = pool.map(VideoFetchTools._download_youtube_chunk, ranges)
+            pool.close()
+            pool.join()
+        else:
+            chunks = [None] * len(ranges)
+            workers = ThreadPool(min(len(ranges), 64))  # 100 is the number of threads
+            for i, data_range in enumerate(ranges):
+                workers.add_task(VideoFetchTools._store_youtube_chunk_to_param, i, data_range, chunks)
 
         with open(filename, 'wb') as outfile:
             for chunk, chunk_range in zip(chunks, ranges):
@@ -301,6 +310,13 @@ class VideoFetchTools(object):
             if number_of_retries > max_number_of_retries:
                 warnings.warn(str(err))
                 raise err
+
+    @staticmethod
+    def _store_youtube_chunk_to_param(args):
+        i = args[0]
+        store = args[2]
+        new_args = args[1]
+        store[i] = VideoFetchTools._download_youtube_chunk(new_args)
 
 
 class M3U8Tools(object):
