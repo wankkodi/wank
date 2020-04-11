@@ -82,14 +82,22 @@ class Walla(VODFetcher):
     # viva_paths = ('/shorts', '/tvshows', '/fullepisodes',)
     viva_paths = {'/shorts': WallaCategories.VIVA_SHORT, '/fullepisodes': WallaCategories.VIVA_TITLES, }
 
-    video_request_template = 'https://walla-metadata-rr-d.vidnt.com/vod/vod/{vid}/hls/' \
-                             'metadata.xml?&https_streaming=true'
-    video_initial_server = 'walla-s.vidnt.com'
+    # video_request_template = 'https://walla-metadata-rr-d.vidnt.com/vod/vod/{vid}/hls/' \
+    #                          'metadata.xml?&https_streaming=true'
+    # video_initial_server = 'walla-s.vidnt.com'
     episode_image_template = 'https://img.wcdn.co.il/f_auto,w_200,t_54/{fl[0]}/{fl[1]}/{fl[2]}/{fl[3]}/{fl}'
     episode_url_template = 'https://vod.walla.co.il/episode/{eid}'
     current_page_episodes = 'https://dal.walla.co.il/talkback/list/{sid}'
     season_prefix = u"עונה"
     episode_prefix = u"פרק"
+
+    @property
+    def categories_enum(self):
+        """
+        Base site url.
+        :return:
+        """
+        return WallaCategories
 
     @property
     def object_urls(self):
@@ -262,31 +270,32 @@ class Walla(VODFetcher):
             number_of_sub_pages = self._get_available_pages_from_tree(tree)
             if len(number_of_sub_pages) > 0:
                 self._add_category_sub_pages(super_object, WallaCategories.PAGE, req)
-        else:
-            xpath = './/li/article/a[@itemprop="url"]'
-            shows = tree.xpath(xpath)
+                return
 
-            sub_objects = []
-            for episode in shows:
-                show_id = re.findall(r'\d+$', episode.attrib['href'])
-                additional_data = self._fetch_additional_title_data(show_id[0])
-                x = WallaCatalogNode(catalog_manager=self.catalog_manager,
-                                     obj_id=additional_data['id'],
-                                     title=additional_data['title'],
-                                     description=additional_data['subtitle'],
-                                     url=urljoin(self.base_url, episode.attrib['href']),
-                                     image_link=urljoin(self.base_url,
-                                                        episode.xpath('./div/picture/img/@src')[0]),
-                                     super_object=super_object,
-                                     duration=self._format_duration(additional_data['duration']),
-                                     date=additional_data['release_date'][0]
-                                     if len(additional_data['release_date']) > 0 else None,
-                                     object_type=object_type,
-                                     raw_data=additional_data,
-                                     )
-                sub_objects.append(x)
+        xpath = './/li/article/a[@itemprop="url"]'
+        shows = tree.xpath(xpath)
 
-            super_object.add_sub_objects(sub_objects)
+        sub_objects = []
+        for episode in shows:
+            show_id = re.findall(r'\d+$', episode.attrib['href'])
+            additional_data = self._fetch_additional_title_data(show_id[0])
+            x = WallaCatalogNode(catalog_manager=self.catalog_manager,
+                                 obj_id=additional_data['id'],
+                                 title=additional_data['title'],
+                                 description=additional_data['subtitle'],
+                                 url=urljoin(self.base_url, episode.attrib['href']),
+                                 image_link=urljoin(self.base_url,
+                                                    episode.xpath('./div/picture/img/@src')[0]),
+                                 super_object=super_object,
+                                 duration=self._format_duration(additional_data['duration']),
+                                 date=additional_data['release_date'][0]
+                                 if len(additional_data['release_date']) > 0 else None,
+                                 object_type=object_type,
+                                 raw_data=additional_data,
+                                 )
+            sub_objects.append(x)
+
+        super_object.add_sub_objects(sub_objects)
 
     def _update_series_categories(self, super_object):
         """
@@ -750,7 +759,6 @@ class Walla(VODFetcher):
             subtitles = {x['language']: x['src'] for x in subtitles}
         else:
             subtitles = None
-        new_url = self.video_request_template.format(vid=raw_data['vimmeId'])
         headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
                       'q=0.8,application/signed-exchange;v=b3',
@@ -762,17 +770,17 @@ class Walla(VODFetcher):
             'Sec-Fetch-User': '?1',
             'User-Agent': self.user_agent
         }
-        req = self.session.get(new_url, headers=headers)
-        tree = self.parser.parse(req.text)
-        playlist_url = tree.xpath('.//fileurl')
-        servers = sorted(tree.xpath('.//servers/server'), key=lambda x: int(x.attrib['priority']))
-        video_playlists = sorted(((x.attrib['bitrate'], x.text) for x in playlist_url),
-                                 key=lambda x: int(x[0]), reverse=True)
-        video_playlists = [x[1].replace(self.video_initial_server, y.text) for x in video_playlists for y in servers]
-        video_playlists = [urljoin(x, y.uri) for x in video_playlists for y in self.get_video_m3u8(x)]
-        video_objects = [VideoSource(link=urljoin(x, y.uri), video_type=VideoTypes.VIDEO_SEGMENTS,
-                                     quality=y.stream_info.bandwidth, codec=y.stream_info.codecs)
-                         for x in video_playlists for y in self.get_video_m3u8(x)]
+        req = self.session.get(raw_data['url'], headers=headers)
+        video_m3u8 = m3u8.loads(req.text)
+        video_playlists = video_m3u8.playlists
+        if all(vp.stream_info.bandwidth is not None for vp in video_playlists):
+            video_playlists.sort(key=lambda k: k.stream_info.bandwidth, reverse=True)
+
+        video_objects = [VideoSource(link=urljoin(raw_data['url'], x.uri),
+                                     video_type=VideoTypes.VIDEO_SEGMENTS,
+                                     quality=x.stream_info.bandwidth,
+                                     codec=x.stream_info.codecs)
+                         for x in video_playlists]
         return VideoNode(video_sources=video_objects, raw_data=raw_data, subtitles=subtitles)
 
     def get_video_m3u8(self, video_link):
