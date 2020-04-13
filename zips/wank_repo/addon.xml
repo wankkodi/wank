@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="wank_repo" name="Wank Repository" version="1.0" provider-name="wankkodi">
+<addon id="repository.wankRepository" name="Wank Repository" version="1.0" provider-name="wankkodi">
     <extension point="xbmc.addon.wankRepository" name="Wank Repository">
         <dir>
             <info compressed="false">https://raw.githubusercontent.com/wankkodi/wank/master/zips/addons.xml</info>
