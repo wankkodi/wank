@@ -199,7 +199,8 @@ class XPaja(PornFetcher):
         if category_data.object_type in (PornCategories.CATEGORY_MAIN, PornCategories.RANDOM_VIDEO):
             return 1
         try:
-            page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
+            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
+                else fetched_request
         except PornFetchUrlError:
             return 1
         tree = self.parser.parse(page_request.text)

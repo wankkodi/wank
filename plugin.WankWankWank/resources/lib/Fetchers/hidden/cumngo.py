@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornNoVideoError
+from ..fetchers.porn_fetcher import PornFetcher, PornNoVideoError, PornErrorModule
 
 # Internet tools
 from .. import urljoin, quote_plus, parse_qsl
@@ -186,7 +186,10 @@ class CumNGo(PornFetcher):
         tmp_tree = self.parser.parse(tmp_request.text)
         ext_link = tmp_tree.xpath('.//section[@class="player float-left clearfix"]//iframe')
         if len(ext_link) == 0 or 'src' not in ext_link[0].attrib:
-            raise PornNoVideoError('No Video link for url {u}'.format(u=tmp_request.url))
+            server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
+                                          'Cannot fetch video links from the url {u}'.format(u=tmp_request.url),
+                                          None, None)
+            raise PornNoVideoError('No Video link for url {u}'.format(u=tmp_request.url), server_data)
         new_link = ext_link[0].attrib['src']
         new_request = self.external_fetchers.get_video_link_from_videyo_tube(new_link)
         videos = []

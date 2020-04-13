@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher
+from ..fetchers.porn_fetcher import PornFetcher, PornErrorModule, PornNoVideoError
 
 # Internet tools
 from .. import urljoin, quote_plus
@@ -170,7 +170,12 @@ class GoForPorn(PornFetcher):
         :return:
         """
         tmp_request = self.get_object_request(video_data)
-        assert tmp_request.ok
+        if not self._check_is_available_page(tmp_request):
+            server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
+                                          'Cannot fetch video links from the url {u}'.format(u=tmp_request.url),
+                                          None, None)
+            raise PornNoVideoError('No Video link for url {u}'.format(u=tmp_request.url), server_data)
+
         new_url = urljoin(video_data.url, re.findall(r'(?:sourceUrl: \')(.*?)(?:\')', tmp_request.text)[0])
         headers = {
             'Accept': '*/*',
@@ -191,8 +196,10 @@ class GoForPorn(PornFetcher):
                              for x in raw_data['content']['urls']),
                             key=lambda x: x.resolution, reverse=True)
         except TypeError as err:
-            # todo: to make special error for videos
-            raise err
+            str_err = 'No Video link for url {u}, got error {e}'.format(u=tmp_request.url, e=err)
+            server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
+                                          str_err, None, None)
+            raise PornNoVideoError(str_err, server_data)
         return VideoNode(video_sources=videos)
 
     def _get_number_of_sub_pages(self, category_data, fetched_request=None):

@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher
+from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError
 
 # Internet tools
 from .. import urljoin, urlparse, quote_plus
@@ -223,8 +223,10 @@ class NubileFilmXXX(BaseObject):
         if category_data.object_type in (PornCategories.CATEGORY_MAIN, PornCategories.PORN_STAR_MAIN,
                                          PornCategories.CHANNEL_MAIN):
             return 1
-        page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
-        if not page_request.ok:
+        try:
+            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
+                else fetched_request
+        except PornFetchUrlError:
             return 1
         tree = self.parser.parse(page_request.text)
         available_pages = self._get_available_pages_from_tree(tree)
@@ -345,10 +347,11 @@ class PlusOne8(NubileFilmXXX):
         max_page = None
         res = []
         while 1:
-            page_request = self.get_object_request(category_data, page)
-            tree = self.parser.parse(page_request.text)
-            if not page_request.ok:
+            try:
+                page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
+            except PornFetchUrlError:
                 break
+            tree = self.parser.parse(page_request.text)
             if max_page is None:
                 available_pages = self._get_available_pages_from_tree(tree)
                 max_page = max(available_pages) if len(available_pages) > 0 else 1
@@ -430,8 +433,10 @@ class PlusOne8(NubileFilmXXX):
         """
         if category_data.object_type in (PornCategories.TAG_MAIN, PornCategories.CATEGORY_MAIN):
             return 1
-        page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
-        if not page_request.ok:
+        try:
+            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
+                else fetched_request
+        except PornFetchUrlError:
             return 1
         tree = self.parser.parse(page_request.text)
         available_pages = self._get_available_pages_from_tree(tree)

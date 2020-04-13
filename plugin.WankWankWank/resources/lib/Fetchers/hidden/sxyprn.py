@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornValueError
+from ..fetchers.porn_fetcher import PornFetcher, PornValueError, PornFetchUrlError, PornErrorModule
 
 # Internet tools
 from .. import urljoin, parse_qs
@@ -111,7 +111,10 @@ class SexyPorn(PornFetcher):
         try:
             self.server_number = re.findall(r'(?:tmp\[1\]\+= ")(\d+)(?:")', main_server.text)[0]
         except IndexError:
-            raise PornValueError('Wrong server number')
+            server_data = PornErrorModule(self.data_server, self.source_name, self.main_js,
+                                          'Cannot fetch the server number from {u}'.format(u=self.main_js),
+                                          None, None)
+            raise PornValueError('Wrong server number', error_module=server_data)
 
     def _update_available_categories(self, category_data):
         """
@@ -243,8 +246,10 @@ class SexyPorn(PornFetcher):
         :param category_data: Category data (dict).
         :return:
         """
-        page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
-        if not page_request.ok:
+        try:
+            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
+                else fetched_request
+        except PornFetchUrlError:
             return 1
         tree = self.parser.parse(page_request.text)
         available_pages = self._get_available_pages_from_tree(tree)

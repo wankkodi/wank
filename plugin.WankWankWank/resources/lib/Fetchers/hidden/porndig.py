@@ -408,7 +408,7 @@ class PornDig(PornFetcher):
         while 1:
             page = math.ceil((right_page + left_page) / 2)
             try:
-                page_request = self.get_object_request(category_data, override_page_number=page)
+                page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
                 if page == 1:
                     print('debug, remove afterwards...')
                 raw_data = page_request.json()

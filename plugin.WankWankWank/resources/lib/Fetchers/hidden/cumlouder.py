@@ -207,14 +207,6 @@ class CumLouder(PornFetcher):
         # We perform binary search
         return self._binary_search_max_number_of_pages(category_data)
 
-    def _check_is_available_page(self, page_request):
-        """
-        In binary search performs test whether the current page is available.
-        :param page_request: Page request.
-        :return:
-        """
-        return page_request.ok
-
     def _get_available_pages_from_tree(self, tree):
         """
         In binary looks for the available pages from current page tree.

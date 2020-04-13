@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher
+from ..fetchers.porn_fetcher import PornFetcher, PornErrorModule, PornNoVideoError
 
 # Internet tools
 from .. import urljoin, quote, parse_qs
@@ -260,7 +260,13 @@ class SpankBang(PornFetcher):
                 if new_v in video_data and len(video_data[new_v]) > 0:
                     for x in video_data[new_v]:
                         req3 = self.session.get(x, headers=headers)
-                        assert req3.ok
+                        if not self._check_is_available_page(req3):
+                            server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
+                                                          'Cannot fetch video links from the url {u}'.format(
+                                                              u=req3.url),
+                                                          None, None)
+                            raise PornNoVideoError('No Video link for url {u}'.format(u=req3.url), server_data)
+
                         video_m3u8 = m3u8.loads(req3.text)
                         video_playlists = video_m3u8.playlists
                         if all(vp.stream_info.bandwidth is not None for vp in video_playlists):

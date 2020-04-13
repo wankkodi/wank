@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError
+from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError, PornNoVideoError, PornErrorModule
 
 # Internet tools
 from .. import urljoin, parse_qs, quote
@@ -152,7 +152,12 @@ class PornoMovies(PornFetcher):
             'User-Agent': self.user_agent
         }
         tmp_request = self.session.get(video_data.url, headers=headers)
-        assert tmp_request.ok
+        if not self._check_is_available_page(tmp_request):
+            server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
+                                          'Cannot fetch video links from the url {u}'.format(u=tmp_request.url),
+                                          None, None)
+            raise PornNoVideoError('No Video link for url {u}'.format(u=tmp_request.url), server_data)
+
         tree = self.parser.parse(tmp_request.text)
         videos = [VideoSource(link=x) for x in tree.xpath('.//video/source/@src')]
         assert len(videos) > 0
@@ -198,7 +203,7 @@ class PornoMovies(PornFetcher):
 
             page = math.ceil((right_page + left_page) / 2)
             try:
-                page_request = self.get_object_request(category_data, override_page_number=page)
+                page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
                 tree = self.parser.parse(page_request.text)
                 pages = self._get_available_pages_from_tree(tree)
                 if len(pages) == 0:

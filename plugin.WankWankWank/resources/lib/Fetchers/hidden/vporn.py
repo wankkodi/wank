@@ -354,7 +354,7 @@ class VPorn(PornFetcher):
         :return:
         """
         try:
-            page_request = self.get_object_request(category_data, page)
+            page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
         except PornFetchUrlError as err:
             return False, err.request
         tree = self.parser.parse(page_request.text)

@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError, PornValueError
+from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError, PornValueError, PornNoVideoError, PornErrorModule
 
 # Internet tools
 from .. import urljoin, urlparse, quote, quote_plus, parse_qs
@@ -218,7 +218,12 @@ class PornDotCom(PornFetcher):
                 'User-Agent': self.user_agent
             }
             tmp_request = self.session.post(self.embed_video_json_url, headers=headers, data=params)
-            assert tmp_request.ok
+            if not self._check_is_available_page(tmp_request):
+                server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
+                                              'Cannot fetch video links from the url {u}'.format(u=tmp_request.url),
+                                              None, None)
+                raise PornNoVideoError('No Video link for url {u}'.format(u=tmp_request.url), server_data)
+
             raw_data = tmp_request.json()
             videos = sorted((VideoSource(link=x['url'], resolution=int(re.findall(r'\d+', x['id'])[0]))
                              for x in raw_data['player']['streams']),
@@ -706,7 +711,7 @@ class PornHub(PornFetcher):
         if category_data.object_type == PornCategories.CATEGORY_MAIN:
             return 1
         try:
-            page_request = self.get_object_request(category_data, override_page_number=2)
+            page_request = self.get_object_request(category_data, override_page_number=2, send_error=False)
         except PornFetchUrlError:
             return 1
         tree = self.parser.parse(page_request.text)

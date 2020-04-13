@@ -34,27 +34,6 @@
     </extension>
 </addon>
 
-	<addon id="plugin.video.idanplus" name="עידן+ פלוס" version="2.6.1" provider-name="nil">
-		<requires>
-			<import addon="xbmc.python" version="2.1.0"/>
-			<import addon="script.module.requests"/>
-			<import addon="script.module.xmltodict"/>
-		</requires>
-		<extension point="xbmc.python.pluginsource" library="default.py">
-			<provides>video</provides>
-		</extension>
-		<extension point="xbmc.service" library="resources/lib/service.py" start="[login|startup]"/>
-		<extension point="xbmc.addon.metadata">
-			<platform>all</platform>
-			<summary lang="en">צפיה בערוצי עידן פלוס ובתכניות מהאתרים הרשמיים.</summary>
-			<description lang="en">צפיה בערוצי עידן פלוס ובתכניות מהאתרים הרשמיים.[CR]אפשרויות שונות בהגדרות ההרחבה ובקליק ימני על פריט ברשימה.</description>
-			<news>- Added N12 News TV channel.[CR]- Added 91FM Radio station.</news>
-			<supportedcontent>
-				<content>tvshows</content>
-			</supportedcontent>
-		</extension>
-	</addon>
-
 <addon id="plugin.WankWankWank" name="WANK! WANK! WANK!" version="0.0.1" provider-name="A.B.A.">
     <requires>
         <import addon="xbmc.python" version="2.25.0"/>

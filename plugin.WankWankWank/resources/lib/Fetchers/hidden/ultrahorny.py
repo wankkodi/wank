@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher
+from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError
 from ..tools.external_fetchers import ExternalFetcher
 
 # Internet tools
@@ -172,8 +172,10 @@ class UltraHorny(PornFetcher):
         :param category_data: Category data (dict).
         :return:
         """
-        page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
-        if not page_request.ok:
+        try:
+            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
+                else fetched_request
+        except PornFetchUrlError:
             return 1
         tree = self.parser.parse(page_request.text)
         available_pages = self._get_available_pages_from_tree(tree)

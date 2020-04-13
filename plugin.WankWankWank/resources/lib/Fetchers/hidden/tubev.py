@@ -160,7 +160,8 @@ class TubeV(PornFetcher):
         if category_data.object_type in (PornCategories.CHANNEL_MAIN, ):
             return 1
         try:
-            page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
+            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
+                else fetched_request
         except PornFetchUrlError:
             return 1
         tree = self.parser.parse(page_request.text)
@@ -193,7 +194,7 @@ class TubeV(PornFetcher):
                 left_page = right_page - self._binary_search_page_threshold
             page = math.ceil((right_page + left_page) / 2)
             try:
-                page_request = self.get_object_request(category_data, override_page_number=page)
+                page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
                 tree = self.parser.parse(page_request.text)
                 pages = self._get_available_pages_from_tree(tree)
                 if len(pages) == 0:

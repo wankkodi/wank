@@ -82,19 +82,6 @@ handler_wrapper = HandlerWrapper()
 search_history_path = path.join(session_id_dir, 'search.dat')
 search_history = []
 
-# Dialog
-dialog = xbmcgui.Dialog()
-current_id = plugin.handle
-settings = Settings(user_data_filename, dialog, ADDON.getLocalizedString, current_id == 1)
-# Initialize setting
-ADDON.setSetting('is_pin_code', str(bool(settings.is_use_pin) is True).lower())
-log('is_pin_code: {r}, {b}'.format(r=settings.is_use_pin, b=bool(settings.is_use_pin)))
-ADDON.setSetting('set_pin_code', str(settings.pin_code).zfill(4))
-log('set_pin_code: {r}, {b}'.format(r=settings.is_use_pin, b=settings.pin_code))
-ADDON.setSetting('is_send_data', str(bool(settings.is_send_data) is True).lower())
-log('is_send_data: {r}, {b}'.format(r=settings.is_send_data, b=bool(settings.is_send_data)))
-
-
 # XML dialog window
 # dialog_xml = xbmcgui.WindowXMLDialog('dialogs.xml', xbmcaddon.Addon().getAddonInfo('path').decode('utf-8'))
 
@@ -565,3 +552,16 @@ def run():
 
     plugin.run()
     handler_wrapper.handlers.store_data_for_all_handlers()
+
+
+# Dialog
+dialog = xbmcgui.Dialog()
+current_id = plugin.handle
+settings = Settings(user_data_filename, dialog, ADDON.getLocalizedString, current_id == 1)
+# Initialize setting
+ADDON.setSetting('is_pin_code', str(bool(settings.is_use_pin) is True).lower())
+log('is_pin_code: {r}, {b}'.format(r=settings.is_use_pin, b=bool(settings.is_use_pin)))
+ADDON.setSetting('set_pin_code', str(settings.pin_code).zfill(4))
+log('set_pin_code: {r}, {b}'.format(r=settings.is_use_pin, b=settings.pin_code))
+ADDON.setSetting('is_send_data', str(bool(settings.is_send_data) is True).lower())
+log('is_send_data: {r}, {b}'.format(r=settings.is_send_data, b=bool(settings.is_send_data)))

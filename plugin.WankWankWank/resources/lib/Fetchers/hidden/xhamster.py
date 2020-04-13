@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher
+from ..fetchers.porn_fetcher import PornFetcher, PornNoVideoError, PornErrorModule
 
 # Internet tools
 from .. import urljoin, quote, quote_plus, unquote_plus, parse_qsl
@@ -386,7 +386,12 @@ class XHamster(PornFetcher):
                        for k, v in new_video_data['xplayerSettings']['sources']['standard'].items() for x in v]
 
         segment_request = self.session.get(new_video_data['xplayerSettings']['hls']['url'])
-        assert segment_request.ok
+        if not self._check_is_available_page(segment_request):
+            server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
+                                          'Cannot fetch video links from the url {u}'.format(
+                                              u=segment_request.url),
+                                          None, None)
+            raise PornNoVideoError('No Video link for url {u}'.format(u=segment_request.url), server_data)
         video_m3u8 = m3u8.loads(segment_request.text)
         video_playlists = video_m3u8.playlists
         video_links.extend([VideoSource(link=urljoin(new_video_data['xplayerSettings']['hls']['url'], x.uri),

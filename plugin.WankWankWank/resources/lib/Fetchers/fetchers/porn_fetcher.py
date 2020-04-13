@@ -31,27 +31,45 @@ from ..id_generator import IdGenerator
 from ..fetchers.base_fetcher import BaseFetcher
 
 
-class PornFetchUrlError(ValueError):
-    def __init__(self, request):
-        super(PornFetchUrlError, self).__init__(request)
+class PornErrorModule(object):
+    def __init__(self, server, site_name, url, message, page_filters, general_filters):
+        self.server = server
+        self.site_name = site_name
+        self.url = url
+        self.message = message
+        self.page_filters = page_filters
+        self.general_filters = general_filters
+
+
+class PornError(ValueError):
+    def __init__(self, request, error_module=None):
+        super(PornError, self).__init__(request)
+        if error_module is not None and error_module.server is not None:
+            error_module.server.push_error(error_module.site_name, error_module.url, error_module.message,
+                                           error_module.page_filters, error_module.general_filters)
+
+
+class PornFetchUrlError(PornError):
+    def __init__(self, request, error_module=None):
+        super(PornFetchUrlError, self).__init__(request, error_module)
         self.request = request
 
     def __str__(self):
         return repr('Could not fetch {url}'.format(url=self.request.url))
 
 
-class PornValueError(ValueError):
-    def __init__(self, err):
-        super(PornValueError, self).__init__(err)
+class PornValueError(PornError):
+    def __init__(self, err, error_module=None):
+        super(PornValueError, self).__init__(err, error_module)
         self.message = err
 
     def __str__(self):
         return repr(self.message)
 
 
-class PornNoVideoError(RuntimeError):
-    def __init__(self, err):
-        super(PornNoVideoError, self).__init__(err)
+class PornNoVideoError(PornError):
+    def __init__(self, err, error_module=None):
+        super(PornNoVideoError, self).__init__(err, error_module)
         self.message = err
 
     def __str__(self):
@@ -239,6 +257,7 @@ class PornFetcher(BaseFetcher):
                                            ) if object_type in self.object_urls else None
 
     def fetch_sub_objects(self, element_object):
+        # sub_objects -> None
         """
         Fetches object's sub objects.
         :param element_object: Object element we want to fetch.
@@ -472,13 +491,20 @@ class PornFetcher(BaseFetcher):
         if clear_sub_elements is True:
             category_data.clear_sub_objects()
         if use_web_server is True:
-            raw_num_of_pages = self.data_server.fetch_request(category_data.url)
+            current_page_filters = self.get_proper_filter(category_data).current_filters
+            general_filters = self.general_filter.current_filters
+            raw_num_of_pages = self.data_server.fetch_request(category_data.url,
+                                                              repr(current_page_filters),
+                                                              repr(general_filters))
             if raw_num_of_pages['status'] is True:
                 num_of_pages = raw_num_of_pages['value']['num_of_pages']
             else:
                 num_of_pages = self._get_number_of_sub_pages(category_data, page_request)
-                push_data = {'num_of_pages': num_of_pages}
-                push_result = self.data_server.push_request(category_data.url, push_data)
+                push_result = self.data_server.push_request(self.source_name,
+                                                            category_data.url,
+                                                            repr(current_page_filters),
+                                                            repr(general_filters),
+                                                            num_of_pages)
                 if push_result['status'] is False:
                     warnings.warn(push_result['err'])
         else:
@@ -531,7 +557,7 @@ class PornFetcher(BaseFetcher):
 
             page = math.ceil((right_page + left_page) / 2)
             try:
-                page_request = self.get_object_request(category_data, override_page_number=page)
+                page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
                 tree = self.parser.parse(page_request.text)
                 pages = self._get_available_pages_from_tree(tree)
                 if len(pages) == 0:
@@ -570,19 +596,33 @@ class PornFetcher(BaseFetcher):
         """
         return NotImplemented
 
-    def get_object_request(self, object_data, override_page_number=None, override_params=None, override_url=None):
+    def get_object_request(self, object_data, override_page_number=None, override_params=None, override_url=None,
+                           send_error=True):
         """
         Fetches the page number with respect to base url.
         :param object_data: Page data.
         :param override_page_number: Override page number.
         :param override_params: Override params.
         :param override_url: Override url.
+        :param send_error: Flag that indicates whether we send the error to the server. True by default.
         :return: Page request
         """
         res = super(PornFetcher, self).get_object_request(object_data, override_page_number, override_params,
                                                           override_url)
         if not self._check_is_available_page(res):
-            raise PornFetchUrlError(res)
+            if send_error is True:
+                object_filters = self.get_proper_filter(object_data).current_filters
+                general_filters = self.general_filter.current_filters
+                error_module = PornErrorModule(self.data_server,
+                                               self.source_name,
+                                               res.url,
+                                               'Could not fetch {url}'.format(url=res.url),
+                                               repr(object_filters),
+                                               repr(general_filters)
+                                               )
+            else:
+                error_module = None
+            raise PornFetchUrlError(res, error_module)
         return res
 
     def _format_duration(self, raw_duration):

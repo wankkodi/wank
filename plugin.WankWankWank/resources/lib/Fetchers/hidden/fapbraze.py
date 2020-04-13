@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher
+from ..fetchers.porn_fetcher import PornFetcher, PornErrorModule, PornNoVideoError
 
 # Internet tools
 from .. import urljoin, quote_plus, urlparse
@@ -224,11 +224,18 @@ class FapBraze(PornFetcher):
                 'd': urlparse(self.video_json_request).hostname
             }
             tmp_request2 = self.session.post(new_url, headers=headers, data=params)
-            assert tmp_request2.ok
+            if not self._check_is_available_page(tmp_request2):
+                server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
+                                              'Cannot fetch video links from the url {u}'.format(u=tmp_request2.url),
+                                              None, None)
+                raise PornNoVideoError('No Video link for url {u}'.format(u=tmp_request2.url), server_data)
 
             videos = tmp_request2.json()
             if not videos['success']:
-                raise RuntimeError(videos['data'])
+                server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
+                                              videos['data'],
+                                              None, None)
+                raise PornNoVideoError(videos['data'], server_data)
             videos = sorted((VideoSource(link=x['file'], resolution=re.findall(r'\d+', x['label'])[0])
                              for x in videos['data']),
                             key=lambda x: x.resolution, reverse=True)

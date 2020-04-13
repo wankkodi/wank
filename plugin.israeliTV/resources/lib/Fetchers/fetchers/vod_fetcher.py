@@ -128,13 +128,13 @@ class VODFetcher(BaseFetcher):
         if clear_sub_elements is True:
             category_data.clear_sub_objects()
         if self._use_web_server is True:
-            raw_num_of_pages = self.data_server.fetch_request(category_data.url)
+            raw_num_of_pages = self.data_server.fetch_request(category_data.url, None, None)
             if raw_num_of_pages['status'] is True:
                 num_of_pages = raw_num_of_pages['value']['num_of_pages']
             else:
                 num_of_pages = self._get_number_of_sub_pages(category_data, page_request)
-                push_data = {'num_of_pages': num_of_pages}
-                push_result = self.data_server.push_request(category_data.url, push_data)
+                push_result = self.data_server.push_request(self.source_name, category_data.url,
+                                                            None, None, num_of_pages)
                 if push_result['status'] is False:
                     warnings.warn(push_result['err'])
         else:

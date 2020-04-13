@@ -402,7 +402,7 @@ class RedTube(PornFetcher):
         if category_data.object_type in (PornCategories.CATEGORY_MAIN, PornCategories.TAG_MAIN):
             return 1
         try:
-            page_request = self.get_object_request(category_data, override_page_number=2)
+            page_request = self.get_object_request(category_data, override_page_number=2, send_error=False)
         except PornFetchUrlError:
             return 1
         tree = self.parser.parse(page_request.text)
@@ -528,6 +528,7 @@ class RedTube(PornFetcher):
         }
 
         conditions = self.get_proper_filter(page_data).conditions
+        true_sort_filter_id = page_filter.sort_order.filter_id
 
         if (
                 self.general_filter.current_filters.general.value is not None and
@@ -583,7 +584,6 @@ class RedTube(PornFetcher):
         #         split_url.insert(3, page_filter.sort_order.value)
         else:
             if true_object.object_type not in self._default_sort_by:
-                true_sort_filter_id = page_filter.sort_order.filter_id
                 if page_filter.sort_order.value is not None:
                     split_url.append(page_filter.sort_order.value)
             else:

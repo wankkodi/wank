@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher
+from ..fetchers.porn_fetcher import PornFetcher, PornErrorModule, PornFetchUrlError
 
 # Internet tools
 from .. import urljoin, urlparse, quote_plus
@@ -305,14 +305,15 @@ class GotPorn(PornFetcher):
         return res
 
     def get_object_request(self, page_data, override_page_number=None, override_params=None, override_url=None,
-                           force_fetch_channel_page=False):
+                           force_fetch_channel_page=False, send_error=True):
         """
         Fetches the page number with respect to base url.
         :param page_data: Page data.
         :param override_page_number: Override page number.
         :param override_params: Override params.
         :param override_url: Override url.
-        :param force_fetch_channel_page: Falg that inddicates whether we fetch the whole channel page or its, json.
+        :param force_fetch_channel_page: Flag that indicates whether we fetch the whole channel page or its, json.
+        :param send_error: Flag that indicates whether we send the error to the server. True by default.
         :return: Page request
         """
         if page_data.object_type == PornCategories.CHANNEL and force_fetch_channel_page is True:
@@ -330,6 +331,21 @@ class GotPorn(PornFetcher):
             }
 
             page_request = self.session.get(page_data.url, headers=headers)
+            if not self._check_is_available_page(page_request):
+                if send_error is True:
+                    object_filters = self.get_proper_filter(page_data).current_filters
+                    general_filters = self.general_filter.current_filters
+                    error_module = PornErrorModule(self.data_server,
+                                                   self.source_name,
+                                                   page_request.url,
+                                                   'Could not fetch {url}'.format(url=page_request.url),
+                                                   repr(object_filters),
+                                                   repr(general_filters)
+                                                   )
+                else:
+                    error_module = None
+                raise PornFetchUrlError(page_request, error_module)
+
             return page_request
         else:
             return super(GotPorn, self).get_object_request(page_data, override_page_number, override_params,

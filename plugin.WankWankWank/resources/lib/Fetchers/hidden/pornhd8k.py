@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher
+from ..fetchers.porn_fetcher import PornFetcher, PornNoVideoError, PornErrorModule
 
 # Internet tools
 from .. import urljoin, quote
@@ -150,7 +150,13 @@ class PornHDEightK(PornFetcher):
         }
         ajax_request_page = self.video_link_request_page_template.format(v=request_data[0].attrib['value'])
         tmp_request = self.session.get(ajax_request_page, headers=headers)
-        assert tmp_request.text == 'ok'
+        if tmp_request.text != 'ok':
+            err_str = 'Cannot fetch video links from the url {u}, got status {s}'.format(u=tmp_request.url,
+                                                                                         s=tmp_request.text)
+            server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
+                                          err_str,
+                                          None, None)
+            raise PornNoVideoError(err_str, server_data)
         headers = {
             'Accept': 'application/json, text/javascript, */*; q=0.01',
             'Cache-Control': 'max-age=0',
@@ -174,7 +180,12 @@ class PornHDEightK(PornFetcher):
 
         for video_link in video_links:
             req = self.session.get(video_link)
-            assert req.ok
+            if not self._check_is_available_page(req):
+                server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
+                                              'Cannot fetch video links from the url {u}'.format(u=req.url),
+                                              None, None)
+                raise PornNoVideoError('No Video link for url {u}'.format(u=req.url), server_data)
+
             video_m3u8 = m3u8.loads(req.text)
             video_links = sorted((VideoSource(link=urljoin(self.video_host_base_url, x.uri),
                                               video_type=VideoTypes.VIDEO_SEGMENTS,

@@ -372,7 +372,7 @@ class TnaFlix(PornFetcher):
         page = math.ceil((right_page + left_page) / 2)
         while 1:
             try:
-                page_request = self.get_object_request(category_data, override_page_number=page)
+                page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
 
                 page_json = page_request.json()
                 tree = self.parser.parse(page_json['content'])
@@ -428,7 +428,7 @@ class TnaFlix(PornFetcher):
             start_page = self.max_pages
             while 1:
                 try:
-                    self.get_object_request(category_data, start_page)
+                    self.get_object_request(category_data, start_page, send_error=False)
                     # We propagate the start page
                     start_page += self.max_pages
                 except PornFetchUrlError as err:
@@ -470,9 +470,9 @@ class TnaFlix(PornFetcher):
         """
         try:
             page_request = self.get_object_request(page_data)
-        except PornFetchUrlError as err:
+        except PornFetchUrlError:
             # page_request = self.get_object_request(page_data)
-            raise err
+            return None
         videos = page_request.json()
         tree = self.parser.parse(videos['content'])
         videos = tree.xpath('.//ul[@class="thumbsList nThumbsList  clear found-items"]/li')

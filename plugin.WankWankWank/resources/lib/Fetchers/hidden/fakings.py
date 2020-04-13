@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError, PornNoVideoError
+from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError, PornNoVideoError, PornErrorModule
 
 # Internet tools
 from .. import urljoin, quote_plus
@@ -168,7 +168,10 @@ class FakingsTV(PornFetcher):
 
         videos = tmp_tree.xpath('.//div[@class="video-container"]/iframe')
         if len(videos) == 0 or 'src' not in videos[0].attrib:
-            raise PornNoVideoError('No Video link for url {u}'.format(u=tmp_request.url))
+            server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
+                                          'Cannot fetch video links from the url {u}'.format(u=tmp_request.url),
+                                          None, None)
+            raise PornNoVideoError('No Video link for url {u}'.format(u=tmp_request.url), server_data)
         headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
                       'q=0.8,application/signed-exchange;v=b3',
@@ -185,7 +188,10 @@ class FakingsTV(PornFetcher):
         tmp_tree = self.parser.parse(page_request.text)
         videos = tmp_tree.xpath('.//video/source')
         if len(videos) == 0 or 'src' not in videos[0].attrib:
-            raise PornNoVideoError('No Video link for url {u}'.format(u=page_request.url))
+            server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
+                                          'Cannot fetch video links from the url {u}'.format(u=page_request.url),
+                                          None, None)
+            raise PornNoVideoError('No Video link for url {u}'.format(u=page_request.url), server_data)
         videos = sorted((VideoSource(link=x.attrib['src'],
                                      quality=self._quality[x.attrib['title']] if 'title' in x.attrib else None)
                          for x in videos),
@@ -204,7 +210,8 @@ class FakingsTV(PornFetcher):
             return 1
         start_page = category_data.page_number if category_data.page_number is not None else 1
         try:
-            page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
+            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
+                else fetched_request
         except PornFetchUrlError:
             return 1
 
@@ -239,7 +246,7 @@ class FakingsTV(PornFetcher):
 
             page = math.floor((right_page + left_page) / 2)
             try:
-                page_request = self.get_object_request(category_data, override_page_number=page)
+                page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
                 tree = self.parser.parse(page_request.text)
                 pages = self._get_available_pages_from_tree(tree)
                 if len(pages) > 0:

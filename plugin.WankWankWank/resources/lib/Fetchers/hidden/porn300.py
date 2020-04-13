@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher
+from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError
 
 # Internet tools
 from .. import urlparse, urljoin, quote_plus
@@ -94,8 +94,9 @@ class Porn300(PornFetcher):
         max_page = None
         res = []
         while 1:
-            page_request = self.get_object_request(category_data, page)
-            if not page_request.ok:
+            try:
+                page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
+            except PornFetchUrlError:
                 break
             page_json = page_request.json()
             if max_page is None:
@@ -146,9 +147,11 @@ class Porn300(PornFetcher):
         max_page = None
         res = []
         while 1:
-            page_request = self.get_object_request(tag_data, page)
-            if not page_request.ok:
+            try:
+                page_request = self.get_object_request(tag_data, override_page_number=page, send_error=False)
+            except PornFetchUrlError:
                 break
+
             page_json = page_request.json()
             if max_page is None:
                 max_page = page_json['last_page']

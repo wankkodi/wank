@@ -1,11 +1,12 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornNoVideoError, PornCatalogPageNode
+from ..fetchers.porn_fetcher import PornFetcher, PornNoVideoError, PornErrorModule
 
 # Internet tools
 from .. import urljoin, quote_plus
 
 # Nodes
-from ..catalogs.porn_catalog import PornCatalogCategoryNode, PornCatalogVideoPageNode, VideoNode, VideoSource
+from ..catalogs.porn_catalog import PornCatalogCategoryNode, PornCatalogVideoPageNode, PornCatalogPageNode, \
+    VideoNode, VideoSource
 from ..catalogs.porn_catalog import PornCategories, PornFilterTypes
 
 # Regex
@@ -156,7 +157,10 @@ class Taxi69(PornFetcher):
         tmp_tree = self.parser.parse(tmp_request.text)
         videos = tmp_tree.xpath('.//video/source')
         if len(videos) == 0 or 'src' not in videos[0].attrib:
-            raise PornNoVideoError('No Video link for url {u}'.format(u=tmp_request.url))
+            server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
+                                          'Cannot fetch video links from the url {u}'.format(u=tmp_request.url),
+                                          None, None)
+            raise PornNoVideoError('No Video link for url {u}'.format(u=tmp_request.url), server_data)
         videos = [VideoSource(link=x.attrib['src']) for x in videos]
         return VideoNode(video_sources=videos)
 

@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornValueError
+from ..fetchers.porn_fetcher import PornFetcher, PornValueError, PornNoVideoError, PornErrorModule
 
 # Internet tools
 from .. import urljoin, quote, parse_qs, urlparse
@@ -910,7 +910,11 @@ class UPornia(Txxx):
             'User-Agent': self.user_agent
         }
         request = self.session.post(self.video_data_request_url, headers=headers, data=params)
-        assert request.ok
+        if not self._check_is_available_page(request):
+            server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
+                                          'Cannot fetch video links from the url {u}'.format(u=request.url),
+                                          None, None)
+            raise PornNoVideoError('No Video link for url {u}'.format(u=request.url), server_data)
         video_url = re.findall(r'(?:"*video_url"*: *")(.*?)(?:")', request.text)[0]
         video_url = re.sub(r'\\u\d{3}[a-e0-9]', lambda x: x.group(0).encode('utf-8').decode('unicode-escape'),
                            video_url)
@@ -1298,7 +1302,12 @@ class HDZog(UPornia):
             'User-Agent': self.user_agent
         }
         request = self.session.post(self.video_data_request_url, headers=headers, data=params)
-        assert request.ok
+        if not self._check_is_available_page(request):
+            server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
+                                          'Cannot fetch video links from the url {u}'.format(u=request.url),
+                                          None, None)
+            raise PornNoVideoError('No Video link for url {u}'.format(u=request.url), server_data)
+
         video_url = re.findall(r'(?:"*video_url"*: *")(.*?)(?:")', request.text)[0]
         video_url = re.sub(r'\\u\d{3}[a-e0-9]', lambda x: x.group(0).encode('utf-8').decode('unicode-escape'),
                            video_url)

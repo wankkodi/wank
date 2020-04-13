@@ -291,8 +291,10 @@ class AnyPorn(PornFetcher):
         """
         if category_data.object_type in (PornCategories.CATEGORY_MAIN, PornCategories.TAG_MAIN):
             return 1
-        page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
-        if not page_request.ok:
+        try:
+            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
+                else fetched_request
+        except PornFetchUrlError:
             return 1
         tree = self.parser.parse(page_request.text)
         available_pages = self._get_available_pages_from_tree(tree)
@@ -1516,8 +1518,10 @@ class HellPorno(AnyPorn):
         """
         if category_data.object_type in (PornCategories.TAG_MAIN, PornCategories.PORN_STAR_MAIN):
             return 1
-        page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
-        if not page_request.ok:
+        try:
+            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
+                else fetched_request
+        except PornFetchUrlError:
             return 1
         tree = self.parser.parse(page_request.text)
         available_pages = self._get_available_pages_from_tree(tree)
@@ -2502,8 +2506,10 @@ class XBabe(AnyPorn):
         """
         if category_data.object_type in (PornCategories.TAG_MAIN,):
             return 1
-        page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
-        if not page_request.ok:
+        try:
+            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
+                else fetched_request
+        except PornFetchUrlError:
             return 1
         tree = self.parser.parse(page_request.text)
         if category_data.object_type in (PornCategories.TAG, PornCategories.PORN_STAR):
@@ -2531,14 +2537,14 @@ class XBabe(AnyPorn):
         right_page = self.max_pages
         while 1:
             page = math.ceil((right_page + left_page) / 2)
-            page_request = self.get_object_request(category_data, page)
-            if not page_request.ok:
-                # We moved too far...
-                right_page = page - 1
-            else:
+            try:
+                self.get_object_request(category_data, override_page_number=page, send_error=False)
                 left_page = page
                 if left_page == right_page:
                     return left_page
+            except PornFetchUrlError:
+                # We moved too far...
+                right_page = page - 1
 
     def _get_available_pages_from_tree(self, tree):
         """
@@ -3396,8 +3402,10 @@ class HellMoms(XBabe):
         """
         if category_data.object_type in (PornCategories.TAG_MAIN,):
             return 1
-        page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
-        if not page_request.ok:
+        try:
+            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
+                else fetched_request
+        except PornFetchUrlError:
             return 1
         tree = self.parser.parse(page_request.text)
         available_pages = self._get_available_pages_from_tree(tree)
@@ -3614,8 +3622,10 @@ class PornPlus(HellMoms):
         """
         if category_data.object_type in (PornCategories.TAG_MAIN, PornCategories.CATEGORY_MAIN):
             return 1
-        page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
-        if not page_request.ok:
+        try:
+            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
+                else fetched_request
+        except PornFetchUrlError:
             return 1
         tree = self.parser.parse(page_request.text)
         available_pages = self._get_available_pages_from_tree(tree)
@@ -4125,8 +4135,10 @@ class ZedPorn(AnyPorn):
         """
         if category_data.object_type in (PornCategories.TAG_MAIN,):
             return 1
-        page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
-        if not page_request.ok:
+        try:
+            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
+                else fetched_request
+        except PornFetchUrlError:
             return 1
         tree = self.parser.parse(page_request.text)
         available_pages = self._get_available_pages_from_tree(tree)
@@ -4780,7 +4792,7 @@ class PornBimbo(PornFd):
 
             page = math.ceil((right_page + left_page) / 2)
             try:
-                page_request = self.get_object_request(category_data, override_page_number=page)
+                page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
                 tree = self.parser.parse(page_request.text)
                 pages = self._get_available_pages_from_tree(tree)
                 if len(pages) == 0:
@@ -6831,8 +6843,10 @@ class VQTube(MadThumbs):
         :param category_data: Category data (dict).
         :return:
         """
-        page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
-        if not page_request.ok:
+        try:
+            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
+                else fetched_request
+        except PornFetchUrlError:
             return 1
         tree = self.parser.parse(page_request.text)
         available_pages = self._get_available_pages_from_tree(tree)
@@ -9068,7 +9082,7 @@ class WatchMyGfMe(AnyPorn):
             )
             res.append(video_data)
 
-        page_filter = self.get_proper_filter(page_data).current_filters
+        # page_filter = self.get_proper_filter(page_data).current_filters
         page_data.add_sub_objects(res)
         return res
 

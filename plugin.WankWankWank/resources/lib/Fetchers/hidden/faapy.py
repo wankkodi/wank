@@ -149,7 +149,6 @@ class Faapy(PornFetcher):
         :return:
         """
         tmp_request = self.get_object_request(video_data)
-        assert tmp_request.ok
         request_data = re.findall(r'(?:var flashvars = )({.*?})(?:;)', tmp_request.text, re.DOTALL)
         assert len(request_data) == 1
         request_data = prepare_json_from_not_formatted_text(request_data[0])

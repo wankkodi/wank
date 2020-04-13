@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher
+from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError
 
 # Internet tools
 from .. import urljoin, quote
@@ -63,20 +63,7 @@ class RealGfPorn(PornFetcher):
         :param video_data: Video data.
         :return:
         """
-
-        video_url = video_data.url
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                      'q=0.8,application/signed-exchange;v=b3*',
-            'Cache-Control': 'max-age=0',
-            'Host': self.host_name,
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': self.user_agent
-        }
-        tmp_request = self.session.get(video_url, headers=headers)
+        tmp_request = self.get_object_request(video_data)
         tree = self.parser.parse(tmp_request.text)
         video_links = [VideoSource(link=x) for x in tree.xpath('.//video/source/@src')]
         return VideoNode(video_sources=video_links)
@@ -88,8 +75,10 @@ class RealGfPorn(PornFetcher):
         :param category_data: Category data (dict).
         :return:
         """
-        page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
-        if not page_request.ok:
+        try:
+            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
+                else fetched_request
+        except PornFetchUrlError:
             return 1
         tree = self.parser.parse(page_request.text)
         pages = self._get_available_pages_from_tree(tree)

@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher
+from ..fetchers.porn_fetcher import PornFetcher, PornNoVideoError, PornErrorModule
 from ..tools.external_fetchers import ExternalFetcher
 
 # Internet tools
@@ -154,6 +154,12 @@ class Likuoo(PornFetcher):
             req = self.session.post(urljoin(self.base_url, req_suffix[0]), headers=headers,
                                     data=dict([req_data[0].split('=')]))
             assert req.ok
+            if not self._check_is_available_page(req):
+                server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
+                                              'Cannot fetch video links from the url {u}'.format(u=req.url),
+                                              None, None)
+                raise PornNoVideoError('No Video link for url {u}'.format(u=req.url), server_data)
+
             raw_data = req.json()
             tmp_new_tree = self.parser.parse(raw_data['i'])
             new_source = tmp_new_tree.xpath('.//iframe/@src')
@@ -185,7 +191,10 @@ class Likuoo(PornFetcher):
                 continue
 
             # If we are here we have some unknown pattern...
-            raise RuntimeError('Unknown pattern.')
+            server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
+                                          'Unknown pattern for the page {u}'.format(u=req.url),
+                                          None, None)
+            raise PornNoVideoError('Unknown pattern for the page {u}'.format(u=req.url), server_data)
 
         videos = sorted((VideoSource(link=x[0], resolution=x[1]) for x in videos),
                         key=lambda x: x.resolution, reverse=True)

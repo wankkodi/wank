@@ -108,7 +108,7 @@ class BaseFetcher(object):
         self.user_agents_manager = UserAgents(self.general_data_dir)
         self.user_agent = self.user_agents_manager.get_user_agent()
         self.session.headers['User-Agent'] = self.user_agent
-        self.data_server = DataServer(store_dir=path.join(self.general_data_dir, 'DataServer'))
+        self.data_server = DataServer(session=self.session)
 
         # todo: make more precise way to include filters as well...
         # self._use_web_server = True

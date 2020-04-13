@@ -258,7 +258,7 @@ class DraftSex(PornFetcher):
             if left_page == right_page:
                 return left_page
             try:
-                self.get_object_request(category_data, page)
+                self.get_object_request(category_data, override_page_number=page, send_error=False)
                 left_page = page
                 page = math.ceil((right_page + left_page) / 2)
             except PornFetchUrlError:
