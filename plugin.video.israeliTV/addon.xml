@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.israeliTV" name="Israeli TV" version="0.0.1" provider-name="Alexander Leibenzon">
+<addon id="plugin.video.israeliTV" name="Israeli TV" version="0.0.1" provider-name="Alexander Leibenzon">
     <requires>
         <import addon="xbmc.python" version="2.25.0"/>
         <import addon="script.module.routing"/>
