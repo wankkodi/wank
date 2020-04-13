@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings>
+    <setting id="debug" type="bool" label="32001" default="false"/>
+    <category label="42000">
+        <setting label="42001" type="action"
+                 id="RunPlugin(plugin://plugin.WankWankWank/update_settings/update_is_pin_code)"
+                 option="close"/>
+        <setting label="42002" type="action"
+                 id="RunPlugin(plugin://plugin.WankWankWank/update_settings/update_pin_code)"
+                 option="close"/>
+        <setting label="42003" type="action"
+                 id="RunPlugin(plugin://plugin.WankWankWank/update_settings/update_send_data)"
+                 option="close"/>
+    </category>
+</settings>
+
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings>
+    <setting id="debug" type="bool" label="32001" default="false"/>
+    <category label="42000">
+        <setting label="42010" type="bool" id="is_pin_code" default="false"/>
+        <setting label="42020" type="action"
+                 action="RunPlugin(plugin://plugin.WankWankWank/update_settings/update_pin_code)"
+                 option="close" enable="eq(-1,true)" subsetting="true"/>
+        <setting type="sep"/>
+        <setting label="42030" type="bool" id="is_send_data" default="false"/>
+    </category>
+</settings>
+
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<window label="40000" id="welcome">
+    <title label="40001" id="welcome_title"/>
+    <text label="40002" id="welcome_message"/>
+    <error label="40003" id="block_error"/>
+    <error label="40004" id="got_blocked_error"/>
+    <error label="40005" id="got_blocked_error"/>
+</window >
+
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<window id="10004">
+    <onload>RunPlugin(plugin://plugin.WankWankWank/update_settings/update_pin_code)</onload>
+</window >
+
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings>
+    <category id="debug_group" label="32001">
+        <setting id="debug" type="bool" label="32001" default="false"/>
+    </category>
+    <category label="42000">
+        <setting id="pin_code" label="42001" type="lsep"/>
+        <setting label="42001" type="bool" id="is_pin_code" default="false">
+            <onclick>RunPlugin(plugin://plugin.WankWankWank/update_settings/update_is_pin_code)</onclick>
+        </setting>
+        <setting label="42002" type="action" default="0000"
+                 action="RunPlugin(plugin://plugin.WankWankWank/update_settings/update_pin_code)"
+                 option="close" enable="eq(-1,true)" subsetting="true"/>
+        <setting id="send_data" label="42003" type="lsep"/>
+        <setting label="42003" type="bool" id="is_send_data" default="false">
+            <onclick action="RunPlugin(plugin://plugin.WankWankWank/update_settings/update_is_pin_code)" />
+        </setting>
+    </category>
+</settings>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<window label="40000" id="welcome">
+    <title label="40001" id="welcome_title"/>
+    <text label="40002" id="welcome_message"/>
+    <error label="40003" id="block_error"/>
+    <error label="40004" id="got_blocked_error"/>
+    <error label="40005" id="got_blocked_error"/>
+</window >

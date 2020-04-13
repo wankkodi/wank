@@ -1,0 +1,117 @@
+# Kodi Media Center language file
+# Addon Name: WANK! WANK! WANK!
+# Addon id: plugin.WankWankWank
+# Addon Provider: A.B.A.
+msgid ""
+msgstr ""
+"Project-Id-Version: XBMC Addons\n"
+"Report-Msgid-Bugs-To: alanwww1@xbmc.org\n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: Kodi Translation Team\n"
+"Language-Team: English (http://www.transifex.com/projects/p/xbmc-addons/language/en/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#This is a comment
+
+msgctxt "#32000"
+msgid "Example"
+msgstr ""
+
+msgctxt "#32001"
+msgid "Debug"
+msgstr ""
+
+msgctxt "#40000"
+msgid "Welcome to WANK! WANK! WANK! add-on!"
+msgstr ""
+
+msgctxt "#40001"
+msgid "Set up the PIN code"
+msgstr ""
+
+msgctxt "#40002"
+msgid ""
+"In the following screens we will set-up the initial settings.\r\n"
+"Remember that you always can change them in the setting section in the future...\r\n"
+"Do you want to set up the children protection PIN code?\r\n"
+"In case of 5 incorrect attempts, the login screen add-on be blocked for half an hour.\r\n"
+"It will be impossible to restore that PIN code, so in case you forget the code, "
+"you will must reinstall the add-on..."
+msgstr ""
+
+# Block error
+msgctxt "#40003"
+msgid ""
+"You got blocked after entering exciting the allowed number of %s attempts. \r\n"
+"'You can retry in %s minutes and %s seconds."
+msgstr ""
+
+msgctxt "#40004"
+msgid "You got blocked!"
+msgstr ""
+
+msgctxt "#42000"
+msgid "General"
+msgstr ""
+
+# Pin Code section
+msgctxt "#42010"
+msgid "Use Pin Code"
+msgstr ""
+
+msgctxt "#42011"
+msgid ""
+"Please enter the page PIN code (4 digits)."
+msgstr ""
+
+msgctxt "#42012"
+msgid "Please validate the PIN code (4 digits)."
+msgstr ""
+
+# Pin Code Errors
+msgctxt "#42013"
+msgid "Wrong PIN code"
+msgstr ""
+
+msgctxt "#42014"
+msgid "The PIN code must have the length 4!"
+msgstr ""
+
+msgctxt "#42015"
+msgid "The entered PIN code is incorrect. Please re-enter. You have %s attempts left."
+msgstr ""
+
+msgctxt "#42016"
+msgid "The entered PIN code does not match the one stored in the system!"
+msgstr ""
+
+msgctxt "#42017"
+msgid "The validated PIN code does not match the initial one! Please re-enter."
+msgstr ""
+
+msgctxt "#42020"
+msgid "Change Pin Code"
+msgstr ""
+
+# Send data section
+msgctxt "#42030"
+msgid "Send Data"
+msgstr ""
+
+msgctxt "#42031"
+msgid "Do You want to send anonymous data?"
+msgstr ""
+
+msgctxt "#42032"
+msgid ""
+"Do you want to anonymously send data to our server.\r\n"
+"This will allow us to fix any bugs ASAP and provide you quicker response, "
+"as some of the sites settings changes dynamically and such data will improve "
+"the overall user experience.\r\n' "
+"NO PERSONAL DATA, NOR YOUR IP, WILL BE STORED IN OUR SERVERS! "
+msgstr ""
