@@ -474,7 +474,7 @@ class CatalogNode(object):
         raise NotImplementedError
 
     def __init__(self, catalog_manager, obj_id, title, number=None, page_number=None, url=None, image_link=None,
-                 related_objects=None, sub_objects=None, super_object=None,
+                 poster_link=None, related_objects=None, sub_objects=None, super_object=None,
                  subtitle=None, description=None, duration=None, date=None,
                  object_type=None, additional_data=None, raw_data=None):
         """
@@ -486,6 +486,7 @@ class CatalogNode(object):
         :param page_number:
         :param url:
         :param image_link:
+        :param poster_link :
         :param related_objects:
         :param sub_objects:
         :param super_object:
@@ -504,6 +505,7 @@ class CatalogNode(object):
         self.page_number = page_number
         self.url = url
         self.image_link = image_link
+        self.poster_link = poster_link
         self.related_objects = related_objects
         self._sub_object_ids = [x.id for x in sub_objects] if sub_objects is not None else None
         self._super_object_id = super_object.id if super_object is not None else None
