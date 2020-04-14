@@ -407,8 +407,7 @@ def prepare_list_items(show_list, handler_id):
     if show_list.object_type == handler.categories_enum.GENERAL_MAIN:
         # We sort the main page
         sub_objects = sorted((x for x in show_list.sub_objects),
-                             key=lambda y: (handler.categories_enum[y.object_type].value[0].value,
-                                            handler.categories_enum[y.object_type].value[1]))
+                             key=lambda y: (y.object_type.value[0].value, y.object_type.value[1]))
     else:
         sub_objects = show_list.sub_objects
 
