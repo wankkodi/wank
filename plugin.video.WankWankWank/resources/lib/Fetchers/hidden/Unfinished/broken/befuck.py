@@ -101,7 +101,7 @@ class BeFuck(PornFetcher):
         res = [x.attrib['src'] for x in videos]
         return VideoNode(video_links=res)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:

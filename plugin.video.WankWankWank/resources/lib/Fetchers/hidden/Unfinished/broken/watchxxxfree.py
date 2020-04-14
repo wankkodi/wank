@@ -160,7 +160,7 @@ class WatchXXXFree(PornFetcher):
         page_data.add_sub_objects(res)
         return res
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:

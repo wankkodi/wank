@@ -101,7 +101,7 @@ class HypnoTube(PornFetcher):
         assert len(videos) > 0
         return VideoNode(video_links=videos)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -122,7 +122,7 @@ class HypnoTube(PornFetcher):
                 return max_page
 
         # We perform binary search
-        return self._binary_search_max_number_of_pages(category_data)
+        return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
 
     def _get_available_pages_from_tree(self, tree):
         """
