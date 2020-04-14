@@ -1128,11 +1128,12 @@ class HandlerManager(object):
             except ValueError:
                 continue
 
-    def get_handler(self, handler_id):
+    def get_handler(self, handler_id, use_web_server=True):
         handler = self.handlers[handler_id]
         if handler.initialized_module is None:
             handler.initialized_module = handler.main_module(source_id=handler_id, data_dir=self.user_data_dir,
-                                                             session_id=self.session_id)
+                                                             session_id=self.session_id, use_web_server=use_web_server,
+                                                             )
         return handler.initialized_module
 
     def store_data_for_all_handlers(self):
