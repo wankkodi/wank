@@ -440,10 +440,6 @@ def prepare_list_items(show_list, handler_id):
         item.setProperty('IsPlayable', is_playable)
         item.addAvailableArtwork(url=x.image_link, art_type="thumb")
         items.append((u, item, is_folder))
-    if show_list.object_type == handler.categories_enum.GENERAL_MAIN:
-        # We sort the main page
-        items.sort(key=lambda y: (handler.categories_enum[y.object_type].value[0].value,
-                                  handler.categories_enum[y.object_type].value[1]))
     return items
 
 
