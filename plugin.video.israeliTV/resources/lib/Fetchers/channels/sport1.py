@@ -53,12 +53,12 @@ class Sport1(VODFetcher):
         return 'https://sport1.maariv.co.il/'
 
     def __init__(self, vod_name='Sport1', vod_id=-15, store_dir='.', data_dir='../../Data', source_type='VOD',
-                 session_id=None):
+                 use_web_server=False, session_id=None):
         """
         C'tor
         :param vod_name: save directory
         """
-        super(Sport1, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, session_id)
+        super(Sport1, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
         self.brightcove = Brightcove(self.session, self.user_agent)
 
     def fetch_sub_objects(self, element_object):
@@ -220,7 +220,7 @@ class Sport1(VODFetcher):
     def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url):
         raise NotImplementedError
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         return NotImplemented
 
 

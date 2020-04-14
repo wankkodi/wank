@@ -52,12 +52,12 @@ class One(VODFetcher):
         return 'https://www.one.co.il/'
 
     def __init__(self, vod_name='One', vod_id=-14, store_dir='.', data_dir='../../Data', source_type='VOD',
-                 session_id=None):
+                 use_web_server=False, session_id=None):
         """
         C'tor
         :param vod_name: save directory
         """
-        super(One, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, session_id)
+        super(One, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
 
         self.episodes_to_data_filename = path.join(self.fetcher_data_dir, 'one_episodes_to_data.dat')
         if not path.isfile(self.episodes_to_data_filename):
@@ -216,7 +216,7 @@ class One(VODFetcher):
     def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url):
         raise NotImplementedError
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         if fetched_request is None:
             fetched_request = self.get_object_request(category_data)
         show_raw_data = json.loads(fetched_request.text)

@@ -165,12 +165,13 @@ class XHamster(PornFetcher):
                                          )
 
     def __init__(self, source_name='Xhamster', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(XHamster, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(XHamster, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                       session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -404,7 +405,7 @@ class XHamster(PornFetcher):
         video_links.sort(key=lambda x: (x.resolution, self.video_format_order[x.codec]), reverse=True)
         return VideoNode(video_sources=video_links)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:

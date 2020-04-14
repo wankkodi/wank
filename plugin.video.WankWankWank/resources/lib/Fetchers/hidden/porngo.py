@@ -84,12 +84,13 @@ class PornGo(PornFetcher):
                                          )
 
     def __init__(self, source_name='PornGo', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(PornGo, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(PornGo, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                     session_id)
 
     def _update_available_porn_stars(self, porn_star_data):
         """
@@ -206,7 +207,7 @@ class PornGo(PornFetcher):
                              key=lambda x: x.resolution, reverse=True)
         return VideoNode(video_sources=video_links)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -359,12 +360,13 @@ class XXXFiles(PornGo):
         return 'https://www.porngo.com/'
 
     def __init__(self, source_name='XXXFiles', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(XXXFiles, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(XXXFiles, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                       session_id)
 
 
 if __name__ == '__main__':

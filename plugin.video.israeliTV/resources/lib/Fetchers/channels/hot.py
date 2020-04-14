@@ -48,14 +48,14 @@ class Hot(VODFetcher):
         return 'http://hot.ynet.co.il/home/'
 
     def __init__(self, vod_name='Hot', vod_id=-6, store_dir='.', data_dir='../../Data', source_type='VOD',
-                 session_id=None):
+                 use_web_server=False, session_id=None):
         """
         C'tor
         :param vod_name: save directory
         """
         # self.episodes_to_data = {}
         self.season_to_show = {}
-        super(Hot, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, session_id)
+        super(Hot, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
         self.available_shows = [x for x in self.dummy_super_object.sub_objects
                                 if x.object_type == VODCategories.CHANNELS_MAIN][0]
 
@@ -419,7 +419,7 @@ class Hot(VODFetcher):
         """
         return re.findall(r'(?:L-)(\d+)(?:,)', show_url)[0]
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         raise NotImplemented
 
     def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url,
@@ -446,60 +446,60 @@ class HotEight(Hot):
     shows_url = 'http://hot.ynet.co.il/home/0,7340,L-7461,00.html'
 
     def __init__(self, vod_name='Channel8', vod_id=-7, store_dir='.\\Hot\\', data_dir='../../Data', source_type='VOD',
-                 session_id=None):
+                 use_web_server=False, session_id=None):
         """
         C'tor
         :param vod_name: save directory
         """
-        super(HotEight, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, session_id)
+        super(HotEight, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
 
 
 class HotThree(Hot):
     shows_url = 'http://hot.ynet.co.il/home/0,7340,L-7456,00.html'
 
     def __init__(self, vod_name='Channel3', vod_id=-8, store_dir='.\\Hot\\', data_dir='../../Data', source_type='VOD',
-                 session_id=None):
+                 use_web_server=False, session_id=None):
         """
         C'tor
         :param vod_name: save directory
         """
-        super(HotThree, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, session_id)
+        super(HotThree, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
 
 
 class HotBidur(Hot):
     shows_url = 'http://hot.ynet.co.il/home/0,7340,L-7261,00.html'
 
     def __init__(self, vod_name='HotBidur', vod_id=-9, store_dir='.\\Hot\\', data_dir='../../Data', source_type='VOD',
-                 session_id=None):
+                 use_web_server=False, session_id=None):
         """
         C'tor
         :param vod_name: save directory
         """
-        super(HotBidur, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, session_id)
+        super(HotBidur, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
 
 
 class HotYoung(Hot):
     shows_url = 'http://hot.ynet.co.il/home/0,7340,L-7449,00.html'
 
     def __init__(self, vod_name='HotYoung', vod_id=-10, store_dir='.\\Hot\\', data_dir='../../Data', source_type='VOD',
-                 session_id=None):
+                 use_web_server=False, session_id=None):
         """
         C'tor
         :param vod_name: save directory
         """
-        super(HotYoung, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, session_id)
+        super(HotYoung, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
 
 
 class HotZoom(Hot):
     shows_url = 'http://hot.ynet.co.il/home/0,7340,L-11527,00.html'
 
     def __init__(self, vod_name='HotZoom', vod_id=-11, store_dir='.\\Hot\\', data_dir='../../Data', source_type='VOD',
-                 session_id=None):
+                 use_web_server=False, session_id=None):
         """
         C'tor
         :param vod_name: save directory
         """
-        super(HotZoom, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, session_id)
+        super(HotZoom, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
 
 
 if __name__ == '__main__':

@@ -242,7 +242,7 @@ class BaseFetcher(PornFetcher):
                         key=lambda x: x.resolution, reverse=True)
         return VideoNode(video_sources=videos)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -424,12 +424,13 @@ class FetishPapa(BaseFetcher):
         return 'https://www.fetishpapa.com/'
 
     def __init__(self, source_name='FetishPapa', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(FetishPapa, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(FetishPapa, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                         session_id)
 
 
 class Pornoxo(BaseFetcher):
@@ -448,12 +449,13 @@ class Pornoxo(BaseFetcher):
         return 'https://www.pornoxo.com/'
 
     def __init__(self, source_name='Pornoxo', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(Pornoxo, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(Pornoxo, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                      session_id)
 
 
 class BoyfriendTV(BaseFetcher):
@@ -466,12 +468,13 @@ class BoyfriendTV(BaseFetcher):
         return 'https://www.boyfriendtv.com/'
 
     def __init__(self, source_name='BoyfriendTV', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(BoyfriendTV, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(BoyfriendTV, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                          session_id)
 
 
 class AShemaleTube(BaseFetcher):
@@ -484,12 +487,13 @@ class AShemaleTube(BaseFetcher):
         return 'https://www.ashemaletube.com/'
 
     def __init__(self, source_name='AShemaleTube', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(AShemaleTube, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(AShemaleTube, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                           session_id)
 
 
 if __name__ == '__main__':

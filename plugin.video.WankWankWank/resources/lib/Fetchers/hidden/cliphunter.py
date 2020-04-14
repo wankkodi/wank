@@ -131,12 +131,13 @@ class ClipHunter(PornFetcher):
                                          )
 
     def __init__(self, source_name='ClipHunter', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(ClipHunter, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(ClipHunter, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                         session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -243,7 +244,7 @@ class ClipHunter(PornFetcher):
                         key=lambda y: y.resolution, reverse=True)
         return VideoNode(video_sources=videos)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Get number of pages from category data.
         :param fetched_request:

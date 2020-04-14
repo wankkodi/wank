@@ -101,12 +101,13 @@ class ThreeMovs(PornFetcher):
                                          )
 
     def __init__(self, source_name='3Movs', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(ThreeMovs, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(ThreeMovs, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                        session_id)
         self.user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
                           'Chrome/76.0.3809.100 Safari/537.36'
         self.kt_fetcher = KTMoviesFetcher(self.session, self.user_agent, self.parser)
@@ -237,7 +238,7 @@ class ThreeMovs(PornFetcher):
             video_sources.sort(key=lambda x: x.resolution, reverse=True)
         return VideoNode(video_sources=video_sources)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:

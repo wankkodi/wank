@@ -99,12 +99,13 @@ class ExtremeTube(PornFetcher):
                                          )
 
     def __init__(self, source_name='ExtremeTube', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(ExtremeTube, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(ExtremeTube, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                          session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -279,7 +280,7 @@ class ExtremeTube(PornFetcher):
 
         return VideoNode(video_sources=res)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -714,7 +715,7 @@ class ExtremeTube(PornFetcher):
 #         video_sources = [x[1] for x in video_sources]
 #         return VideoNode(video_sources=video_sources)
 #
-#     def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+#     def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
 #         """
 #         Extracts category number of videos out of category data.
 #         :param fetched_request:
@@ -732,7 +733,7 @@ class ExtremeTube(PornFetcher):
 #         if (max_page - start_page) < self._binary_search_page_threshold:
 #             return max_page
 #         else:
-#             return self._binary_search_max_number_of_pages(category_data)
+#             return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
 #
 #     def _check_is_available_page(self, page_request):
 #         """
@@ -1120,12 +1121,13 @@ class SpankWire(PornFetcher):
                                          )
 
     def __init__(self, source_name='SpankWire', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(SpankWire, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(SpankWire, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                        session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -1222,7 +1224,7 @@ class SpankWire(PornFetcher):
         res.sort(key=lambda x: x.resolution, reverse=True)
         return VideoNode(video_sources=res)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:

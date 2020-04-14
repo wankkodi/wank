@@ -117,12 +117,13 @@ class PornTrex(PornFetcher):
                                          )
 
     def __init__(self, source_name='PornTRex', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(PornTrex, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(PornTrex, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                       session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -302,7 +303,7 @@ class PornTrex(PornFetcher):
         """
         return False
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -457,7 +458,7 @@ class PornTrex(PornFetcher):
             elif page_filter.sort_order.value[1] is not None:
                 split_url.insert(-1, page_filter.sort_order.value[1])
 
-            if (conditions.period.sort_order is None or true_sort_filter_id in conditions.period.sort_order):
+            if conditions.period.sort_order is None or true_sort_filter_id in conditions.period.sort_order:
                 if page_filter.period.value[1] is not None:
                     split_url.insert(-1, page_filter.period.value[1])
                 sort_by += page_filter.period.value[0]
@@ -588,12 +589,13 @@ class JAVBangers(PornTrex):
                                          )
 
     def __init__(self, source_name='JAVBangers', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(JAVBangers, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(JAVBangers, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                         session_id)
 
     @property
     def _make_tag_pages_by_letter(self):
@@ -749,7 +751,7 @@ class JAVBangers(PornTrex):
             if suffix is not None:
                 split_url.insert(-1, suffix)
 
-            if (conditions.period.sort_order is None or true_sort_filter_id in conditions.period.sort_order):
+            if conditions.period.sort_order is None or true_sort_filter_id in conditions.period.sort_order:
                 sort_by += page_filter.period.value[0]
 
             if page_filter.length.value is not None:
@@ -805,12 +807,13 @@ class CamWhoresBay(JAVBangers):
         return 'https://www.camwhoresbay.com/'
 
     def __init__(self, source_name='CamWhoresBay', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(CamWhoresBay, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(CamWhoresBay, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                           session_id)
 
 
 if __name__ == '__main__':

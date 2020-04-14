@@ -86,12 +86,13 @@ class DraftSex(PornFetcher):
         return 1000
 
     def __init__(self, source_name='DaftSex', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(DraftSex, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(DraftSex, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                       session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -229,7 +230,7 @@ class DraftSex(PornFetcher):
                              key=lambda y: y.resolution, reverse=True)
         return VideoNode(video_sources=video_links)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -241,30 +242,32 @@ class DraftSex(PornFetcher):
         available_pages = self._get_available_pages_from_tree(tree)
         is_show_more = tree.xpath('.//div[@class="more"]')
         if len(is_show_more):
-            return self._binary_search_max_number_of_pages(category_data)
+            return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
         else:
             return max(available_pages) if len(available_pages) > 0 else 1
 
-    def _binary_search_max_number_of_pages(self, category_data):
+    def _binary_search_max_number_of_pages(self, category_data, last_available_number_of_pages):
         """
         Performs binary search in order to find the last available page.
         :param category_data: Category data.
+        :param last_available_number_of_pages: Last available number of pages. Will be the pivot for our next search.
+        By default is None, which mean the original pivot will be used...
         :return: Page request
         """
         left_page = 1
         right_page = self.max_pages
-        page = math.ceil((right_page + left_page) / 2)
+        page = last_available_number_of_pages if last_available_number_of_pages is not None \
+            else math.ceil((right_page + left_page) / 2)
         while 1:
             if left_page == right_page:
                 return left_page
             try:
                 self.get_object_request(category_data, override_page_number=page, send_error=False)
                 left_page = page
-                page = math.ceil((right_page + left_page) / 2)
             except PornFetchUrlError:
                 # We moved too far...
                 right_page = page - 1
-                page = math.ceil((right_page + left_page) / 2)
+            page = math.ceil((right_page + left_page) / 2)
 
     def _check_is_available_page(self, page_request):
         """

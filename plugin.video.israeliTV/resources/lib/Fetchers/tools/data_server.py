@@ -50,8 +50,8 @@ class DataServer(object):
         """
         params = {'action': 'get_number_of_pages',
                   'url': url,
-                  'page_filters': repr(page_filters),
-                  'general_filters': repr(general_filters)}
+                  'page_filters': page_filters,
+                  'general_filters': general_filters}
         request_result = self.session.get(self.send_url, params=params)
         if not request_result.ok:
             raise ConnectionRefusedError(request_result.text())
@@ -67,21 +67,23 @@ class DataServer(object):
         :param number_of_pages: Updated number of pages.
         :return: dictionary with status, value of the data and error in case such occurred.
         """
-        params = {'action': 'get_number_of_pages',
+        params = {'action': 'push_number_of_pages',
                   'site_name': site_name,
                   'url': url,
-                  'page_filters': repr(page_filters),
-                  'general_filters': repr(general_filters),
+                  'page_filters': page_filters,
+                  'general_filters': general_filters,
                   'number_of_pages': number_of_pages,
                   }
         request_result = self.session.get(self.send_url, params=params)
-        if not request_result.ok:
+        result_json = request_result.json()
+        if not request_result.ok or result_json['status'] is False:
             raise ConnectionRefusedError(request_result.text())
-        return request_result.json()
+        return result_json
 
-    def push_error(self, site_name, url, message, page_filters, general_filters):
+    def push_error(self, report_type_id, site_name, url, message, page_filters, general_filters):
         """
         Sends new number of pages.
+        :param report_type_id: Report type id. 0 for error, 1 for warning.
         :param site_name: Site name.
         :param url: Url, which data we want to fetch.
         :param message: Error message.
@@ -90,11 +92,12 @@ class DataServer(object):
         :return: dictionary with status, value of the data and error in case such occurred.
         """
         params = {'action': 'push_error',
+                  'report_type_id': report_type_id,
                   'site_name': site_name,
                   'url': url,
                   'message': message,
-                  'page_filters': repr(page_filters),
-                  'general_filters': repr(general_filters),
+                  'page_filters': page_filters,
+                  'general_filters': general_filters,
                   }
         request_result = self.session.get(self.send_url, params=params)
         if not request_result.ok:

@@ -17,6 +17,15 @@ from ..id_generator import IdGenerator
 
 class EPorner(PornFetcher):
     sd_resolutions = ('480p', '360p', '240p')
+    max_flip_image = 15
+
+    @property
+    def max_pages(self):
+        """
+        Most viewed videos page url.
+        :return:
+        """
+        return 100000
 
     @property
     def object_urls(self):
@@ -91,12 +100,13 @@ class EPorner(PornFetcher):
                                          )
 
     def __init__(self, source_name='Eporner', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(EPorner, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(EPorner, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                      session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -252,17 +262,23 @@ class EPorner(PornFetcher):
                      key=lambda x: x.resolution, reverse=True)
         return VideoNode(video_sources=res)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Get number of pages from category data.
         :param fetched_request:
         :param category_data: Category data (dict).
         :return:
         """
-        page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
-        tree = self.parser.parse(page_request.text)
-        available_pages = self._get_available_pages_from_tree(tree)
-        return max(available_pages) if len(available_pages) > 0 else 1
+        if category_data.object_type in (PornCategories.CATEGORY_MAIN, PornCategories.TAG_MAIN):
+            return 1
+        return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
+
+    @property
+    def _binary_search_page_threshold(self):
+        """
+        Available pages threshold. 1 by default.
+        """
+        return 5
 
     def _get_available_pages_from_tree(self, tree):
         """
@@ -305,26 +321,33 @@ class EPorner(PornFetcher):
             if len(image) == 0:
                 # We try alternative path
                 image = image_data[0].attrib['data-src']
-            flip_start = image_data[0].attrib['data-st']
-            flip_end = image_data[0].attrib['data-stdef']
+            # flip_start = image_data[0].attrib['data-st']
+            flip_end = image_data[0].attrib['data-stdef'] if 'data-stdef' in image_data[0].attrib \
+                else self.max_flip_image
             flip_images = [re.sub(r'{e}_240.jpg'.format(e=flip_end), '{i}_240.jpg'.format(i=i), image)
-                           for i in range(int(flip_start), int(flip_end) + 1)]
+                           for i in range(1, int(flip_end) + 1)]
 
             link = link_data[0].attrib['href']
 
-            title = video_tree_data.xpath('./p[@class="mbtit"]/a')
+            data_tree = video_tree_data.xpath('./div[@class="mbunder"]')
+            assert len(data_tree) == 1
+
+            title = data_tree[0].xpath('./p[@class="mbtit"]/a')
             assert len(title) == 1
             title = title[0].text
 
-            video_length = video_tree_data.xpath('./p[@class="mbstats"]/span[@class="mbtim"]')
+            stats_tree = data_tree[0].xpath('./p[@class="mbstats"]')
+            assert len(stats_tree) == 1
+
+            video_length = stats_tree[0].xpath('./span[@class="mbtim"]')
             assert len(video_length) == 1
             video_length = video_length[0].text
 
-            rating = video_tree_data.xpath('./p[@class="mbstats"]/span[@class="mbrate"]')
+            rating = stats_tree[0].xpath('./span[@class="mbrate"]')
             assert len(rating) == 1
             rating = rating[0].text
 
-            viewers = video_tree_data.xpath('./p[@class="mbstats"]/span[@class="mbvie"]')
+            viewers = stats_tree[0].xpath('./span[@class="mbvie"]')
             assert len(viewers) == 1
             viewers = viewers[0].text
 

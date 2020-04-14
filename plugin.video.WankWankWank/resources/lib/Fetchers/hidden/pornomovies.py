@@ -98,12 +98,13 @@ class PornoMovies(PornFetcher):
                                          )
 
     def __init__(self, source_name='PornoMovies', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(PornoMovies, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(PornoMovies, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                          session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -163,7 +164,7 @@ class PornoMovies(PornFetcher):
         assert len(videos) > 0
         return VideoNode(video_sources=videos)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -183,25 +184,26 @@ class PornoMovies(PornFetcher):
         if max_page - start_page < self._binary_search_page_threshold:
             return max_page
         # We perform binary search
-        return self._binary_search_max_number_of_pages(category_data)
+        return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
 
-    def _binary_search_max_number_of_pages(self, category_data):
+    def _binary_search_max_number_of_pages(self, category_data, last_available_number_of_pages):
         """
         Performs binary search in order to find the last available page.
         :param category_data: Category data.
+        :param last_available_number_of_pages: Last available number of pages. Will be the pivot for our next search.
+        By default is None, which mean the original pivot will be used...
         :return: Page request
         """
-        # Slightly modified version
         left_page = 1
         right_page = self.max_pages
+        page = last_available_number_of_pages if last_available_number_of_pages is not None \
+            else math.ceil((right_page + left_page) / 2)
         while 1:
             if right_page == left_page:
                 return left_page
             elif left_page > right_page:
                 # We had a mistake on the previous measurement
                 right_page = 2 * (right_page - left_page) + left_page
-
-            page = math.ceil((right_page + left_page) / 2)
             try:
                 page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
                 tree = self.parser.parse(page_request.text)
@@ -218,6 +220,7 @@ class PornoMovies(PornFetcher):
             except PornFetchUrlError:
                 # We moved too far...
                 right_page = page - 1
+            page = math.ceil((right_page + left_page) / 2)
 
     def _get_available_pages_from_tree(self, tree):
         """

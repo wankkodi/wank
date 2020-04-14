@@ -105,7 +105,7 @@ class Beeg(PornFetcher):
         return 'https://img.beeg.com/150x150/cast/'.format(id=self.user_id)
 
     def __init__(self, source_name='Beeg', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
@@ -113,7 +113,8 @@ class Beeg(PornFetcher):
         self.bundle = None
         self.user_id = None
         self.tag_page_template = 'https://beeg.com/tag/{t}'
-        super(Beeg, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(Beeg, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                   session_id)
 
     def _update_user_agent(self):
         """
@@ -271,7 +272,7 @@ class Beeg(PornFetcher):
                              key=lambda x: x.resolution, reverse=True)
         return VideoNode(video_sources=video_links)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Get number of pages from category data.
         :param fetched_request:

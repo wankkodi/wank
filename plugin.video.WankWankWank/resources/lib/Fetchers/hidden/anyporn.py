@@ -99,12 +99,13 @@ class AnyPorn(PornFetcher):
                                          )
 
     def __init__(self, source_name='AnyPorn', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(AnyPorn, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(AnyPorn, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                      session_id)
         self.kt_fetcher = KTMoviesFetcher(self.session, self.user_agent, self.parser)
 
     def _update_available_categories(self, category_data):
@@ -282,7 +283,7 @@ class AnyPorn(PornFetcher):
         videos = [VideoSource(link=raw_data['video_url'])]
         return VideoNode(video_sources=videos, verify=False)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -585,12 +586,13 @@ class PervertSluts(AnyPorn):
                                          )
 
     def __init__(self, source_name='AnyPorn', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(PervertSluts, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(PervertSluts, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                           session_id)
 
     def _update_available_tags(self, tag_data):
         """
@@ -788,12 +790,13 @@ class Analdin(PervertSluts):
                                          )
 
     def __init__(self, source_name='Analdin', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(Analdin, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(Analdin, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                      session_id)
 
     def _update_available_base_object(self, base_object_data, xpath, object_type, is_sort=False):
         """
@@ -1000,12 +1003,13 @@ class Fapster(PervertSluts):
                                          )
 
     def __init__(self, source_name='Fapster', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(Fapster, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(Fapster, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                      session_id)
 
     def get_videos_data(self, page_data):
         """
@@ -1182,12 +1186,13 @@ class PornRewind(PervertSluts):
                                          )
 
     def __init__(self, source_name='PornRewind', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(PornRewind, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(PornRewind, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                         session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -1245,7 +1250,7 @@ class PornRewind(PervertSluts):
         """
         return self._get_video_links_from_video_data4(video_data)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -1259,7 +1264,7 @@ class PornRewind(PervertSluts):
         if len(self._get_available_pages_from_tree(tree)) == 0:
             return 1
         else:
-            return self._binary_search_max_number_of_pages(category_data)
+            return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
 
     def _get_available_pages_from_tree(self, tree):
         """
@@ -1417,12 +1422,13 @@ class HellPorno(AnyPorn):
         return 'https://hellporno.com/'
 
     def __init__(self, source_name='HellPorno', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(HellPorno, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(HellPorno, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                        session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -1509,7 +1515,7 @@ class HellPorno(AnyPorn):
         object_data.add_sub_objects(res)
         return res
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -1758,12 +1764,13 @@ class AlphaPorno(HellPorno):
         return 'https://www.alphaporno.com/'
 
     def __init__(self, source_name='AlphaPorno', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(AlphaPorno, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(AlphaPorno, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                         session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -1930,7 +1937,7 @@ class AlphaPorno(HellPorno):
         """
         return False
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -2129,12 +2136,13 @@ class MegaTubeXXX(PervertSluts):
                                          )
 
     def __init__(self, source_name='MegaTubeXXX', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(MegaTubeXXX, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(MegaTubeXXX, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                          session_id)
 
     def get_video_links_from_video_data(self, video_data):
         """
@@ -2304,12 +2312,13 @@ class TubeWolf(AlphaPorno):
         return 200
 
     def __init__(self, source_name='TubeWolf', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(TubeWolf, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(TubeWolf, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                       session_id)
 
     def _get_available_pages_from_tree(self, tree):
         """
@@ -2431,12 +2440,13 @@ class XBabe(AnyPorn):
         return 2000
 
     def __init__(self, source_name='XBabe', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(XBabe, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(XBabe, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                    session_id)
 
     def _get_tag_properties(self, page_request):
         """
@@ -2497,7 +2507,7 @@ class XBabe(AnyPorn):
         """
         return self._get_video_links_from_video_data3(video_data)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -2525,18 +2535,21 @@ class XBabe(AnyPorn):
         #     return math.ceil(total_number_of_videos / self.videos_per_video_page)
         else:
             # We have a porn star page
-            return self._binary_search_max_number_of_pages(category_data)
+            return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
 
-    def _binary_search_max_number_of_pages(self, category_data):
+    def _binary_search_max_number_of_pages(self, category_data, last_available_number_of_pages):
         """
         Performs binary search in order to find the last available page.
         :param category_data: Category data.
+        :param last_available_number_of_pages: Last available number of pages. Will be the pivot for our next search.
+        By default is None, which mean the original pivot will be used...
         :return: Page request
         """
         left_page = 1
         right_page = self.max_pages
+        page = last_available_number_of_pages if last_available_number_of_pages is not None \
+            else math.ceil((right_page + left_page) / 2)
         while 1:
-            page = math.ceil((right_page + left_page) / 2)
             try:
                 self.get_object_request(category_data, override_page_number=page, send_error=False)
                 left_page = page
@@ -2545,6 +2558,7 @@ class XBabe(AnyPorn):
             except PornFetchUrlError:
                 # We moved too far...
                 right_page = page - 1
+            page = math.ceil((right_page + left_page) / 2)
 
     def _get_available_pages_from_tree(self, tree):
         """
@@ -2876,12 +2890,13 @@ class BravoPorn(AnyPorn):
                                          )
 
     def __init__(self, source_name='BravoPorn', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(BravoPorn, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(BravoPorn, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                        session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -2985,7 +3000,7 @@ class BravoPorn(AnyPorn):
 
         return links, titles, number_of_videos
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -3140,12 +3155,13 @@ class XCum(XBabe):
         return super(AnyPorn, self)._set_video_filter()
 
     def __init__(self, source_name='XCum', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(XCum, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(XCum, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                   session_id)
 
     def _update_available_tags(self, tag_data):
         """
@@ -3181,7 +3197,7 @@ class XCum(XBabe):
         """
         return False
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -3360,12 +3376,13 @@ class HellMoms(XBabe):
         return 'https://hellmoms.com/'
 
     def __init__(self, source_name='HellMoms', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(HellMoms, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(HellMoms, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                       session_id)
 
     def _update_available_tags(self, tag_data):
         """
@@ -3393,7 +3410,7 @@ class HellMoms(XBabe):
         """
         return False
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -3537,12 +3554,13 @@ class PornPlus(HellMoms):
         return 'https://www.porn-plus.com/'
 
     def __init__(self, source_name='PornPlus', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(PornPlus, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(PornPlus, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                       session_id)
 
     @property
     def _make_tag_pages_by_letter(self):
@@ -3613,7 +3631,7 @@ class PornPlus(HellMoms):
 
         return links, titles, number_of_videos
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -3774,12 +3792,13 @@ class TropicTube(PervertSluts):
                                          )
 
     def __init__(self, source_name='TropicTube', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(TropicTube, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(TropicTube, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                         session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -3868,7 +3887,7 @@ class TropicTube(PervertSluts):
         """
         return self._get_video_links_from_video_data2(video_data)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -3885,7 +3904,7 @@ class TropicTube(PervertSluts):
         elif max(pages) - 1 < self._binary_search_page_threshold:
             return max(pages)
         else:
-            return self._binary_search_max_number_of_pages(category_data)
+            return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
 
     @property
     def _binary_search_page_threshold(self):
@@ -4078,12 +4097,13 @@ class ZedPorn(AnyPorn):
         return 2000
 
     def __init__(self, source_name='ZedPorn', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(ZedPorn, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(ZedPorn, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                      session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -4126,7 +4146,7 @@ class ZedPorn(AnyPorn):
         """
         return self._get_video_links_from_video_data3(video_data)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -4365,12 +4385,13 @@ class PornFd(PervertSluts):
                        )
 
     def __init__(self, source_name='PornFd', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(PornFd, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(PornFd, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                     session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -4466,7 +4487,7 @@ class PornFd(PervertSluts):
         """
         return self._get_video_links_from_video_data2(video_data)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -4483,7 +4504,7 @@ class PornFd(PervertSluts):
         elif max(pages) - 1 < self._binary_search_page_threshold:
             return max(pages)
         else:
-            return self._binary_search_max_number_of_pages(category_data)
+            return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
 
     @property
     def _binary_search_page_threshold(self):
@@ -4720,12 +4741,13 @@ class ZeroDaysPorn(PornFd):
                 search_params)
 
     def __init__(self, source_name='ZeroDaysPorn', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(ZeroDaysPorn, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(ZeroDaysPorn, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                           session_id)
 
 
 class PornBimbo(PornFd):
@@ -4771,26 +4793,31 @@ class PornBimbo(PornFd):
         return 'http://pornbimbo.com/'
 
     def __init__(self, source_name='PornBimbo', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(PornBimbo, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(PornBimbo, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                        session_id)
 
-    def _binary_search_max_number_of_pages(self, category_data):
+    def _binary_search_max_number_of_pages(self, category_data, last_available_number_of_pages):
         """
         Performs binary search in order to find the last available page.
         :param category_data: Category data.
+        :param last_available_number_of_pages: Last available number of pages. Will be the pivot for our next search.
+        By default is None, which mean the original pivot will be used...
         :return: Page request
         """
         left_page = 1
         right_page = self.max_pages
+        page = last_available_number_of_pages if last_available_number_of_pages is not None \
+            else math.ceil((right_page + left_page) / 2)
+
         while 1:
             if right_page == left_page:
                 return left_page
 
-            page = math.ceil((right_page + left_page) / 2)
             try:
                 page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
                 tree = self.parser.parse(page_request.text)
@@ -4807,6 +4834,7 @@ class PornBimbo(PornFd):
             except PornFetchUrlError:
                 # We moved too far...
                 right_page = page - 1
+            page = math.ceil((right_page + left_page) / 2)
 
     def _get_available_pages_from_tree(self, tree):
         """
@@ -4820,7 +4848,7 @@ class PornBimbo(PornFd):
                 if 'data-parameters' in x.attrib and
                 len(re.findall(r'(?:from.*?:)(\d+)', x.attrib['data-parameters'])) > 0]
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -4838,7 +4866,7 @@ class PornBimbo(PornFd):
         elif max(pages) - 1 < self._binary_search_page_threshold:
             return max(pages)
         else:
-            return self._binary_search_max_number_of_pages(category_data)
+            return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
 
     @property
     def _binary_search_page_threshold(self):
@@ -4899,14 +4927,15 @@ class BoundHub(PornFd):
         return 'https://www.boundhub.com/'
 
     def __init__(self, source_name='BoundHub', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(BoundHub, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(BoundHub, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                       session_id)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -4963,12 +4992,13 @@ class EroClips(BoundHub):
         return 'http://www.eroclips.org/'
 
     def __init__(self, source_name='EroClips', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(EroClips, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(EroClips, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                       session_id)
 
 
 class CamVideosTv(BoundHub):
@@ -4998,12 +5028,13 @@ class CamVideosTv(BoundHub):
         return 'http://www.camvideos.tv/'
 
     def __init__(self, source_name='CamVideosTv', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(CamVideosTv, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(CamVideosTv, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                          session_id)
 
 
 class AnonV(BoundHub):
@@ -5033,12 +5064,13 @@ class AnonV(BoundHub):
         return 'https://anon-v.com/'
 
     def __init__(self, source_name='AnonV', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(AnonV, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(AnonV, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                    session_id)
 
 
 class MrDeepFake(BoundHub):
@@ -5081,12 +5113,13 @@ class MrDeepFake(BoundHub):
                 search_params)
 
     def __init__(self, source_name='MrDeepFake', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(MrDeepFake, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(MrDeepFake, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                         session_id)
 
     def _get_available_pages_from_tree(self, tree):
         """
@@ -5148,12 +5181,13 @@ class Ebony8(BoundHub):
         return 'https://www.ebony8.com/'
 
     def __init__(self, source_name='Ebony8', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(Ebony8, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(Ebony8, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                     session_id)
 
     def _update_available_channels(self, channel_data):
         return self._update_available_base_object(channel_data,
@@ -5231,12 +5265,13 @@ class CamUploads(BoundHub):
         return 'http://www.camuploads.com/'
 
     def __init__(self, source_name='CamUploads', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(CamUploads, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(CamUploads, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                         session_id)
 
 
 class Porn7(PornBimbo):
@@ -5338,12 +5373,13 @@ class Porn7(PornBimbo):
         return 2000
 
     def __init__(self, source_name='Porn7', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(Porn7, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(Porn7, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                    session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -5455,7 +5491,7 @@ class Porn7(PornBimbo):
         porn_star_data.add_sub_objects(res)
         return res
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -5475,7 +5511,7 @@ class Porn7(PornBimbo):
             if max(pages) - 1 < self._binary_search_page_threshold:
                 return max(pages)
             else:
-                return self._binary_search_max_number_of_pages(category_data)
+                return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
 
     def _get_available_pages_from_tree(self, tree):
         """
@@ -5686,12 +5722,13 @@ class AdultCartoons(PornBimbo):
         return 2000
 
     def __init__(self, source_name='AdultCartoons', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(AdultCartoons, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(AdultCartoons, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                            session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -5763,7 +5800,7 @@ class AdultCartoons(PornBimbo):
                                                 for x in raw_data])
         return links, titles, number_of_videos
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -5783,7 +5820,7 @@ class AdultCartoons(PornBimbo):
             if max(pages) - 1 < self._binary_search_page_threshold:
                 return max(pages)
             else:
-                return self._binary_search_max_number_of_pages(category_data)
+                return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
 
     def _get_available_pages_from_tree(self, tree):
         """
@@ -5993,12 +6030,13 @@ class MoviesAnd(AdultCartoons):
         return 2000
 
     def __init__(self, source_name='MoviesAnd', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(MoviesAnd, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(MoviesAnd, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                        session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -6038,12 +6076,13 @@ class Interracial(MoviesAnd):
         return 2000
 
     def __init__(self, source_name='Interracial', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(Interracial, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(Interracial, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                          session_id)
 
 
 class Deviants(MoviesAnd):
@@ -6063,12 +6102,13 @@ class Deviants(MoviesAnd):
         return 2000
 
     def __init__(self, source_name='Devaints', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(Deviants, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(Deviants, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                       session_id)
 
 
 class PunishBang(PervertSluts):
@@ -6173,12 +6213,13 @@ class PunishBang(PervertSluts):
                                          )
 
     def __init__(self, source_name='PunishBang', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(PunishBang, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(PunishBang, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                         session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -6289,7 +6330,7 @@ class PunishBang(PervertSluts):
         """
         return self._get_video_links_from_video_data2(video_data)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -6306,7 +6347,7 @@ class PunishBang(PervertSluts):
         elif max(pages) - 1 < self._binary_search_page_threshold:
             return max(pages)
         else:
-            return self._binary_search_max_number_of_pages(category_data)
+            return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
 
     @property
     def _binary_search_page_threshold(self):
@@ -6527,12 +6568,13 @@ class BravoTeens(AnyPorn):
                                          )
 
     def __init__(self, source_name='BravoTeens', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(BravoTeens, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(BravoTeens, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                         session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -6751,12 +6793,13 @@ class MadThumbs(Fapster):
                                          )
 
     def __init__(self, source_name='MadThumbs', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(MadThumbs, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(MadThumbs, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                        session_id)
 
     def _get_tag_properties(self, page_request):
         """
@@ -6826,17 +6869,18 @@ class VQTube(MadThumbs):
         return 30  # 5*6
 
     def __init__(self, source_name='VQTube', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(VQTube, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(VQTube, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                     session_id)
 
     def _update_available_tags(self, tag_data):
         return super(PervertSluts, self)._update_available_tags(tag_data)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -6944,12 +6988,13 @@ class Xozilla(MadThumbs):
         return 30  # 5*6
 
     def __init__(self, source_name='Xozilla', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(Xozilla, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(Xozilla, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                      session_id)
 
     def get_videos_data(self, page_data):
         """
@@ -7029,12 +7074,13 @@ class SlutLoad(MadThumbs):
         return 'https://www.slutload.com/'
 
     def __init__(self, source_name='SlutLoad', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(SlutLoad, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(SlutLoad, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                       session_id)
 
 
 class Sex3(BravoPorn):
@@ -7101,12 +7147,13 @@ class Sex3(BravoPorn):
                                          )
 
     def __init__(self, source_name='Sex3', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(Sex3, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(Sex3, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                   session_id)
 
     def _update_available_base_object(self, base_object_data, xpath, object_type, is_sort=False):
         """
@@ -7381,12 +7428,13 @@ class AnySex(Sex3):
                                          )
 
     def __init__(self, source_name='AnySex', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(AnySex, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(AnySex, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                     session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -7555,12 +7603,13 @@ class CrocoTube(Sex3):
                                          )
 
     def __init__(self, source_name='CrocoTube', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(CrocoTube, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(CrocoTube, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                        session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -7653,7 +7702,7 @@ class CrocoTube(Sex3):
         base_object_data.add_sub_objects(res)
         return res
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -7668,7 +7717,7 @@ class CrocoTube(Sex3):
         pages = self._get_available_pages_from_tree(tree)
         if len(pages) == 0:
             return 1
-        return self._binary_search_max_number_of_pages(category_data)
+        return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
 
     def _get_available_pages_from_tree(self, tree):
         """
@@ -7834,12 +7883,14 @@ class WatchMyGfTv(AnyPorn):
                                          )
 
     def __init__(self, source_name='WatchMyGfTv', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
+
         """
         C'tor
         :param source_name: save directory
         """
-        super(WatchMyGfTv, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(WatchMyGfTv, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                          session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -8104,12 +8155,14 @@ class WatchMyExGf(PervertSluts):
                                          )
 
     def __init__(self, source_name='WatchMyExGf', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
+
         """
         C'tor
         :param source_name: save directory
         """
-        super(WatchMyExGf, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(WatchMyExGf, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                          session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -8208,7 +8261,7 @@ class WatchMyExGf(PervertSluts):
         """
         return self._get_video_links_from_video_data3(video_data)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -8225,7 +8278,7 @@ class WatchMyExGf(PervertSluts):
         elif max(pages) - 1 < self._binary_search_page_threshold:
             return max(pages)
         else:
-            return self._binary_search_max_number_of_pages(category_data)
+            return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
 
     @property
     def _binary_search_page_threshold(self):
@@ -8426,12 +8479,13 @@ class PornoDep(AnyPorn):
                                          )
 
     def __init__(self, source_name='PornoDep', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(PornoDep, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(PornoDep, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                       session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -8795,12 +8849,14 @@ class WatchMyGfMe(AnyPorn):
         return 10000
 
     def __init__(self, source_name='WatchMyGfMe', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
-                 session_id=None):
+                 use_web_server=True, session_id=None):
+
         """
         C'tor
         :param source_name: save directory
         """
-        super(WatchMyGfMe, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(WatchMyGfMe, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                          session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -8992,7 +9048,7 @@ class WatchMyGfMe(AnyPorn):
         """
         return self._get_video_links_from_video_data2(video_data)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -9004,7 +9060,7 @@ class WatchMyGfMe(AnyPorn):
         if len(self._get_available_pages_from_tree(tree)) == 0:
             return 1
         else:
-            return self._binary_search_max_number_of_pages(category_data)
+            return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
 
     def _get_available_pages_from_tree(self, tree):
         """

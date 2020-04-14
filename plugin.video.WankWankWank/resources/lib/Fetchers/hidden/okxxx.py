@@ -64,12 +64,13 @@ class OkXXX(PornFetcher):
                                          )
 
     def __init__(self, source_name='OkXXX', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(OkXXX, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(OkXXX, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                    session_id)
         self.kt_fetcher = KTMoviesFetcher(self.session, self.user_agent, self.parser)
 
     def _update_available_porn_stars(self, category_data):
@@ -147,7 +148,7 @@ class OkXXX(PornFetcher):
             video_sources.sort(key=lambda x: x.resolution, reverse=True)
         return VideoNode(video_sources=video_sources)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -253,12 +254,14 @@ class PornHat(OkXXX):
         """
         return 'https://www.pornhat.com/'
 
-    def __init__(self, source_name='PornHat', source_id=0, store_dir='.', data_dir='../Data'):
+    def __init__(self, source_name='PornHat', source_id=0, store_dir='.', data_dir='../Data',
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(PornHat, self).__init__(source_name, source_id, store_dir, data_dir)
+        super(PornHat, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                      session_id)
 
 
 if __name__ == '__main__':

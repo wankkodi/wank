@@ -61,12 +61,12 @@ class Mako(VODFetcher):
         return 'https://www.mako.co.il/'
 
     def __init__(self, vod_name='Mako', vod_id=-1, store_dir='.', data_dir='../../Data', source_type='VOD',
-                 session_id=None):
+                 use_web_server=False, session_id=None):
         """
         C'tor
         :param vod_name: save directory
         """
-        super(Mako, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, session_id)
+        super(Mako, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
 
     def _update_base_categories(self, base_object):
         """
@@ -550,7 +550,7 @@ class Mako(VODFetcher):
         if 'programs' not in self.live_data['live_schedule'] or len(self.live_data['live_schedule']['programs']) == 0:
             raise RuntimeError('The structure of the live page has changed. Recheck the code!')
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         raise NotImplementedError
 
     def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url):
@@ -619,8 +619,8 @@ class Bip(Mako):
     season1_title = 'עונה 1'
 
     def __init__(self, vod_name='Mako', vod_id=-1, store_dir='.', data_dir='../../Data', source_type='VOD',
-                 session_id=None):
-        super(Bip, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, session_id)
+                 use_web_server=False, session_id=None):
+        super(Bip, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
 
     @property
     def object_urls(self):
@@ -766,7 +766,7 @@ class Bip(Mako):
         #     pickle.dump(self.category_data, fl)
         return show_data
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         raise NotImplementedError
 
     def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url):
@@ -789,17 +789,17 @@ class Bip(Mako):
 
 class Channel24(Mako):
     def __init__(self, vod_name='Channel 24', vod_id=-1, store_dir='.', data_dir='../../Data', source_type='VOD',
-                 session_id=None):
+                 use_web_server=False, session_id=None):
         """
         C'tor
         :param vod_name: save directory
         """
-        super(Mako, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, session_id)
+        super(Mako, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
 
     def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url):
         return NotImplementedError
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         return NotImplementedError
 
     @property

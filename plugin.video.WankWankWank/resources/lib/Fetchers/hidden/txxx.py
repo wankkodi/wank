@@ -180,12 +180,13 @@ class Txxx(PornFetcher):
         return general_filters, video_filters, search_filters, None, porn_stars_filters, channels_filters
 
     def __init__(self, source_name='Txxx', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(Txxx, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(Txxx, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                   session_id)
         self.channels_json = urljoin(self.base_url, '/api/json/channels/86400/{gender}/{sort}/{npp}/..{p}.json')
         self.channel_json = urljoin(self.base_url, '/api/json/videos/86400/{gender}/{sort}/{npp}/'
                                                    'channel.{channel}.{p}.{type}.{length}.{period}.json')
@@ -269,7 +270,7 @@ class Txxx(PornFetcher):
         porn_star_data.add_sub_objects(object_data)
         return object_data
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of pages out of category data.
         :param fetched_request:
@@ -590,12 +591,13 @@ class HClips(Txxx):
         return 'https://hclips.com/'
 
     def __init__(self, source_name='HClips', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(HClips, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(HClips, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                     session_id)
         self.search_json = urljoin(self.base_url, '/api/videos.php?params=259200/{gender}/relevance/{npp}/'
                                                   'search..{p}.{type}.{length}.{period}&s={query}&sort={sort}&'
                                                   'date={period}&type={type}')
@@ -757,12 +759,13 @@ class UPornia(Txxx):
         return general_filters, video_filters, video_filters, categories_filters, porn_stars_filters, channels_filters
 
     def __init__(self, source_name='UPornia', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(UPornia, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(UPornia, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                      session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -923,7 +926,7 @@ class UPornia(Txxx):
 
         return VideoNode(video_sources=video_url)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -1204,12 +1207,13 @@ class HDZog(UPornia):
         return None, video_filters, video_filters, categories_filters, porn_stars_filters, channels_filters
 
     def __init__(self, source_name='HDZog', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(HDZog, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(HDZog, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                    session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -1316,7 +1320,7 @@ class HDZog(UPornia):
 
         return VideoNode(video_sources=video_url)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -1498,12 +1502,13 @@ class HotMovs(UPornia):
         return general_filters, video_filters, video_filters, categories_filters, porn_stars_filters, channels_filters
 
     def __init__(self, source_name='HotMovs', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(HotMovs, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(HotMovs, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                      session_id)
 
     def _get_available_pages_from_tree(self, tree):
         """
@@ -1637,12 +1642,13 @@ class VoyeurHit(UPornia):
         return super(Txxx, self)._set_video_filter()
 
     def __init__(self, source_name='VoyeurHit', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(VoyeurHit, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(VoyeurHit, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                        session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -1863,12 +1869,13 @@ class TubePornClassic(UPornia):
         return 'https://tubepornclassic.com/'
 
     def __init__(self, source_name='TubePornClassic', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(TubePornClassic, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(TubePornClassic, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                              session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -2118,12 +2125,13 @@ class VJav(TubePornClassic):
         return 'https://vjav.com/'
 
     def __init__(self, source_name='VJav', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(VJav, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(VJav, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                   session_id)
 
 
 class TheGay(TubePornClassic):
@@ -2136,12 +2144,13 @@ class TheGay(TubePornClassic):
         return 'https://thegay.com/'
 
     def __init__(self, source_name='TheGay', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(TheGay, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(TheGay, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                     session_id)
 
     def _prepare_filters(self):
         general_filters, video_filters, video_filters, categories_filters, porn_stars_filters, channels_filters = \
@@ -2225,12 +2234,13 @@ class Shemalez(UPornia):
                                          )
 
     def __init__(self, source_name='Shemalez', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(Shemalez, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(Shemalez, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                       session_id)
 
     def _update_available_categories(self, category_data):
         """

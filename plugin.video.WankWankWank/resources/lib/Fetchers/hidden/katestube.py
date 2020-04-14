@@ -110,12 +110,13 @@ class KatesTube(PornFetcher):
                 }
 
     def __init__(self, source_name='KatesTube', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(KatesTube, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(KatesTube, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                        session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -208,7 +209,7 @@ class KatesTube(PornFetcher):
         res = [VideoSource(link=request_data['video_url'])]
         return VideoNode(video_sources=res)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -230,7 +231,7 @@ class KatesTube(PornFetcher):
                 return max_page
 
         # We perform binary search
-        return self._binary_search_max_number_of_pages(category_data)
+        return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
 
     def _get_available_pages_from_tree(self, tree):
         """
@@ -417,12 +418,13 @@ class PervClips(KatesTube):
         return filters
 
     def __init__(self, source_name='PervClips', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(PervClips, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(PervClips, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                        session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -614,12 +616,13 @@ class PornWhite(KatesTube):
     #     ret super(PornWhite, self)._set_video_filter()
 
     def __init__(self, source_name='PornWhite', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(PornWhite, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(PornWhite, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                        session_id)
 
     def _update_available_base_object(self, object_data, xpath, object_type):
         """
@@ -799,12 +802,13 @@ class SleazyNEasy(PornWhite):
         return 'https://www.sleazyneasy.com/'
 
     def __init__(self, source_name='SleazyNEasy', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(SleazyNEasy, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(SleazyNEasy, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                          session_id)
 
     def _update_available_porn_stars(self, porn_star_data):
         """
@@ -937,12 +941,13 @@ class VikiPorn(PornWhite):
         return 'https://www.vikiporn.com/'
 
     def __init__(self, source_name='VikiPorn', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(VikiPorn, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(VikiPorn, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                       session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -1087,12 +1092,13 @@ class WankOz(PornWhite):
         return filters
 
     def __init__(self, source_name='WankOz', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(WankOz, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(WankOz, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                     session_id)
 
     def get_videos_data(self, page_data):
         """
@@ -1195,12 +1201,13 @@ class PorniCom(PornWhite):
         return 'https://www.pornicom.com/'
 
     def __init__(self, source_name='PorniCom', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(PorniCom, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(PorniCom, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                       session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -1365,12 +1372,13 @@ class FetishShrine(PornWhite):
         return 'https://www.fetishshrine.com/'
 
     def __init__(self, source_name='FetishShrine', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(FetishShrine, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(FetishShrine, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                           session_id)
 
     def get_videos_data(self, page_data):
         """
@@ -1475,12 +1483,13 @@ class SheShaft(PornWhite):
         return 'https://www.sheshaft.com/'
 
     def __init__(self, source_name='SheShaft', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(SheShaft, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(SheShaft, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                       session_id)
 
     def get_videos_data(self, page_data):
         """

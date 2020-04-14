@@ -111,8 +111,9 @@ class PornFetcher(BaseFetcher):
         """
         return NotImplemented
 
-    def __init__(self, source_name, source_id, store_dir, data_dir, source_type, session_id=None):
-        super(PornFetcher, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+    def __init__(self, source_name, source_id, store_dir, data_dir, source_type, use_web_server=True, session_id=None):
+        super(PornFetcher, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                          session_id)
 
     def _set_video_filter(self):
         """
@@ -480,7 +481,6 @@ class PornFetcher(BaseFetcher):
         :param clear_sub_elements: Flag that indicates whether we clear previous sub elements.
         :return:
         """
-        use_web_server = self._use_web_server
         if category_data.object_type == PornCategories.TAG_MAIN and self._make_tag_pages_by_letter is True:
             category_data.clear_sub_objects()
             return self._add_tag_sub_pages(category_data, sub_object_type)
@@ -490,20 +490,24 @@ class PornFetcher(BaseFetcher):
 
         if clear_sub_elements is True:
             category_data.clear_sub_objects()
-        if use_web_server is True:
-            current_page_filters = self.get_proper_filter(category_data).current_filters
-            general_filters = self.general_filter.current_filters
+        if self._use_web_server is True:
+            current_page_filters = self.get_proper_filter(category_data).current_filters_text()
+            general_filters = self.general_filter.current_filters_text()
             raw_num_of_pages = self.data_server.fetch_request(category_data.url,
-                                                              repr(current_page_filters),
-                                                              repr(general_filters))
+                                                              current_page_filters,
+                                                              general_filters)
             if raw_num_of_pages['status'] is True:
-                num_of_pages = raw_num_of_pages['value']['num_of_pages']
+                num_of_pages = int(raw_num_of_pages['value']['number_of_pages'])
             else:
-                num_of_pages = self._get_number_of_sub_pages(category_data, page_request)
+                # If we have obsolete data we start our search from the last available page
+                last_available_number_of_pages = int(raw_num_of_pages['value']['number_of_pages']) \
+                    if raw_num_of_pages['status'] == 'Obsolete' else None
+                num_of_pages = self._get_number_of_sub_pages(category_data, page_request,
+                                                             last_available_number_of_pages)
                 push_result = self.data_server.push_request(self.source_name,
                                                             category_data.url,
-                                                            repr(current_page_filters),
-                                                            repr(general_filters),
+                                                            current_page_filters,
+                                                            general_filters,
                                                             num_of_pages)
                 if push_result['status'] is False:
                     warnings.warn(push_result['err'])
@@ -543,19 +547,22 @@ class PornFetcher(BaseFetcher):
         filename = re.sub(r'[?\\/"*<>|:]', '', filename)
         return filename
 
-    def _binary_search_max_number_of_pages(self, category_data):
+    def _binary_search_max_number_of_pages(self, category_data, last_available_number_of_pages):
         """
         Performs binary search in order to find the last available page.
         :param category_data: Category data.
+        :param last_available_number_of_pages: Last available number of pages. Will be the pivot for our next search.
+        By default is None, which mean the original pivot will be used...
         :return: Page request
         """
         left_page = 1
         right_page = self.max_pages
+        page = last_available_number_of_pages if last_available_number_of_pages is not None \
+            else math.ceil((right_page + left_page) / 2)
         while 1:
             if right_page == left_page:
                 return left_page
 
-            page = math.ceil((right_page + left_page) / 2)
             try:
                 page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
                 tree = self.parser.parse(page_request.text)
@@ -572,6 +579,7 @@ class PornFetcher(BaseFetcher):
             except PornFetchUrlError:
                 # We moved too far...
                 right_page = page - 1
+            page = math.ceil((right_page + left_page) / 2)
 
     def _check_is_available_page(self, page_request):
         """

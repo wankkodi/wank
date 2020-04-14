@@ -40,13 +40,13 @@ class Channel9(VODFetcher):
         return 'https://www.9tv.co.il/'
 
     def __init__(self, vod_name='Channel9', vod_id=-17, store_dir='.', data_dir='../../Data', source_type='VOD',
-                 session_id=None):
+                 use_web_server=False, session_id=None):
         """
         C'tor
         :param vod_name: save directory
         """
         self.episodes_to_data = {}
-        super(Channel9, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, session_id)
+        super(Channel9, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
 
     # # Obsolete
     # def _update_base_categories(self, base_object):
@@ -400,14 +400,14 @@ class Channel9(VODFetcher):
     #
     #     self.live_data['daily_schedule'] = res
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         if fetched_request is None:
             fetched_request = self.get_object_request(category_data)
         max_page = int(re.findall(r'(?:pagination\(\d+, )(\d+)(?:\))', fetched_request.text)[0])
         return max_page
 
     # Obsolete
-    # def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    # def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
     #     if fetched_request is None:
     #         fetched_request = self.get_object_request(category_data)
     #     tree = self.parser.parse(fetched_request.content.decode('utf-8'))

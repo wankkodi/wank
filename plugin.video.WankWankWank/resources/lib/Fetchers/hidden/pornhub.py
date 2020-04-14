@@ -97,12 +97,13 @@ class PornDotCom(PornFetcher):
         return 'https://www.porn.com/'
 
     def __init__(self, source_name='PornDotCom', source_id=0, store_dir='.',  data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(PornDotCom, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(PornDotCom, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                         session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -241,7 +242,7 @@ class PornDotCom(PornFetcher):
                 videos = [VideoSource(link=videos[0].attrib['src'])]
         return VideoNode(video_sources=videos)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -503,12 +504,13 @@ class PornHub(PornFetcher):
                                          )
 
     def __init__(self, source_name='Pornhub', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(PornHub, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(PornHub, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                      session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -701,7 +703,7 @@ class PornHub(PornFetcher):
                      key=lambda x: x.quality, reverse=True)
         return VideoNode(video_sources=res)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -968,12 +970,13 @@ class YouPorn(PornFetcher):
                                          )
 
     def __init__(self, source_name='YouPorn', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(YouPorn, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(YouPorn, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                      session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -1207,7 +1210,7 @@ class YouPorn(PornFetcher):
         page_data.add_sub_objects(res)
         return res
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -1382,12 +1385,13 @@ class TubeEight(PornFetcher):
                                          )
 
     def __init__(self, source_name='Tube8', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(TubeEight, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(TubeEight, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                        session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -1541,7 +1545,7 @@ class TubeEight(PornFetcher):
 
         return links, titles, number_of_videos
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:

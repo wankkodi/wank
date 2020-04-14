@@ -62,12 +62,13 @@ class PornHDEightK(PornFetcher):
         return 'http://www4.pornhd8k.net/'
 
     def __init__(self, source_name='PornHD8K', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(PornHDEightK, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(PornHDEightK, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                           session_id)
 
     def _update_available_categories(self, object_data):
         """
@@ -280,7 +281,7 @@ class PornHDEightK(PornFetcher):
     def _do_some_magic_c(a, b, c):
         return PornHDEightK._do_some_magic_bb(a, b, c)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:

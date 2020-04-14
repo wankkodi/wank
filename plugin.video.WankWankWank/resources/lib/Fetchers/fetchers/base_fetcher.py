@@ -68,7 +68,8 @@ class BaseFetcher(object):
         """
         raise NotImplementedError
 
-    def __init__(self, source_name, source_id, store_dir, data_dir, source_type, session_id=None):
+    def __init__(self, source_name, source_id, store_dir, data_dir, source_type, use_web_server=False,
+                 session_id=None):
         retries = 3
         backoff_factor = 0.3
         status_forcelist = (500, 502, 504)
@@ -112,7 +113,7 @@ class BaseFetcher(object):
 
         # todo: make more precise way to include filters as well...
         # self._use_web_server = True
-        self._use_web_server = False
+        self._use_web_server = use_web_server
 
         self.session_id = session_id if session_id is not None else IdGenerator.make_id(datetime.now())
         self.catalog_manager = CatalogManager(self.session_id, self.fetcher_data_dir)
@@ -246,11 +247,13 @@ class BaseFetcher(object):
         raise NotImplementedError
 
     @abstractmethod
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Get number of pages from category data.
         :param category_data: Category data (dict).
         :param fetched_request: Fetched url. In case such doesn't exist, we fetch it.
+        :param last_available_number_of_pages: Last available number of pages. Will be the pivot for our next search.
+        By default is None, which mean the original pivot will be used...
         :return:
         """
         return NotImplemented

@@ -165,12 +165,13 @@ class TnaFlix(PornFetcher):
                                          )
 
     def __init__(self, source_name='TnaFlix', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(TnaFlix, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(TnaFlix, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                      session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -347,10 +348,12 @@ class TnaFlix(PornFetcher):
                      key=lambda x: (x.resolution, x.fps), reverse=True)
         return VideoNode(video_sources=res)
 
-    def _binary_search_max_number_of_pages(self, category_data):
+    def _binary_search_max_number_of_pages(self, category_data, last_available_number_of_pages):
         """
         Performs binary search in order to find the last available page.
         :param category_data: Category data.
+        :param last_available_number_of_pages: Last available number of pages. Will be the pivot for our next search.
+        By default is None, which mean the original pivot will be used...
         :return: Page request
         """
         try:
@@ -369,7 +372,8 @@ class TnaFlix(PornFetcher):
 
         left_page = 1
         right_page = self.max_binary_pages
-        page = math.ceil((right_page + left_page) / 2)
+        page = last_available_number_of_pages if last_available_number_of_pages is not None \
+            else math.ceil((right_page + left_page) / 2)
         while 1:
             try:
                 page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
@@ -382,20 +386,18 @@ class TnaFlix(PornFetcher):
                 elif max(pages) < page:
                     # We also moved too far...
                     right_page = page - 1
-                    page = math.ceil((right_page + left_page) / 2)
                 else:
                     max_page = max(pages)
                     if max_page - page < self._binary_search_page_threshold:
                         return max_page
 
                     left_page = max_page
-                    page = math.ceil((right_page + left_page) / 2)
             except PornFetchUrlError:
                 # We moved too far...
                 right_page = page - 1
-                page = math.ceil((right_page + left_page) / 2)
+            page = math.ceil((right_page + left_page) / 2)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -415,7 +417,7 @@ class TnaFlix(PornFetcher):
         #         return max_page
         #
         # # We perform binary search
-        # return self._binary_search_max_number_of_pages(category_data)
+        # return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
         # We perform binary search
 
         if category_data.object_type in (PornCategories.CATEGORY_MAIN, ):
@@ -423,7 +425,7 @@ class TnaFlix(PornFetcher):
         elif category_data.object_type in (PornCategories.TAG_MAIN, ):
             return 20
         elif category_data.object_type in (PornCategories.CHANNEL, PornCategories.PORN_STAR):
-            return self._binary_search_max_number_of_pages(category_data)
+            return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
         else:
             start_page = self.max_pages
             while 1:
@@ -722,12 +724,13 @@ class EmpFlix(TnaFlix):
         return 'https://www.empflix.com/'
 
     def __init__(self, source_name='EmpFlix', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(EmpFlix, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(EmpFlix, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                      session_id)
 
 
 class MovieFap(TnaFlix):
@@ -795,12 +798,13 @@ class MovieFap(TnaFlix):
                                          )
 
     def __init__(self, source_name='MovieFap', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(MovieFap, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(MovieFap, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                       session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -839,7 +843,7 @@ class MovieFap(TnaFlix):
         category_data.add_sub_objects(res)
         return res
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:

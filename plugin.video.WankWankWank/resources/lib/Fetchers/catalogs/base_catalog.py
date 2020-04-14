@@ -384,12 +384,16 @@ class CatalogManager(object):
             makedirs(data_dir)
         self.store_filename = path.join(data_dir, 'catalog.dat')
         if path.isfile(self.store_filename):
-            with open(self.store_filename, 'rb') as fl:
-                self.store_data = pickle.load(fl)
+            try:
+                with open(self.store_filename, 'rb') as fl:
+                    self.store_data = pickle.load(fl)
+            except EOFError:
+                self.store_data = {}
             if self.session_id in self.store_data:
                 self._nodes = self.store_data[self.session_id]
             else:
                 self._init_store_data()
+
         else:
             self._init_store_data()
 
@@ -407,8 +411,7 @@ class CatalogManager(object):
         """
         self._nodes = {}
         self.store_data = {self.session_id: self._nodes}
-        with open(self.store_filename, 'wb') as fl:
-            pickle.dump(self.store_data, fl)
+        self.save_store_data()
 
     def save_store_data(self):
         """
@@ -705,6 +708,9 @@ class VideoFilterObject(object):
 
 
 class FilterStructure(object):
+    _filter_order = ('general_filters', 'length_filters', 'added_before_filters', 'period_filters',
+                     'quality_filters', 'rating_filters', 'comments_filters', 'profession_filters', 'sort_order')
+
     @property
     def general(self):
         return self.__filter_mapping[FilterTypes.GENERAL_TYPE]
@@ -763,11 +769,18 @@ class FilterStructure(object):
     def __setitem__(self, key, value):
         self.__filter_mapping[key] = value
 
+    def __repr__(self):
+        return ', '.join(('{k}: {v}'.format(k=x, v=self[x].filter_id)
+                          for x in sorted(self, key=lambda x: x.value)))
+
     def __iter__(self):
         return self.__filter_mapping.__iter__()
 
 
 class VideoFilter(object):
+    # _filter_order = ('general_filters', 'length_filters', 'added_before_filters', 'period_filters',
+    #                  'quality_filters', 'rating_filters', 'comments_filters', 'profession_filters', 'sort_order')
+
     def __init__(self, data_dir, filename=None, general_filters=None, length_filters=None, added_before_filters=None,
                  period_filters=None, quality_filters=None, rating_filters=None, comments_filters=None,
                  profession_filters=None, sort_order=None):
@@ -788,10 +801,15 @@ class VideoFilter(object):
         if filename is None:
             filename = 'filters.dat'
         self.store_filename = path.join(data_dir, filename)
-        if path.isfile(self.store_filename):
-            with open(self.store_filename, 'rb') as fl:
-                self._filters, self._current_filter_values, self._conditions = pickle.load(fl)
-        else:
+        init_data = True
+        try:
+            if path.isfile(self.store_filename):
+                with open(self.store_filename, 'rb') as fl:
+                    self._filters, self._current_filter_values, self._conditions = pickle.load(fl)
+                init_data = False
+        except EOFError:
+            init_data = True
+        if init_data is True:
             raw_data = self._prepare_input(general_filters, length_filters, added_before_filters,
                                            period_filters, quality_filters, rating_filters, comments_filters,
                                            profession_filters, sort_order)
@@ -882,8 +900,12 @@ class VideoFilter(object):
             raise ValueError('Wrong structure of filter input!')
 
     def __repr__(self):
-        return ', '.join(['{k}: {v}'.format(k=x, v=self._current_filter_values[x].title)
-                          for x in self])
+        return repr(self._current_filter_values)
+
+    def current_filters_text(self):
+        return ', '.join(('{k}: {v}'.format(k=x, v=self._current_filter_values[x].filter_id)
+                          for x in sorted(self._current_filter_values, key=lambda x: x.value)
+                          if len(self._filters[x]) > 1))
 
     def __iter__(self):
         return iter((x for x in self._filters if len(self._filters[x]) > 1))

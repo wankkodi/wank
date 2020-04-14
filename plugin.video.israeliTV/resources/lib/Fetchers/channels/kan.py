@@ -88,7 +88,7 @@ class Kan(VODFetcher):
         return 'https://www.kan.org.il/'
 
     def __init__(self, vod_name='Kan', vod_id=-4, store_dir='.', data_dir='../../Data', source_type='VOD',
-                 session_id=None):
+                 use_web_server=False, session_id=None):
         """
         C'tor
         :param vod_name: save directory
@@ -100,7 +100,7 @@ class Kan(VODFetcher):
             'https://www.kan.org.il/program/?catId=1274': self._fetch_show_data_1135,
             'https://www.kan.org.il/page.aspx?landingPageId=1274': self._fetch_show_data_1135,
         }
-        super(Kan, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, session_id)
+        super(Kan, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
 
     def fetch_sub_objects(self, element_object):
         """
@@ -1054,7 +1054,7 @@ class Kan(VODFetcher):
 
         return search_object
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         if fetched_request is None:
             fetched_request = self.get_object_request(category_data)
         raw_res = \
@@ -1112,12 +1112,13 @@ class KanEducation(Kan):
         }
 
     def __init__(self, vod_name='KanEducation', vod_id=-5, store_dir='.', data_dir='../../Data', source_type='VOD',
-                 session_id=None):
+                 use_web_server=False, session_id=None):
         """
         C'tor
         :param vod_name: save directory
         """
-        super(KanEducation, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, session_id)
+        super(KanEducation, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server,
+                                           session_id)
         self.special_show_parsing = {
             'https://www.kan.org.il/page.aspx?landingpageid=1113': self._fetch_show_data_1113,
             'https://www.kan.org.il/page.aspx?landingpageid=1137': self._fetch_show_data_1137,
@@ -1266,12 +1267,12 @@ class Makan(Kan):
     schedule_index = 2
 
     def __init__(self, vod_name='Makan', vod_id=-20, store_dir='.', data_dir='../../Data', source_type='VOD',
-                 session_id=None):
+                 use_web_server=False, session_id=None):
         """
         C'tor
         :param vod_name: save directory
         """
-        super(Makan, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, session_id)
+        super(Makan, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
 
     @property
     def base_url(self):

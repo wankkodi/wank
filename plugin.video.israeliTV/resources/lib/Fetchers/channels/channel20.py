@@ -47,14 +47,14 @@ class Channel20(VODFetcher):
         return 'https://www.20il.co.il/'
 
     def __init__(self, vod_name='Channel20', vod_id=-16, store_dir='.', data_dir='../../Data', source_type='VOD',
-                 session_id=None):
+                 use_web_server=False, session_id=None):
         """
         C'tor
         :param vod_name: save directory
         """
         self.episodes_to_data = {}
         self.season_to_show = {}
-        super(Channel20, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, session_id)
+        super(Channel20, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
 
     def fetch_sub_objects(self, element_object):
         """
@@ -266,7 +266,7 @@ class Channel20(VODFetcher):
         """
         return self.get_video_links_from_video_data(self.get_live_stream_info())
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         if fetched_request is None:
             fetched_request = self.get_object_request(category_data)
         tree = self.parser.parse(fetched_request.text)

@@ -73,13 +73,13 @@ class IBA(VODFetcher):
         return 'http://admin.applicaster.com/'
 
     def __init__(self, vod_name='IBA', vod_id=-19, store_dir='.', data_dir='../../Data', source_type='VOD',
-                 session_id=None):
+                 use_web_server=False, session_id=None):
         """
         C'tor
         :param vod_name: save directory
         """
         self.episodes_to_data = {}
-        super(IBA, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, session_id)
+        super(IBA, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
 
         self._properties = {
             'p_key': '9f220835e4cf51b79de811d271',
@@ -452,7 +452,7 @@ class IBA(VODFetcher):
         # params['api[sig]'] = request_sign
         return params
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         raise NotImplementedError
 
     def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url):

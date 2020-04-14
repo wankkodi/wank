@@ -189,12 +189,13 @@ class PornTube(PornFetcher):
                                          )
 
     def __init__(self, source_name='PornTube', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(PornTube, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(PornTube, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                       session_id)
 
     def _update_available_categories(self, category_object):
         """
@@ -366,7 +367,7 @@ class PornTube(PornFetcher):
 
         return VideoNode(video_sources=video_links)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -607,12 +608,13 @@ class FourTube(PornTube):
                                          )
 
     def __init__(self, source_name='4Tube', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(FourTube, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(FourTube, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                       session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -705,7 +707,7 @@ class FourTube(PornTube):
                              key=lambda x: x.resolution, reverse=True)
         return VideoNode(video_sources=video_links)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Get number of pages from category data.
         :param fetched_request:
@@ -715,7 +717,7 @@ class FourTube(PornTube):
         if category_data.object_type in (PornCategories.CATEGORY_MAIN, ):
             return 1
         else:
-            return self._binary_search_max_number_of_pages(category_data)
+            return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
 
     def _binary_search_check_is_available_page(self, page_request):
         """
@@ -855,12 +857,12 @@ class Fux(PornTube):
         return 'https://www.fux.com/'
 
     def __init__(self, source_name='Fux', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(Fux, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(Fux, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server, session_id)
 
 
 class PornerBros(PornTube):
@@ -879,12 +881,13 @@ class PornerBros(PornTube):
         return 'https://www.pornerbros.com/'
 
     def __init__(self, source_name='PornerBros', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(PornerBros, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(PornerBros, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                         session_id)
 
 
 if __name__ == '__main__':

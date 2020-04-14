@@ -299,7 +299,7 @@ class BaseClass(PornFetcher):
 
         return VideoNode(video_sources=res, verify=False)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -317,7 +317,7 @@ class BaseClass(PornFetcher):
         if (max_page - start_page) < self._binary_search_page_threshold:
             return max_page
         else:
-            return self._binary_search_max_number_of_pages(category_data)
+            return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
 
     def _get_available_pages_from_tree(self, tree):
         """
@@ -566,7 +566,7 @@ class BaseClass2(BaseClass):
                 'search_args': search_filters,
                 }
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -1095,12 +1095,13 @@ class LaidHub(BaseClass):
         return res
 
     def __init__(self, source_name='LaidHub', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(LaidHub, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(LaidHub, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                      session_id)
 
 
 class Nudez(BaseClass):
@@ -1128,12 +1129,13 @@ class Nudez(BaseClass):
         return res
 
     def __init__(self, source_name='Nudez', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(Nudez, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(Nudez, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                    session_id)
 
 
 class HypnoTube(BaseClass):
@@ -1162,12 +1164,13 @@ class HypnoTube(BaseClass):
         return res
 
     def __init__(self, source_name='HypnoTube', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(HypnoTube, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(HypnoTube, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                        session_id)
 
 
 class HandJobHub(BaseClass):
@@ -1192,12 +1195,13 @@ class HandJobHub(BaseClass):
         return res
 
     def __init__(self, source_name='HandJobHub', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(HandJobHub, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(HandJobHub, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                         session_id)
 
 
 class WetSins(BaseClass):
@@ -1222,12 +1226,13 @@ class WetSins(BaseClass):
         return res
 
     def __init__(self, source_name='WetSins', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(WetSins, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(WetSins, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                      session_id)
 
 
 class XnxxHamster(BaseClass):
@@ -1252,12 +1257,13 @@ class XnxxHamster(BaseClass):
         return res
 
     def __init__(self, source_name='XnxxHamster', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(XnxxHamster, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(XnxxHamster, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                          session_id)
 
 
 class DrPornTube(BaseClass):
@@ -1282,12 +1288,13 @@ class DrPornTube(BaseClass):
         return res
 
     def __init__(self, source_name='DrPornTube', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(DrPornTube, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(DrPornTube, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                         session_id)
 
 
 class SinClips(BaseClass):
@@ -1315,12 +1322,13 @@ class SinClips(BaseClass):
         return res
 
     def __init__(self, source_name='SinClips', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(SinClips, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(SinClips, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                       session_id)
 
 
 class PornXio(BaseClass):
@@ -1339,12 +1347,13 @@ class PornXio(BaseClass):
         return 'https://pornxio.com/'
 
     def __init__(self, source_name='PornXio', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(PornXio, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(PornXio, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                      session_id)
 
 
 class PornRabbit(BaseClass2):
@@ -1357,12 +1366,13 @@ class PornRabbit(BaseClass2):
         return 'https://www.pornrabbit.com/'
 
     def __init__(self, source_name='PornRabbit', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(PornRabbit, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(PornRabbit, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                         session_id)
 
 
 class PornWatchers(BaseClass2):
@@ -1375,12 +1385,13 @@ class PornWatchers(BaseClass2):
         return 'https://www.pornwatchers.com/'
 
     def __init__(self, source_name='PornWatchers', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(PornWatchers, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(PornWatchers, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                           session_id)
 
 
 class StileProject(BaseClass2):
@@ -1393,12 +1404,13 @@ class StileProject(BaseClass2):
         return 'https://www.stileproject.com/'
 
     def __init__(self, source_name='StileProject', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(StileProject, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(StileProject, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                           session_id)
 
 
 class Eroxia(BaseClass3):
@@ -1418,12 +1430,13 @@ class Eroxia(BaseClass3):
         return 'https://www.eroxia.com/'
 
     def __init__(self, source_name='Eroxia', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(Eroxia, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(Eroxia, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                     session_id)
 
 
 if __name__ == '__main__':

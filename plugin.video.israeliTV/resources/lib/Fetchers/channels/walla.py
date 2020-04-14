@@ -114,14 +114,14 @@ class Walla(VODFetcher):
         return 'https://vod.walla.co.il/'
 
     def __init__(self, vod_name='Walla', vod_id=-12, store_dir='.', data_dir='../../Data', source_type='VOD',
-                 session_id=None):
+                 use_web_server=False, session_id=None):
         """
         C'tor
         :param vod_name: save directory
         """
         self.episodes_to_data = {}
         self.season_to_show = {}
-        super(Walla, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, session_id)
+        super(Walla, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
 
     def _prepare_main_sub_objects(self):
         """
@@ -815,7 +815,7 @@ class Walla(VODFetcher):
         """
         return int(raw_duration) * 60
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:

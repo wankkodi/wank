@@ -104,12 +104,13 @@ class VintageTube(PornFetcher):
                                          )
 
     def __init__(self, source_name='VintageTube', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(VintageTube, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(VintageTube, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                          session_id)
         self.host_name = urlparse(self.porn_stars_api_url).hostname
 
     def _update_available_categories(self, category_data):
@@ -166,7 +167,7 @@ class VintageTube(PornFetcher):
                         key=lambda x: x.resolution, reverse=True)
         return VideoNode(video_sources=videos)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:

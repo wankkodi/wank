@@ -44,12 +44,12 @@ class Sport5(VODFetcher):
         return 'https://vod.sport5.co.il/'
 
     def __init__(self, vod_name='Sport5', vod_id=-13, store_dir='.', data_dir='../../Data', source_type='VOD',
-                 session_id=None):
+                 use_web_server=False, session_id=None):
         """
         C'tor
         :param vod_name: save directory
         """
-        super(Sport5, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, session_id)
+        super(Sport5, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
         self.episodes_to_data_filename = path.join(self.fetcher_data_dir, 'sport5_episodes_to_data.dat')
         if not path.isfile(self.episodes_to_data_filename):
             self.episodes_to_data = {}
@@ -210,7 +210,7 @@ class Sport5(VODFetcher):
 
         return show_object
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Get number of pages from category data.
         :param fetched_request:

@@ -84,12 +84,13 @@ class LuxureTV(PornFetcher):
                                          )
 
     def __init__(self, source_name='LuxureTV', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(LuxureTV, self).__init__(source_name, source_id, store_dir, data_dir, source_type, session_id)
+        super(LuxureTV, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                       session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -150,7 +151,7 @@ class LuxureTV(PornFetcher):
         assert len(videos) > 0
         return VideoNode(video_sources=videos)
 
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None):
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
         :param fetched_request:
@@ -160,7 +161,7 @@ class LuxureTV(PornFetcher):
         # We perform binary search
         if category_data.object_type == PornCategories.CATEGORY_MAIN:
             return 1
-        return self._binary_search_max_number_of_pages(category_data)
+        return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
 
     def _get_available_pages_from_tree(self, tree):
         """
