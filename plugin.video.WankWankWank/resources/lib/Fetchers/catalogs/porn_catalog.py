@@ -429,7 +429,7 @@ class PornCatalogPageNode(PornCatalogNode):
 
 class PornCatalogVideoPageNode(PornCatalogNode):
     def __init__(self, catalog_manager, obj_id, title, number=None, page_number=None, url=None, image_link=None,
-                 related_objects=None, sub_objects=None, super_object=None,
+                 poster_link=None, related_objects=None, sub_objects=None, super_object=None,
                  subtitle=None, description=None, duration=None, date=None,
                  object_type=None, additional_data=None, raw_data=None,
                  flip_images_link=None, preview_video_link=None, is_hd=None, resolution=None,
@@ -469,7 +469,7 @@ class PornCatalogVideoPageNode(PornCatalogNode):
         :param is_vr:
         """
         super(PornCatalogVideoPageNode, self).__init__(catalog_manager, obj_id, title, number, page_number, url,
-                                                       image_link, related_objects,
+                                                       image_link, poster_link, related_objects,
                                                        sub_objects, super_object,
                                                        subtitle, description, duration, date,
                                                        object_type, additional_data, raw_data)
@@ -489,7 +489,7 @@ class PornCatalogVideoPageNode(PornCatalogNode):
 
 class PornCatalogMainCategoryNode(PornCatalogNode):
     def __init__(self, catalog_manager, obj_id, title, number=None, page_number=None, url=None, image_link=None,
-                 related_objects=None, sub_objects=None, super_object=None,
+                 poster_link=None, related_objects=None, sub_objects=None, super_object=None,
                  subtitle=None, description=None, duration=None, date=None,
                  object_type=None, additional_data=None, raw_data=None,
                  number_of_videos=None, number_of_photos=None, number_of_views=None, number_of_subscribers=None,
@@ -504,6 +504,7 @@ class PornCatalogMainCategoryNode(PornCatalogNode):
         :param page_number:
         :param url:
         :param image_link:
+        :param poster_link:
         :param related_objects:
         :param sub_objects:
         :param super_object:
@@ -522,7 +523,7 @@ class PornCatalogMainCategoryNode(PornCatalogNode):
         :param video_preview_link:
         """
         super(PornCatalogMainCategoryNode, self).__init__(catalog_manager, obj_id, title, number, page_number, url,
-                                                          image_link, related_objects,
+                                                          image_link, poster_link, related_objects,
                                                           sub_objects, super_object,
                                                           subtitle, description, duration,
                                                           date, object_type, additional_data, raw_data)
