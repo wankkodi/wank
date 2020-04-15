@@ -34,8 +34,8 @@ class Xnxx(PornFetcher):
     @property
     def object_urls(self):
         return {
-            PornCategories.CATEGORY_MAIN: 'https://www.xnxx.com/',
-            PornCategories.PORN_STAR_MAIN: 'https://www.xnxx.com/pornstars/',
+            PornCategories.CATEGORY_MAIN: 'https://www.xnxx.com',
+            PornCategories.PORN_STAR_MAIN: 'https://www.xnxx.com/pornstars',
             PornCategories.TAG_MAIN: 'https://www.xnxx.com/tags',
             PornCategories.TOP_RATED_VIDEO: 'https://www.xnxx.com/best',
             PornCategories.SEARCH_MAIN: 'https://www.xnxx.com/search/',
@@ -141,24 +141,24 @@ class Xnxx(PornFetcher):
         """
         page_request = self.get_object_request(porn_star_data)
         tree = self.parser.parse(page_request.text)
-        # At first we add the sub pages
-        if porn_star_data.super_object.object_type != PornCategories.PAGE:
-            number_of_pages = self._get_number_of_sub_pages(porn_star_data)
-            new_pages = [PornCatalogPageNode(catalog_manager=self.catalog_manager,
-                                             obj_id=(IdGenerator.id_to_original_str(porn_star_data.id), i),
-                                             title='{c} | Page {p}'.format(c=porn_star_data.title, p=i),
-                                             url=porn_star_data.url,
-                                             page_number=i,
-                                             raw_data=porn_star_data.raw_data,
-                                             additional_data=porn_star_data.additional_data,
-                                             object_type=PornCategories.PAGE,
-                                             super_object=porn_star_data,
-                                             )
-                         for i in range(1, number_of_pages + 1)]
-            porn_star_data.add_sub_objects(new_pages)
-            porn_star_data = new_pages[0]
+        # # At first we add the sub pages
+        # if porn_star_data.super_object.object_type != PornCategories.PAGE:
+        #     number_of_pages = self._get_number_of_sub_pages(porn_star_data)
+        #     new_pages = [PornCatalogPageNode(catalog_manager=self.catalog_manager,
+        #                                      obj_id=(IdGenerator.id_to_original_str(porn_star_data.id), i),
+        #                                      title='{c} | Page {p}'.format(c=porn_star_data.title, p=i),
+        #                                      url=porn_star_data.url,
+        #                                      page_number=i,
+        #                                      raw_data=porn_star_data.raw_data,
+        #                                      additional_data=porn_star_data.additional_data,
+        #                                      object_type=PornCategories.PAGE,
+        #                                      super_object=porn_star_data,
+        #                                      )
+        #                  for i in range(1, number_of_pages + 1)]
+        #     porn_star_data.add_sub_objects(new_pages)
+        #     porn_star_data = new_pages[0]
 
-        categories = tree.xpath('.//div[@class="thumb-block "]')
+        categories = tree.xpath('.//div[@class="thumb-block thumb-cat thumb-channel-premium "]')
         res = []
         for category in categories:
             link = category.xpath('./div[@class="thumb-inside"]/div[@class="thumb"]/a')
@@ -172,11 +172,13 @@ class Xnxx(PornFetcher):
             image = image_data[0].attrib['src']
             additional_data = json.loads(image_data[0].attrib['data-videos'][2:-2])
 
-            text_data = category.xpath('./div[@class="thumb-under"]/p/a')
-            assert len(text_data) == 1
-            title = re.findall(r'([\w ]+?)(?: *\([\d,]+\))', text_data[0].text)[0]
-            number_of_videos = re.findall(r'(?:\()([\d,]+?)(?:\))', text_data[0].text)[0]
-            number_of_videos = re.sub(r',', '', number_of_videos)
+            title = category.xpath('./div[@class="thumb-inside"]/p/a')
+            assert len(title) == 1
+            title = title[0].text
+            number_of_videos = category.xpath('./div[@class="uploader"]/a/span/span')
+            assert len(number_of_videos) == 1
+            number_of_videos = number_of_videos[0].tail
+            number_of_videos = re.sub(r'[ ,]*', '', number_of_videos)
             number_of_videos = int(number_of_videos)
 
             object_data = PornCatalogCategoryNode(catalog_manager=self.catalog_manager,
@@ -195,22 +197,22 @@ class Xnxx(PornFetcher):
         porn_star_data.add_sub_objects(res)
         return res
 
-    def _add_porn_star_sub_pages(self, porn_star_data, sub_object_type):
-        page_request = self.get_object_request(porn_star_data)
-        tree = self.parser.parse(page_request.text)
-        letters = tree.xpath('.//ul[@id="ps-alpha-list"]/li/a')
-        new_pages = [PornCatalogPageNode(catalog_manager=self.catalog_manager,
-                                         obj_id=(IdGenerator.id_to_original_str(porn_star_data.id), i),
-                                         title='{c} | Letter {p}'.format(c=porn_star_data.title,
-                                                                         p=x.text if x.text is not None
-                                                                         else x.xpath('./strong')[0].text),
-                                         url=urljoin(porn_star_data.url, x.attrib['href']),
-                                         raw_data=porn_star_data.raw_data,
-                                         additional_data=porn_star_data.additional_data,
-                                         object_type=sub_object_type,
-                                         super_object=porn_star_data,
-                                         ) for i, x in enumerate(letters)]
-        porn_star_data.add_sub_objects(new_pages)
+    # def _add_porn_star_sub_pages(self, porn_star_data, sub_object_type):
+    #     page_request = self.get_object_request(porn_star_data)
+    #     tree = self.parser.parse(page_request.text)
+    #     letters = tree.xpath('.//ul[@id="ps-alpha-list"]/li/a')
+    #     new_pages = [PornCatalogPageNode(catalog_manager=self.catalog_manager,
+    #                                      obj_id=(IdGenerator.id_to_original_str(porn_star_data.id), i),
+    #                                      title='{c} | Letter {p}'.format(c=porn_star_data.title,
+    #                                                                      p=x.text if x.text is not None
+    #                                                                      else x.xpath('./strong')[0].text),
+    #                                      url=urljoin(porn_star_data.url, x.attrib['href']),
+    #                                      raw_data=porn_star_data.raw_data,
+    #                                      additional_data=porn_star_data.additional_data,
+    #                                      object_type=sub_object_type,
+    #                                      super_object=porn_star_data,
+    #                                      ) for i, x in enumerate(letters)]
+    #     porn_star_data.add_sub_objects(new_pages)
 
     def _get_tag_properties(self, page_request):
         """
@@ -286,10 +288,10 @@ class Xnxx(PornFetcher):
             if clear_sub_elements is True:
                 category_data.clear_sub_objects()
             return self._add_tag_sub_pages(category_data, sub_object_type)
-        if category_data.object_type == PornCategories.PORN_STAR_MAIN:
-            if clear_sub_elements is True:
-                category_data.clear_sub_objects()
-            return self._add_porn_star_sub_pages(category_data, sub_object_type)
+        # if category_data.object_type == PornCategories.PORN_STAR_MAIN:
+        #     if clear_sub_elements is True:
+        #         category_data.clear_sub_objects()
+        #     return self._add_porn_star_sub_pages(category_data, sub_object_type)
         else:
             return super(Xnxx, self)._add_category_sub_pages(category_data, sub_object_type, page_request,
                                                              clear_sub_elements)
