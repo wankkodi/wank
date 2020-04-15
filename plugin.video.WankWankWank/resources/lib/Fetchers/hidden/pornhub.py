@@ -540,20 +540,21 @@ class PornHub(PornFetcher):
             if 'data:image' in image:
                 image = image_data[0].attrib['data-thumb_url']
 
-            title = sub_node.xpath('./h5/a/strong')
-            assert len(title) == 1
-            title = title[0].text
+            assert len(image) == 1
 
-            num_of_videos = sub_node.xpath('./h5/a/span/var')
+            title = sub_node.xpath('./h5/a/strong/text()')
+            assert len(title) == 1
+
+            num_of_videos = sub_node.xpath('./h5/a/span/var/text()')
             assert len(num_of_videos) == 1
-            num_of_videos = int(re.sub(r'[(),]', '', num_of_videos[0].text))
+            num_of_videos = int(re.sub(r'[(),]', '', str(num_of_videos[0])))
 
             additional_data = {'category_id': cat_id}
 
             object_data = PornCatalogCategoryNode(catalog_manager=self.catalog_manager,
                                                   obj_id=cat_id,
                                                   url=urljoin(self.base_url, link_data[0].attrib['href']),
-                                                  title=title,
+                                                  title=title[0],
                                                   image_link=image,
                                                   number_of_videos=num_of_videos,
                                                   additional_data=additional_data,
@@ -715,14 +716,26 @@ class PornHub(PornFetcher):
         while 1:
             try:
                 page_request = self.get_object_request(category_data, override_page_number=max_page, send_error=False)
-            except PornFetchUrlError:
-                return max_page - 1
-            tree = self.parser.parse(page_request.text)
-            available_pages = self._get_available_pages_from_tree(tree)
-            if max(available_pages) > max_page:
-                max_page = max(available_pages)
-            else:
-                return max_page
+                tree = self.parser.parse(page_request.text)
+                available_pages = self._get_available_pages_from_tree(tree)
+                if len(available_pages) > 0 and max(available_pages) > max_page:
+                    max_page = max(available_pages)
+                else:
+                    return max_page
+            except PornFetchUrlError as err:
+                max_page -= 1
+                if max_page == 0:
+                    # We reached the illegal page
+                    current_page_filters = self.get_proper_filter(category_data).current_filters_text()
+                    general_filters = self.general_filter.current_filters_text()
+                    error_module = PornErrorModule(self.data_server,
+                                                   self.source_name,
+                                                   err.request.url,
+                                                   'Could not fetch {url}'.format(url=err.request.url),
+                                                   current_page_filters,
+                                                   general_filters
+                                                   )
+                    raise PornFetchUrlError(err.request, error_module)
 
     def _get_available_pages_from_tree(self, tree):
         """

@@ -1278,48 +1278,6 @@ class HDZog(UPornia):
         object_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
-        """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
-        :return:
-        """
-        request = self.get_object_request(video_data)
-        tree = self.parser.parse(request.text)
-        raw_script = [x for x in tree.xpath('.//script') if x.text is not None and 'pC3' in x.text]
-        assert len(raw_script) == 1
-        video_id = re.findall(r'(?:"*video_id"*: *)(\d+)', raw_script[0].text)[0]
-        pc3 = re.findall(r'(?:"*pC3"*: *\'*)([\d|,]*)', raw_script[0].text)[0]
-        params = {'param': video_id + ',' + pc3}
-
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                      'q=0.8,application/signed-exchange;v=b3;q=0.9',
-            'Cache-Control': 'max-age=0',
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Referer': video_data.url,
-            'Origin': self.base_url[:-1],
-            'Sec-Fetch-Mode': 'nested-navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': self.user_agent
-        }
-        request = self.session.post(self.video_data_request_url, headers=headers, data=params)
-        if not self._check_is_available_page(request):
-            server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
-                                          'Cannot fetch video links from the url {u}'.format(u=request.url),
-                                          None, None)
-            raise PornNoVideoError('No Video link for url {u}'.format(u=request.url), server_data)
-
-        video_url = re.findall(r'(?:"*video_url"*: *")(.*?)(?:")', request.text)[0]
-        video_url = re.sub(r'\\u\d{3}[a-e0-9]', lambda x: x.group(0).encode('utf-8').decode('unicode-escape'),
-                           video_url)
-        true_video_url = self._get_video_url_from_raw_url(video_url)
-        video_url = [VideoSource(link=x) for x in true_video_url]
-
-        return VideoNode(video_sources=video_url)
-
     def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.

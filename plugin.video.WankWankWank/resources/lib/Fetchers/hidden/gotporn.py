@@ -334,14 +334,14 @@ class GotPorn(PornFetcher):
             page_request = self.session.get(page_data.url, headers=headers)
             if not self._check_is_available_page(page_request):
                 if send_error is True:
-                    object_filters = self.get_proper_filter(page_data).current_filters
-                    general_filters = self.general_filter.current_filters
+                    current_page_filters = self.get_proper_filter(page_data).current_filters_text()
+                    general_filters = self.general_filter.current_filters_text()
                     error_module = PornErrorModule(self.data_server,
                                                    self.source_name,
                                                    page_request.url,
                                                    'Could not fetch {url}'.format(url=page_request.url),
-                                                   repr(object_filters),
-                                                   repr(general_filters)
+                                                   current_page_filters,
+                                                   general_filters,
                                                    )
                 else:
                     error_module = None
