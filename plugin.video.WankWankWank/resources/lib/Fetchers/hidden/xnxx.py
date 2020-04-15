@@ -401,8 +401,9 @@ class Xnxx(PornFetcher):
             video_preview = re.sub(r'/{id}\.\d+\.jpg'.format(id=video_preview_id[0]),
                                    '_{i}.mp4'.format(i=video_preview_id_suffix[0]), video_preview)
 
-            title = video_tree_data.xpath('./div[@class="thumb-under"]/p/a/text()')
+            title = video_tree_data.xpath('./div[@class="thumb-under"]/p/a')
             assert len(title) == 1
+            title = title[0].text
 
             video_info_data = video_tree_data.xpath('./div[@class="thumb-under"]/p/span[@class="right"]')
             assert len(video_info_data) == 1
@@ -422,8 +423,8 @@ class Xnxx(PornFetcher):
             res.append(PornCatalogVideoPageNode(catalog_manager=self.catalog_manager,
                                                 obj_id=video_tree_data.attrib['id'],
                                                 url=urljoin(self.base_url, link_data[0]),
-                                                title=title[0],
-                                                image_link=image[0],
+                                                title=title,
+                                                image_link=image,
                                                 flip_images_link=flip_images,
                                                 preview_video_link=video_preview,
                                                 is_hd=is_hd,
@@ -989,7 +990,7 @@ class XVideos(Xnxx):
                                                 obj_id=additional_data['id'],
                                                 url=urljoin(self.base_url, link[0]),
                                                 title=title,
-                                                image_link=image[0],
+                                                image_link=image,
                                                 flip_images_link=flip_images,
                                                 preview_video_link=video_preview,
                                                 is_hd=is_hd,

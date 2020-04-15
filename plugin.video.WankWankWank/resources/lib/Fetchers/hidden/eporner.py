@@ -236,7 +236,8 @@ class EPorner(PornFetcher):
         # video_suffix = video_suffix = urlparse(tmp_data['contentUrl']).path
 
         request_data = re.findall(r'(?:\'EPvideo\', )( *{.*} *)(?:, function)',
-                                  [x for x in tmp_tree.xpath('.//script/text()') if 'EPinitPlayerVR' in x][0])
+                                  [x for x in tmp_tree.xpath('.//script/text()') if 'EPinitPlayerVR' in x][0],
+                                  re.DOTALL)
         assert len(request_data) == 1
         request_hash = re.findall(r'(?:hash: \')(.*?)(?:\')', request_data[0])
         assert len(request_hash) == 1
