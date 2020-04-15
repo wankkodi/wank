@@ -151,7 +151,7 @@ def choose_porn():
     for _, v in handlers:
         # u = plugin.url_for(choose_handler)
         u = plugin.url_for(show_porn_programs, handler_id=v.handler_id, args='_first_run',
-                           page_number=v.page_number)
+                           page_number=1)
         item = xbmcgui.ListItem(v.title,)
         item.setArt({'icon': "DefaultFolder.png", 'thumb': v.image})
         item.addAvailableArtwork(url=v.image, art_type="thumb")
