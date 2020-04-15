@@ -720,8 +720,8 @@ class PornHub(PornFetcher):
                 return 1
             tree = self.parser.parse(page_request.text)
             available_pages = self._get_available_pages_from_tree(tree)
-            if max(available_pages) > max_page:
-                max_page = max_page
+            if len(available_pages) > 0 and max(available_pages) > max_page:
+                max_page = max(available_pages)
             else:
                 return max_page
 
