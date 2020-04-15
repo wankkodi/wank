@@ -377,7 +377,7 @@ class Xnxx(PornFetcher):
         """
         Available pages threshold. 1 by default.
         """
-        return 10
+        return 6
 
     def get_videos_data(self, page_data):
         """

@@ -150,7 +150,8 @@ def choose_porn():
     handlers = sorted(handler_wrapper.handlers.handlers.items(), key=lambda x: -x[0])
     for _, v in handlers:
         # u = plugin.url_for(choose_handler)
-        u = plugin.url_for(show_porn_programs, handler_id=v.handler_id, args='_first_run', page_number=1)
+        u = plugin.url_for(show_porn_programs, handler_id=v.handler_id, args='_first_run',
+                           page_number=v.page_number)
         item = xbmcgui.ListItem(v.title,)
         item.setArt({'icon': "DefaultFolder.png", 'thumb': v.image})
         item.addAvailableArtwork(url=v.image, art_type="thumb")
@@ -431,7 +432,7 @@ def prepare_list_items(show_list, handler_id):
         ids = x.get_full_id_path()
         log('Ids for the title {t} are: {ids}'.format(t=x.title, ids=ids))
         args = separator.join([str(y) for y in ids])
-        u = plugin.url_for(func_call, handler_id=handler_id, args=args, page_number=1)
+        u = plugin.url_for(func_call, handler_id=handler_id, args=args, page_number=x.page_number)
         item = xbmcgui.ListItem(x.title)
         item.setArt({'icon': icon, 'thumb': x.image_link})
 
