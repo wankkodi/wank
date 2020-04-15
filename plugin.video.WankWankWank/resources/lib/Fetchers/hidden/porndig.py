@@ -409,7 +409,7 @@ class PornDig(PornFetcher):
         left_page = 1
         right_page = self.max_pages
         page = last_available_number_of_pages if last_available_number_of_pages is not None \
-            else math.ceil((right_page + left_page) / 2)
+            else int(math.ceil((right_page + left_page) / 2))
         while 1:
             try:
                 page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
@@ -432,7 +432,7 @@ class PornDig(PornFetcher):
             except PornFetchUrlError:
                 # We moved too far...
                 return 1
-            page = math.ceil((right_page + left_page) / 2)
+            page = int(math.ceil((right_page + left_page) / 2))
 
     def get_videos_data(self, page_data):
         """

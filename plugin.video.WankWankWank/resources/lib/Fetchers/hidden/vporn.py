@@ -328,7 +328,7 @@ class VPorn(PornFetcher):
         left_page = 1
         right_page = self.max_pages
         page = last_available_number_of_pages if last_available_number_of_pages is not None \
-            else math.ceil((right_page + left_page) / 2)
+            else int(math.ceil((right_page + left_page) / 2))
         # prev_referer = None
         while 1:
             is_available, page_request = self._binary_search_check_is_available_page(category_data, page)
@@ -347,7 +347,7 @@ class VPorn(PornFetcher):
                         return max_page
 
                     left_page = max_page
-            page = math.ceil((right_page + left_page) / 2)
+            page = int(math.ceil((right_page + left_page) / 2))
 
     def _binary_search_check_is_available_page(self, category_data, page):
         """

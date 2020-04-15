@@ -703,7 +703,7 @@ class PornHD(PornFetcher):
         left_page = 1
         right_page = self.max_pages
         page = last_available_number_of_pages if last_available_number_of_pages is not None \
-            else math.ceil((right_page + left_page) / 2)
+            else int(math.ceil((right_page + left_page) / 2))
         use_max_page_flag = True
         while 1:
             page_request = self.get_object_request(category_data, page)
@@ -725,7 +725,7 @@ class PornHD(PornFetcher):
                         return max_page
 
                     left_page = max_page
-            page = math.ceil((right_page + left_page) / 2)
+            page = int(math.ceil((right_page + left_page) / 2))
 
     def _binary_search_max_number_of_live_pages(self, category_data):
         """

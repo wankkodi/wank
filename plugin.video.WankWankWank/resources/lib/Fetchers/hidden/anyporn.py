@@ -4812,7 +4812,7 @@ class PornBimbo(PornFd):
         left_page = 1
         right_page = self.max_pages
         page = last_available_number_of_pages if last_available_number_of_pages is not None \
-            else math.ceil((right_page + left_page) / 2)
+            else int(math.ceil((right_page + left_page) / 2))
 
         while 1:
             if right_page == left_page:
@@ -4834,7 +4834,7 @@ class PornBimbo(PornFd):
             except PornFetchUrlError:
                 # We moved too far...
                 right_page = page - 1
-            page = math.ceil((right_page + left_page) / 2)
+            page = int(math.ceil((right_page + left_page) / 2))
 
     def _get_available_pages_from_tree(self, tree):
         """

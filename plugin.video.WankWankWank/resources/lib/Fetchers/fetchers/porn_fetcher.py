@@ -555,12 +555,10 @@ class PornFetcher(BaseFetcher):
         By default is None, which mean the original pivot will be used...
         :return: Page request
         """
-        import web_pdb
-        web_pdb.set_trace()
         left_page = 1
         right_page = self.max_pages
         page = last_available_number_of_pages if last_available_number_of_pages is not None \
-            else math.ceil((right_page + left_page) / 2)
+            else int(math.ceil((right_page + left_page) / 2))
         while 1:
             if right_page == left_page:
                 return left_page
@@ -581,7 +579,7 @@ class PornFetcher(BaseFetcher):
             except PornFetchUrlError:
                 # We moved too far...
                 right_page = page - 1
-            page = math.ceil((right_page + left_page) / 2)
+            page = int(math.ceil((right_page + left_page) / 2))
 
     def _check_is_available_page(self, page_request):
         """

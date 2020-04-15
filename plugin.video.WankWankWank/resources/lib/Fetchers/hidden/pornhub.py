@@ -712,13 +712,18 @@ class PornHub(PornFetcher):
         """
         if category_data.object_type == PornCategories.CATEGORY_MAIN:
             return 1
-        try:
-            page_request = self.get_object_request(category_data, override_page_number=2, send_error=False)
-        except PornFetchUrlError:
-            return 1
-        tree = self.parser.parse(page_request.text)
-        available_pages = self._get_available_pages_from_tree(tree)
-        return max(available_pages) if len(available_pages) > 0 else 1
+        max_page = 2
+        while 1:
+            try:
+                page_request = self.get_object_request(category_data, override_page_number=max_page, send_error=False)
+            except PornFetchUrlError:
+                return 1
+            tree = self.parser.parse(page_request.text)
+            available_pages = self._get_available_pages_from_tree(tree)
+            if max(available_pages) > max_page:
+                max_page = max_page
+            else:
+                return max_page
 
     def _get_available_pages_from_tree(self, tree):
         """
