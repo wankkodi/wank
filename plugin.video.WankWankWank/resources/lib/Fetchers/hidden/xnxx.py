@@ -74,6 +74,11 @@ class Xnxx(PornFetcher):
                                 (PornFilterTypes.FiveDate, 'Today', 'today'),
                                 ),
              }
+        single_porn_star_filters = \
+            {'sort_order': ((PornFilterTypes.ViewsOrder, 'Most Viewed', 'best'),
+                            (PornFilterTypes.DateOrder, 'Moat Recent', 'new'),
+                            ),
+             }
         single_tag_filters = \
             {'period_filters': ((PornFilterTypes.AllDate, 'Any period', None),
                                 (PornFilterTypes.OneDate, 'This Year', 'year'),
@@ -91,6 +96,7 @@ class Xnxx(PornFetcher):
         self._video_filters = PornFilter(data_dir=self.fetcher_data_dir,
                                          general_args=general_filters,
                                          single_category_args=single_category_filters,
+                                         single_porn_star_args=single_porn_star_filters,
                                          single_tag_args=single_tag_filters,
                                          search_args=single_tag_filters,
                                          )
@@ -371,7 +377,7 @@ class Xnxx(PornFetcher):
         """
         Available pages threshold. 1 by default.
         """
-        return 12
+        return 10
 
     def get_videos_data(self, page_data):
         """
@@ -490,13 +496,10 @@ class Xnxx(PornFetcher):
                 'User-Agent': self.user_agent
             }
             method = 'get'
-        if (
-                page_data.object_type == PornCategories.VIDEO_PAGE and
-                page_data.super_object.object_type == PornCategories.PORN_STAR
-        ):
-            if page_number is not None and page_number != 1:
+        if true_object.object_type == PornCategories.PORN_STAR:
+            if page_number is not None:
                 split_url.append('videos')
-                split_url.append('pornstar')
+                split_url.append(page_filter.sort_order.value)
                 split_url.append(str(page_number - 1))
         elif true_object.object_type in (PornCategories.PORN_STAR_MAIN, ):
             if self.general_filter.current_filters.general.value is not None:
