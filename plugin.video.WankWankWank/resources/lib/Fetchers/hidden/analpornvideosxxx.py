@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher
+from ..fetchers.porn_fetcher import PornFetcher, PornNoVideoError
 
 # Internet tools
 from .. import urljoin, quote_plus
@@ -174,47 +174,37 @@ class AnalPornVideosXXX(PornFetcher):
         category_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
         """
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                      'q=0.8,application/signed-exchange;v=b3*',
-            'Cache-Control': 'max-age=0',
-            'Host': self.host_name,
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': self.user_agent
-        }
-        tmp_request = self.session.get(video_data.url, headers=headers)
-        assert tmp_request.ok
+        tmp_request = self.get_object_request(video_data)
         request_data = re.findall(r'(?:var flashvars = )({.*?})(?:;)', tmp_request.text, re.DOTALL)
-        assert len(request_data) == 1
         request_data = prepare_json_from_not_formatted_text(request_data[0])
-        # request_data = re.sub(r'[\r\n\t]*', '', request_data[0])
-        # request_data = re.sub(r'(\w+: )', lambda x: '\'' + x[0][:-2] + '\': ', request_data)
-        # request_data = re.sub(r'\'', '"', request_data)
-        # request_data = json.loads(request_data)
-        assert len(request_data) > 0
-        videos = [VideoSource(link=re.findall(r'http.*$', request_data['video_url'])[0],
-                              resolution=re.findall(r'\d+', request_data['video_url_text'])[0])]
-        i = 1
-        while 1:
-            new_video_field = 'video_alt_url{i}'.format(i=i if i != 1 else '')
-            new_text_field = 'video_alt_url{i}_text'.format(i=i if i != 1 else '')
-            is_redirect_field = 'video_alt_url{i}_redirect'.format(i=i if i != 1 else '')
-            if new_video_field in request_data:
-                if is_redirect_field not in request_data:
-                    videos.append(VideoSource(link=re.findall(r'http.*$', request_data[new_video_field])[0],
-                                              resolution=re.findall(r'\d+', request_data[new_text_field])[0]))
-                i += 1
-            else:
-                break
+        if 'video_url_text' in request_data:
+            videos = [VideoSource(link=re.findall(r'http.*$', request_data['video_url'])[0],
+                                  resolution=re.findall(r'\d+', request_data['video_url_text'])[0])]
+            i = 1
+            while 1:
+                new_video_field = 'video_alt_url{i}'.format(i=i if i != 1 else '')
+                new_text_field = 'video_alt_url{i}_text'.format(i=i if i != 1 else '')
+                is_redirect_field = 'video_alt_url{i}_redirect'.format(i=i if i != 1 else '')
+                if new_video_field in request_data:
+                    if is_redirect_field not in request_data:
+                        videos.append(VideoSource(link=re.findall(r'http.*$', request_data[new_video_field])[0],
+                                                  resolution=re.findall(r'\d+', request_data[new_text_field])[0]))
+                    i += 1
+                else:
+                    break
+        elif 'video_url_hd' in request_data:
+            videos = [VideoSource(link=re.findall(r'http.*$', request_data['video_url'])[0])]
+        else:
+            error_module = self._prepare_porn_error_module_for_video_page(video_data, tmp_request.url,
+                                                                          'Unknown JSON pattern on page {u}'
+                                                                          ''.format(u=tmp_request.url))
+            raise PornNoVideoError(error_module.message, error_module)
 
         videos.sort(key=lambda x: x.resolution, reverse=True)
 

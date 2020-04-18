@@ -98,29 +98,17 @@ class UltraHorny(PornFetcher):
         category_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
-        video_url = video_data.url
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                      'q=0.8,application/signed-exchange;v=b3*',
-            'Cache-Control': 'max-age=0',
-            # 'Host': self.host_name,
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': self.user_agent
-        }
+         """
         # Was taken from pornktube module (have the same engine.
-        tmp_request = self.session.get(video_url, headers=headers)
+        tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
         outsource_link = tmp_tree.xpath('.//div[@class="video videocc"]/iframe')
-        assert len(outsource_link) == 1
+
         hostname = urlparse(outsource_link[0].attrib['src']).hostname
         if hostname == 'ultrahorny.com':
             headers = {
@@ -136,7 +124,6 @@ class UltraHorny(PornFetcher):
             }
             tmp_request = self.session.get(outsource_link[0].attrib['src'], headers=headers)
             raw_code = re.findall(r'(?:atob\(")(.*?)(?:"\))', tmp_request.text)
-            assert len(raw_code) == 1
             raw_code = ''.join(chr(int(x, 16)) for x in raw_code[0].split('\\x')[1:])
             raw_code = base64.b64decode(raw_code.encode("utf-8")).decode('utf-8')
             files = re.findall(r'(?:file: *")(.*?)(?:")', raw_code)
@@ -146,10 +133,11 @@ class UltraHorny(PornFetcher):
             video_links = sorted((VideoSource(link=link, resolution=res) for link, res in zip(files, resolutions)),
                                  key=lambda x: x.resolution, reverse=True)
         elif hostname == 'stream.ksplayer.com':
+            raw_data = self.external_fetchers.get_video_link_from_ksplayer(outsource_link[0].attrib['src'])
             video_links = sorted((VideoSource(link=x[0], resolution=x[1])
-                                  for x in self.external_fetchers.
-                                 get_video_link_from_ksplayer(outsource_link[0].attrib['src'])),
+                                  for x in raw_data),
                                  key=lambda x: x.resolution, reverse=True)
+
         else:
             warnings.warn('The fetch module for hostname {h} is not implemented yet.'.format(h=hostname))
             video_links = []
@@ -158,7 +146,7 @@ class UltraHorny(PornFetcher):
             'Accept': '*/*',
             'Accept-Encoding': 'identity;q=1, *;q=0',
             'Cache-Control': 'max-age=0',
-            'Referer': video_url,
+            'Referer': video_data.url,
             'Range': 'bytes=0-',
             'Sec-Fetch-Mode': 'no-cors',
             'Upgrade-Insecure-Requests': '1',

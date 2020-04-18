@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornErrorModule, PornNoVideoError
+from ..fetchers.porn_fetcher import PornFetcher
 
 # Internet tools
 from .. import urljoin, quote, parse_qs
@@ -210,19 +210,15 @@ class SpankBang(PornFetcher):
         porn_star_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
         stream_key = tmp_tree.xpath('.//div[@id="video"]/@data-streamkey')
-        assert len(stream_key) == 1
-        # assert 'sb_csrf_session' in self.session.cookies
-        assert 'sb_session' in self.session.cookies
-
         video_url = self.video_request_json
         headers = {
             'Accept': 'application/json, text/javascript, */*; q=0.01',
@@ -241,7 +237,6 @@ class SpankBang(PornFetcher):
             'sb_session': self.session.cookies['sb_session'],
         }
         video_request = self.session.post(video_url, headers=headers, data=params)
-        assert video_request.status_code == 200
         video_data = video_request.json()
         video_links = sorted((VideoSource(link=v[0], resolution=int(re.findall(r'\d+', k)[0]),
                                           video_type=VideoTypes.VIDEO_REGULAR)
@@ -261,13 +256,6 @@ class SpankBang(PornFetcher):
                 if new_v in video_data and len(video_data[new_v]) > 0:
                     for x in video_data[new_v]:
                         req3 = self.session.get(x, headers=headers)
-                        if not self._check_is_available_page(req3):
-                            server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
-                                                          'Cannot fetch video links from the url {u}'.format(
-                                                              u=req3.url),
-                                                          None, None)
-                            raise PornNoVideoError('No Video link for url {u}'.format(u=req3.url), server_data)
-
                         video_m3u8 = m3u8.loads(req3.text)
                         video_playlists = video_m3u8.playlists
                         if all(vp.stream_info.bandwidth is not None for vp in video_playlists):

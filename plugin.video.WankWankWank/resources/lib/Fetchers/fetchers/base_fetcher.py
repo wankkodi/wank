@@ -70,6 +70,20 @@ class BaseFetcher(object):
 
     def __init__(self, source_name, source_id, store_dir, data_dir, source_type, use_web_server=False,
                  session_id=None):
+        self.source_name = source_name
+        self.source_id = source_id
+        self.store_dir = store_dir
+        self.general_data_dir = data_dir
+        self.fetcher_data_dir = path.join(self.general_data_dir, source_type, source_name)
+        if not path.isdir(self.general_data_dir):
+            makedirs(self.general_data_dir)
+        if not path.isdir(self.fetcher_data_dir):
+            makedirs(self.fetcher_data_dir)
+
+        # Takes care about user agents
+        self.user_agents_manager = UserAgents(self.general_data_dir)
+        self.user_agent = self.user_agents_manager.get_user_agent()
+        # Requests
         retries = 3
         backoff_factor = 0.3
         status_forcelist = (500, 502, 504)
@@ -86,6 +100,9 @@ class BaseFetcher(object):
         self.session.mount('http://', adapter)
         self.session.mount('https://', adapter)
 
+        self.session.headers['User-Agent'] = self.user_agent
+        self.data_server = DataServer(session=self.session)
+
         # self.parser = html5lib.html5parser.HTMLParser(tree=html5lib.treebuilders.getTreeBuilder("lxml"),
         #                                               namespaceHTMLElements=False)
         # self.parser = html5lib.html5parser.HTMLParser(tree=html5lib.treebuilders.getTreeBuilder("dom"),
@@ -95,22 +112,6 @@ class BaseFetcher(object):
         self.parser = MyParser(tree=html5lib.treebuilders.getTreeBuilder("etree"), namespaceHTMLElements=False)
         self.host_name = urlparse(self.base_url).hostname
         self.video_fetcher = VideoFetchTools(self.session)
-        self.source_name = source_name
-        self.source_id = source_id
-        self.store_dir = store_dir
-        self.general_data_dir = data_dir
-        self.fetcher_data_dir = path.join(self.general_data_dir, source_type, source_name)
-        if not path.isdir(self.general_data_dir):
-            makedirs(self.general_data_dir)
-        if not path.isdir(self.fetcher_data_dir):
-            makedirs(self.fetcher_data_dir)
-
-        # Takes care about user agents
-        self.user_agents_manager = UserAgents(self.general_data_dir)
-        self.user_agent = self.user_agents_manager.get_user_agent()
-        self.session.headers['User-Agent'] = self.user_agent
-        self.data_server = DataServer(session=self.session)
-
         # todo: make more precise way to include filters as well...
         # self._use_web_server = True
         self._use_web_server = use_web_server
@@ -341,7 +342,7 @@ class BaseFetcher(object):
             video_links, audio_links = self._get_playlist_of_youtube_source(video_data.video_sources[video_i], False)
             return self.video_fetcher.combine_youtube_video(video_links, audio_links, filename)
         else:
-            raise RuntimeError('Wrong video type {ad}.'.format(ad=video_data.video_type))
+            raise RuntimeError('Wrong video type {ad}.'.format(ad=video_data.video_sources[video_i].video_type))
 
     def test_video_link(self, video_data, video_i):
         """
@@ -594,7 +595,7 @@ class BaseFetcher(object):
         try:
             float(user_input)
         except ValueError:
-            raise ValueError('Got not index!')
+            raise ValueError('Got no index!')
         res = int(user_input)
 
         if res == -1:

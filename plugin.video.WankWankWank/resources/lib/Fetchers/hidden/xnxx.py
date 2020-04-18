@@ -302,22 +302,17 @@ class Xnxx(PornFetcher):
             return super(Xnxx, self)._add_category_sub_pages(category_data, sub_object_type, page_request,
                                                              clear_sub_elements)
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
-        # new_video_data = json.loads([x for x in tmp_tree.xpath('.//script/text()') if 'gvideo' in x][0])
-        # video_suffix = video_suffix = urlparse(tmp_data['contentUrl']).path
-
         request_data = re.findall(r'(?:html5player.setVideoHLS\(\')(.*?)(?:\'\);)',
                                   [x for x in tmp_tree.xpath('.//script/text()')
                                    if 'html5player.setVideoHLS' in x][0])
-        assert len(request_data) == 1
-
         headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
                       'q=0.8,application/signed-exchange;v=b3*',
@@ -329,7 +324,6 @@ class Xnxx(PornFetcher):
             'User-Agent': self.user_agent
         }
         m3u8_req = self.session.get(request_data[0], headers=headers)
-
         video_m3u8 = m3u8.loads(m3u8_req.text)
         video_playlists = video_m3u8.playlists
         if all(vp.stream_info.bandwidth is not None for vp in video_playlists):

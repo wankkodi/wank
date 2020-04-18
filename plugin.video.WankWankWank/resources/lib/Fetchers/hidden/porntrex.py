@@ -251,33 +251,15 @@ class PornTrex(PornFetcher):
         base_object_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
-
-        video_url = video_data.url
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                      'q=0.8,application/signed-exchange;v=b3*',
-            'Cache-Control': 'max-age=0',
-            'Host': self.host_name,
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': self.user_agent
-        }
-        tmp_request = self.session.get(video_url, headers=headers)
-        # new_video_data = json.loads([x for x in tmp_tree.xpath('.//script/text()') if 'gvideo' in x][0])
-        # video_suffix = video_suffix = urlparse(tmp_data['contentUrl']).path
-
+         """
+        tmp_request = self.get_object_request(video_data)
         request_data = re.findall(r'(?:var flashvars = )({.*?})(?:;)', tmp_request.text, re.DOTALL)
-        assert len(request_data) == 1
         request_data = prepare_json_from_not_formatted_text(request_data[0])
-        assert len(request_data) > 0
         videos = [VideoSource(link=re.findall(r'http.*$', request_data['video_url'])[0],
                               resolution=re.findall(r'\d+', request_data['video_url_text'])[0])]
         i = 1
@@ -313,7 +295,7 @@ class PornTrex(PornFetcher):
         if category_data.object_type in (PornCategories.CATEGORY_MAIN, ):
             return 1
         page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
-        if not self._check_is_available_page(page_request):
+        if not self._check_is_available_page(category_data, page_request):
             return 1
         tree = self.parser.parse(page_request.text)
         available_pages = self._get_available_pages_from_tree(tree)
@@ -421,6 +403,8 @@ class PornTrex(PornFetcher):
             'Upgrade-Insecure-Requests': '1',
             'User-Agent': self.user_agent
         }
+        if true_object.object_type == PornCategories.VIDEO:
+            return self.session.get(fetch_base_url, headers=headers, params=params)
 
         conditions = self.get_proper_filter(page_data).conditions
 
@@ -721,6 +705,8 @@ class JAVBangers(PornTrex):
             'Upgrade-Insecure-Requests': '1',
             'User-Agent': self.user_agent
         }
+        if true_object.object_type == PornCategories.VIDEO:
+            return self.session.get(fetch_base_url, headers=headers, params=params)
 
         conditions = self.get_proper_filter(page_data).conditions
 

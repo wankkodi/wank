@@ -10,6 +10,9 @@ import re
 # JSON
 import json
 
+# M3U8
+import m3u8
+
 # Datetime
 from datetime import datetime, timedelta
 
@@ -18,13 +21,12 @@ from ..id_generator import IdGenerator
 
 # Nodes
 from ..catalogs.porn_catalog import PornCatalogCategoryNode, PornCatalogVideoPageNode, PornCatalogPageNode, \
-    VideoSource, VideoNode
+    VideoSource, VideoNode, VideoTypes
 from ..catalogs.porn_catalog import PornCategories, PornFilterTypes, PornFilter
 
 
 class YouJizz(PornFetcher):
-    category_threshold = 200
-    video_request_format = 'https://token.4tube.com/{id}/desktop/1080+720+480+360+240'
+    video_format_order = {'mp4': 1, 'avc1.42e00a,mp4a.40.2': 0}
     max_flip_images = 8
     _time_format = '%Y-%m-%d'
 
@@ -230,19 +232,42 @@ class YouJizz(PornFetcher):
             return super(YouJizz, self)._add_category_sub_pages(category_data, sub_object_type, page_request,
                                                                 clear_sub_elements)
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         request_data = re.findall(r'(?:var encodings = )(\[.*?\])(?:;)', tmp_request.text)
-        assert len(request_data) == 1
-        video_links = json.loads(request_data[0])
-        video_links = sorted((VideoSource(quality=x['quality'], link=urljoin(self.base_url, x['filename']))
-                              for x in video_links),
-                             key=lambda x: x.quality, reverse=True)
+        if request_data[0] == '[]':
+            request_data = re.findall(r'(?:var dataEncodings = )(\[.*?\])(?:;)', tmp_request.text)
+
+        new_video_data = json.loads(request_data[0])
+        video_links = []
+        for new_video_datum in new_video_data:
+            url = urljoin(video_data.url, new_video_datum['filename'])
+            file_type = re.findall(r'(?:\.)(\w+$)', url.split('?')[0])[0]
+            if file_type == 'mp4':
+                # MP4
+                video_links.append(VideoSource(link=url, resolution=new_video_datum['quality'], codec=file_type,
+                                               video_type=VideoTypes.VIDEO_REGULAR))
+            elif file_type == 'm3u8':
+                # HLS
+                segment_request = self.session.get(url)
+                video_m3u8 = m3u8.loads(segment_request.text)
+                video_playlists = video_m3u8.playlists
+                video_links.extend([VideoSource(link=urljoin(url, x.uri),
+                                                video_type=VideoTypes.VIDEO_SEGMENTS,
+                                                quality=x.stream_info.bandwidth,
+                                                resolution=x.stream_info.resolution[1],
+                                                codec=x.stream_info.codecs)
+                                    for x in video_playlists])
+
+        video_links.sort(key=lambda x: (x.resolution,
+                                        self.video_format_order[x.codec]
+                                        if x.codec in self.video_format_order else -1),
+                         reverse=True)
         return VideoNode(video_sources=video_links)
 
     def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
@@ -365,6 +390,9 @@ class YouJizz(PornFetcher):
             'Upgrade-Insecure-Requests': '1',
             'User-Agent': self.user_agent
         }
+        if true_object.object_type == PornCategories.VIDEO:
+            return self.session.get(fetch_base_url, headers=headers, params=params)
+
         if page_number is None:
             page_number = 1
         if true_object.object_type in self._default_sort_by:

@@ -119,27 +119,16 @@ class HomeMoviesTube(PornFetcher):
         category_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                      'q=0.8,application/signed-exchange;v=b3*',
-            'Cache-Control': 'max-age=0',
-            'Host': self.host_name,
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': self.user_agent
-        }
-        tmp_request = self.session.get(video_data.url, headers=headers)
+         """
+        tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
-
-        videos = [VideoSource(link=urljoin(video_data.url, x)) for x in tmp_tree.xpath('.//video/source/@src')]
+        sources = tmp_tree.xpath('.//video/source')
+        videos = [VideoSource(link=urljoin(video_data.url, x.attrib['src'])) for x in sources]
         assert len(videos) > 0
         return VideoNode(video_sources=videos)
 

@@ -195,17 +195,15 @@ class KatesTube(PornFetcher):
                                                 for x in raw_objects])
         return links, titles, number_of_videos
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         request_data = re.findall(r'(?:var flashvars = )({.*?})(?:;)', tmp_request.text, re.DOTALL)
-        assert len(request_data) == 1
         request_data = prepare_json_from_not_formatted_text(request_data[0])
-        assert len(request_data) > 0
         res = [VideoSource(link=request_data['video_url'])]
         return VideoNode(video_sources=res)
 
@@ -242,12 +240,16 @@ class KatesTube(PornFetcher):
         return [int(x.text) for x in tree.xpath('.//div[@class="{pg}"]/ul/li/*'.format(pg=self._pagination_class))
                 if x.text is not None and x.text.isdigit()]
 
-    def _check_is_available_page(self, page_request):
+    def _check_is_available_page(self, page_object, page_request=None):
         """
         In binary search performs test whether the current page is available.
+        :param page_object: Page object.
         :param page_request: Page request.
         :return:
         """
+        if page_request is None:
+            page_request = self.get_object_request(page_object)
+
         split_url = page_request.url.split('/')
         tree = self.parser.parse(page_request.text)
         true_page_number = tree.xpath('.//div[@class="{pg}"]/ul/li/span'.format(pg=self._pagination_class))

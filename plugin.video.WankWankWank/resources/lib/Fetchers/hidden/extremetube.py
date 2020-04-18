@@ -1,14 +1,20 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornErrorModule, PornNoVideoError, PornFetchUrlError
+from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError
 
 # Internet tools
 from .. import urljoin, quote_plus, parse_qs
+import requests
 
 # Regex
 import re
 
 # JSON
+from ..tools.text_json_manioulations import prepare_json_from_not_formatted_text
 import json
+try:
+    from json import JSONDecodeError
+except ImportError:
+    JSONDecodeError = ValueError
 
 # Generator id
 from ..id_generator import IdGenerator
@@ -227,31 +233,16 @@ class ExtremeTube(PornFetcher):
         tag_data.add_sub_objects(tag_pages)
         return tag_pages
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
-
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                      'q=0.8,application/signed-exchange;v=b3;q=0.9',
-            'Cache-Control': 'max-age=0',
-            'Host': self.host_name,
-            'Referer': video_data.url,
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': self.user_agent
-        }
-        tmp_request = self.session.get(video_data.url, headers=headers)
-        assert tmp_request.status_code == 200
+         """
+        tmp_request = self.get_object_request(video_data)
         raw_data = re.findall(r'(?:flashvars = )({.*?})(?:;)', tmp_request.text, re.DOTALL)
-        # raw_data = re.sub(r'\'', '"', raw_data[0])
-        # raw_data = re.sub(r'\w+(?=:)(?!:/)', lambda x: '"' + x[0] + '"', raw_data)
-        raw_data = json.loads(raw_data[0])
-        res = sorted([VideoSource(link=v, resolution=re.findall(r'(?:quality_)(\d+)(?:p*)', k)[0])
+        raw_data = prepare_json_from_not_formatted_text(raw_data[0])
+        res = sorted([VideoSource(link=v.replace('\\/', '/'), resolution=re.findall(r'(?:quality_)(\d+)(?:p*)', k)[0])
                       for k, v in raw_data.items() if 'quality_' in k],
                      key=lambda x: x.resolution, reverse=True)
         if 'HLS' in raw_data and raw_data['HLS'] is not None:
@@ -263,12 +254,6 @@ class ExtremeTube(PornFetcher):
                 'User-Agent': self.user_agent
             }
             segment_request = self.session.get(raw_data['HLS'], headers=headers)
-            if not self._check_is_available_page(segment_request):
-                server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
-                                              'Cannot fetch video links from the url {u}'.format(
-                                                  u=segment_request.url),
-                                              None, None)
-                raise PornNoVideoError('No Video link for url {u}'.format(u=segment_request.url), server_data)
             video_m3u8 = m3u8.loads(segment_request.text)
             video_playlists = video_m3u8.playlists
             res.extend([VideoSource(link=urljoin(raw_data['HLS'], x.uri),
@@ -294,9 +279,16 @@ class ExtremeTube(PornFetcher):
                 if fetched_request is None else fetched_request
         except PornFetchUrlError:
             return 1
-        raw_res = page_request.json()
-        return raw_res['1']['navigation']['lastPage'] \
-            if type(raw_res) is dict else raw_res[0]['navigation']['lastPage']
+        try:
+            raw_res = page_request.json()
+            return raw_res['1']['navigation']['lastPage'] \
+                if type(raw_res) is dict else raw_res[0]['navigation']['lastPage']
+        except JSONDecodeError:
+            tree = self.parser.parse(page_request.text)
+            pages = [int(re.findall(r'(?:page=)(\d+)', x.attrib['href'])[0])
+                     for x in tree.xpath('.//ul[@class="pagination"]/li/*')
+                     if 'href' in x.attrib and len(re.findall(r'(?:page=)(\d+)', x.attrib['href'])) > 0]
+            return max(pages)
 
     def get_videos_data(self, page_data):
         """
@@ -503,21 +495,20 @@ class ExtremeTube(PornFetcher):
         page_number = page_data.page_number if override_page_number is None else override_page_number
         if page_number is not None and page_number != 1:
             params['page'] = [page_number]
+        try:
+            page_request = self.session.get(url, headers=headers, params=params)
+        except (requests.exceptions.RetryError, ) as err:
+            if 'format' in params:
+                params.pop('format')
+                page_request = self.session.get(url, headers=headers, params=params)
+            else:
+                raise err
 
-        page_request = self.session.get(url, headers=headers, params=params)
-
-        if not self._check_is_available_page(page_request):
+        if not self._check_is_available_page(page_data, page_request):
             if send_error is True:
-                current_page_filters = self.get_proper_filter(page_data).current_filters_text()
-                general_filters = self.general_filter.current_filters_text()
-
-                error_module = PornErrorModule(self.data_server,
-                                               self.source_name,
-                                               page_request.url,
-                                               'Could not fetch {url}'.format(url=page_request.url),
-                                               current_page_filters,
-                                               general_filters
-                                               )
+                error_module = self._prepare_porn_error_module(page_data, 0, page_request.url,
+                                                               'Could not fetch {url} in object {obj}'
+                                                               ''.format(url=page_request.url, obj=page_data.title))
             else:
                 error_module = None
             raise PornFetchUrlError(page_request, error_module)
@@ -1176,13 +1167,12 @@ class SpankWire(PornFetcher):
         porn_star_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
-
+         """
         video_url = self.video_request_format.format(vid=video_data.raw_data['id'])
         headers = {
             'Accept': 'application/json, text/plain, */*, image/webp',
@@ -1194,7 +1184,6 @@ class SpankWire(PornFetcher):
             'User-Agent': self.user_agent
         }
         tmp_request = self.session.get(video_url, headers=headers)
-        assert tmp_request.status_code == 200
         request_data = tmp_request.json()
 
         res = [VideoSource(link=v, video_type=VideoTypes.VIDEO_REGULAR,
@@ -1209,12 +1198,6 @@ class SpankWire(PornFetcher):
                 'User-Agent': self.user_agent
             }
             segment_request = self.session.get(request_data['HLS'], headers=headers)
-            if not self._check_is_available_page(segment_request):
-                server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
-                                              'Cannot fetch video links from the url {u}'.format(
-                                                  u=segment_request.url),
-                                              None, None)
-                raise PornNoVideoError('No Video link for url {u}'.format(u=segment_request.url), server_data)
             video_m3u8 = m3u8.loads(segment_request.text)
             video_playlists = video_m3u8.playlists
             res.extend([VideoSource(link=urljoin(request_data['HLS'], x.uri),
@@ -1277,43 +1260,40 @@ class SpankWire(PornFetcher):
         """
         Prepares request params according to the object type.
         """
-        object_type = object_data.object_type \
-            if object_data.object_type not in (PornFilterTypes.PAGE, PornFilterTypes.VIDEO_PAGE,
-                                               PornFilterTypes.SEARCH_PAGE) \
-            else object_data.super_object.object_type
-        if object_type == PornFilterTypes.PORN_STAR:
+        object_type = object_data.true_object.object_type
+        if object_type == PornCategories.PORN_STAR:
             url = self.video_list_json_url
             params = self.video_from_category_json_params.copy()
             params['pornstarId'] = object_data.raw_data['id']
-        elif object_type == PornFilterTypes.CATEGORY:
+        elif object_type == PornCategories.CATEGORY:
             url = self.video_list_json_url
             params = self.video_from_category_json_params.copy()
             params['category'] = object_data.raw_data['id']
-        elif object_type == PornFilterTypes.PORN_STAR_MAIN:
+        elif object_type == PornCategories.PORN_STAR_MAIN:
             url = self.porn_star_list_json_url
             params = self.porn_star_json_params.copy()
-        elif object_type == PornFilterTypes.CATEGORY_MAIN:
+        elif object_type == PornCategories.CATEGORY_MAIN:
             url = self.category_json_url
             params = self.category_json_params.copy()
-        elif object_type == PornFilterTypes.LATEST_VIDEO:
+        elif object_type == PornCategories.LATEST_VIDEO:
             url = self.video_list_json_url
             params = self.video_latest_json_params.copy()
-        elif object_type == PornFilterTypes.MOST_VIEWED_VIDEO:
+        elif object_type == PornCategories.MOST_VIEWED_VIDEO:
             url = self.video_list_json_url
             params = self.video_most_viewed_json_params.copy()
-        elif object_type == PornFilterTypes.TOP_RATED_VIDEO:
+        elif object_type == PornCategories.TOP_RATED_VIDEO:
             url = self.video_list_json_url
             params = self.video_top_rated_json_params.copy()
-        elif object_type == PornFilterTypes.MOST_DISCUSSED_VIDEO:
+        elif object_type == PornCategories.MOST_DISCUSSED_VIDEO:
             url = self.video_list_json_url
             params = self.video_most_talked_json_params.copy()
-        elif object_type == PornFilterTypes.LONGEST_VIDEO:
+        elif object_type == PornCategories.LONGEST_VIDEO:
             url = self.video_list_json_url
             params = self.video_longest_json_params.copy()
-        elif object_type == PornFilterTypes.POPULAR_VIDEO:
+        elif object_type == PornCategories.POPULAR_VIDEO:
             url = self.video_list_json_url
             params = self.video_trending_json_params.copy()
-        elif object_type == PornFilterTypes.SEARCH_MAIN:
+        elif object_type == PornCategories.SEARCH_MAIN:
             split_url = object_data.url.split('/')
             url = self.search_request_format
             params = self.search_json_params.copy()
@@ -1364,17 +1344,11 @@ class SpankWire(PornFetcher):
         }
         page_request = self.session.get(url, headers=headers, params=params)
 
-        if not self._check_is_available_page(page_request):
+        if not self._check_is_available_page(page_data, page_request):
             if send_error is True:
-                current_page_filters = self.get_proper_filter(page_data).current_filters_text()
-                general_filters = self.general_filter.current_filters_text()
-                error_module = PornErrorModule(self.data_server,
-                                               self.source_name,
-                                               page_request.url,
-                                               'Could not fetch {url}'.format(url=page_request.url),
-                                               current_page_filters,
-                                               general_filters
-                                               )
+                error_module = self._prepare_porn_error_module(page_data, 0, page_request.url,
+                                                               'Could not fetch {url} in object {obj}'
+                                                               ''.format(url=page_request.url, obj=page_data.title))
             else:
                 error_module = None
             raise PornFetchUrlError(page_request, error_module)

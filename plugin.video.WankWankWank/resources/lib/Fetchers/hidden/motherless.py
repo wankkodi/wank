@@ -116,17 +116,16 @@ class MotherLess(PornFetcher):
         category_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
         script = [x for x in tmp_tree.xpath('.//script/text()') if '__fileurl ' in x]
         video_links = [VideoSource(link=x) for x in re.findall(r'(?:__fileurl = \')(.*)(?:\';)', script[0])]
-        assert len(video_links) > 0
         return VideoNode(video_sources=video_links)
 
     def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):

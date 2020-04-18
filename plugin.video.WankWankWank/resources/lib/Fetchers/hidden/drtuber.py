@@ -8,7 +8,7 @@ from .. import urljoin, quote_plus
 import re
 
 # JSON
-import json
+from ..tools.text_json_manioulations import prepare_json_from_not_formatted_text
 
 # Nodes
 from ..catalogs.porn_catalog import PornCatalogCategoryNode, PornCatalogVideoPageNode, VideoNode, VideoSource
@@ -222,30 +222,15 @@ class DrTuber(PornFetcher):
         object_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
-
-        video_url = video_data.url
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                      'q=0.8,application/signed-exchange;v=b3*',
-            'Cache-Control': 'max-age=0',
-            'Host': self.host_name,
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': self.user_agent
-        }
-        tmp_request = self.session.get(video_url, headers=headers)
+         """
+        tmp_request = self.get_object_request(video_data)
         config_data = re.findall(r'(?:configData: *)({.*?})', tmp_request.text, re.DOTALL)
-        assert len(config_data) > 0
-        config_data = re.sub(r'\w+', lambda x: '"' + x[0] + '"', config_data[0])
-        params = json.loads(config_data)
+        params = prepare_json_from_not_formatted_text(config_data[0])
         headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
                       'q=0.8,application/signed-exchange;v=b3*',

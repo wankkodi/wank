@@ -169,15 +169,14 @@ class PornKTube(PornFetcher):
         """
         return self._update_available_base_category(category_data, PornCategories.CATEGORY)
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
 
-        video_url = video_data.url
-        video_raw_data = self.external_fetchers.get_video_link_from_cdna(video_url)
+        video_raw_data = self.external_fetchers.get_video_link_from_fapmedia(video_data.url)
         video_links = sorted((VideoSource(link=x[0], resolution=x[1]) for x in video_raw_data),
                              key=lambda x: x.resolution, reverse=True)
         headers = {
@@ -393,14 +392,13 @@ class PornKy(PornKTube):
         category_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
-        video_url = video_data.url
-        video_raw_data = self.external_fetchers.get_video_link_from_cdna(video_url)
+         """
+        video_raw_data = self.external_fetchers.get_video_link_from_fapmedia(video_data.url)
         video_links = sorted((VideoSource(link=x[0], resolution=x[1]) for x in video_raw_data),
                              key=lambda x: x.resolution, reverse=True)
         return VideoNode(video_sources=video_links)
@@ -514,7 +512,7 @@ class RushPorn(PornKTube):
         Base site url.
         :return:
         """
-        return 'https://www.rushporn.com/'
+        return 'https://www.rushporn.xxx/'
 
     @staticmethod
     def _prepare_filters():
@@ -616,25 +614,13 @@ class RushPorn(PornKTube):
         porn_star_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
-        video_url = video_data.url
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                      'q=0.8,application/signed-exchange;v=b3*',
-            'Cache-Control': 'max-age=0',
-            # 'Host': self.host_name,
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': self.user_agent
-        }
-        org_request = self.session.get(video_url, headers=headers)
+         """
+        org_request = self.get_object_request(video_data)
         org_tree = self.parser.parse(org_request.text)
         tmp_url = org_tree.xpath('.//video[@id="main_video"]/source')
         videos = sorted((VideoSource(link=x.attrib['src'],  quality=int(re.findall(r'\d+', x.attrib['title'])[0]))
@@ -649,7 +635,7 @@ class RushPorn(PornKTube):
                     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
                               'q=0.8,application/signed-exchange;v=b3*',
                     'Cache-Control': 'max-age=0',
-                    'Referer': video_url,
+                    'Referer': video_data.url,
                     'Sec-Fetch-Mode': 'cors',
                     'Sec-Fetch-Site': 'same-origin',
                     'Upgrade-Insecure-Requests': '1',
@@ -657,20 +643,17 @@ class RushPorn(PornKTube):
                 }
                 xvideo_req = self.session.get(video_embed_url[0], headers=headers)
                 request_data = re.findall(r'(?:html5player.setVideoHLS\(\')(.*?)(?:\'\);)', xvideo_req.text)
-                assert len(request_data) == 1
-
                 headers = {
                     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
                               'q=0.8,application/signed-exchange;v=b3*',
                     'Cache-Control': 'max-age=0',
-                    'Referer': video_url,
+                    'Referer': video_data.url,
                     'Sec-Fetch-Mode': 'cors',
                     'Sec-Fetch-Site': 'same-origin',
                     'Upgrade-Insecure-Requests': '1',
                     'User-Agent': self.user_agent
                 }
                 m3u8_req = self.session.get(request_data[0], headers=headers)
-
                 video_m3u8 = m3u8.loads(m3u8_req.text)
                 video_playlists = video_m3u8.playlists
                 if all(vp.stream_info.bandwidth is not None for vp in video_playlists):
@@ -682,8 +665,6 @@ class RushPorn(PornKTube):
                                              codec=x.stream_info.codecs)
                                  for x in video_playlists),
                                 key=lambda x: x.quality, reverse=True)
-
-        assert len(videos) > 0
 
         return VideoNode(video_sources=videos)
 
@@ -701,7 +682,7 @@ class RushPorn(PornKTube):
             'User-Agent': self.user_agent
         }
         conditions = self.get_proper_filter(page_data).conditions
-        if true_object.object_type in (PornCategories.CATEGORY, PornCategories.SEARCH_MAIN):
+        if true_object.object_type in (PornCategories.CATEGORY, PornCategories.SEARCH_MAIN, PornCategories.VIDEO):
             last_slash = True
         else:
             last_slash = False
@@ -822,19 +803,6 @@ class TubeXXPorn(PornKTube):
         return [int(x) for x in (tree.xpath('.//div[@class="pagination"]/div[@class="block_content"]/*/text()') +
                                  tree.xpath('.//div[@class="pagination"]/div[@class="block_content"]/*/*/text()'))
                 if x.isdigit()]
-
-    # def get_video_links_from_video_data(self, video_data):
-    #     """
-    #     Extracts episode link from episode data.
-    #     :param video_data: Video data.
-    #     :return:
-    #     """
-    #
-    #     video_url = video_data.url
-    #     video_raw_data = self.external_fetchers.get_video_link_from_cdna(video_url)
-    #     video_links = sorted((VideoSource(link=x[0], resolution=x[1]) for x in video_raw_data),
-    #                          key=lambda x: x.resolution, reverse=True)
-    #     return VideoNode(video_links=video_links)
 
     def get_videos_data(self, page_data):
         """

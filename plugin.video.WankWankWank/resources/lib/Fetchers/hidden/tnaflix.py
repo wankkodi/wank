@@ -295,18 +295,16 @@ class TnaFlix(PornFetcher):
     #
     #     return links, titles, number_of_videos
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
         request_data = tmp_tree.xpath('.//section[@class="sOutIn"]/input')
         request_data = {x.attrib['id']: x.attrib['value'] for x in request_data}
-        assert len(request_data) > 0
-
         request_url = self.video_list_url_template.format(vkey=request_data['vkey'])
         headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
@@ -336,7 +334,6 @@ class TnaFlix(PornFetcher):
             'alpha': '',
         }
         tmp_request = self.session.get(request_url, headers=headers, params=params)
-        assert tmp_request.ok
         raw_text = re.sub(r'<!\[CDATA\[', '', re.sub(r']]>', '', tmp_request.text))
         tmp_tree = self.parser.parse(raw_text)
         # todo: could be videoLink instead of videoLinkDownload
@@ -441,12 +438,15 @@ class TnaFlix(PornFetcher):
                     else:
                         return int(re.findall(r'(?:/)(\d+)(?:\?|/|$)', err.request.url)[0])
 
-    def _check_is_available_page(self, page_request):
+    def _check_is_available_page(self, page_object, page_request=None):
         """
         In binary search performs test whether the current page is available.
+        :param page_object: Page object.
         :param page_request: Page request.
         :return:
         """
+        if page_request is None:
+            page_request = self.get_object_request(page_object)
         return len(page_request.history) == 0
 
     def _get_available_pages_from_tree(self, tree):
@@ -477,7 +477,8 @@ class TnaFlix(PornFetcher):
             return None
         videos = page_request.json()
         tree = self.parser.parse(videos['content'])
-        videos = tree.xpath('.//ul[@class="thumbsList nThumbsList  clear found-items"]/li')
+        videos = [x for x in tree.xpath('.//ul[@class="thumbsList nThumbsList  clear found-items"]/li')
+                  if 'data-vid' in x.attrib]
         res = []
         for video_tree_data in videos:
             link = video_tree_data.xpath('./a[@class="thumb no_ajax"]')
@@ -657,7 +658,7 @@ class TnaFlix(PornFetcher):
 
         program_fetch_url = '/'.join(split_url)
         page_request = self.session.get(program_fetch_url, headers=headers, params=params)
-        if not self._check_is_available_page(page_request):
+        if not self._check_is_available_page(page_data, page_request):
             # We check whether we have redirection for porn star
             if true_object.object_type in (PornCategories.PORN_STAR, ):
                 new_fetch_base_url = page_request.url.split('?')[0]
@@ -868,17 +869,16 @@ class MovieFap(TnaFlix):
         return [int(x.text) for x in tree.xpath('.//div[@class="pagination"]/*')
                 if x.text is not None and x.text.isdigit()]
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
         request_data = tmp_tree.xpath('.//form[@id="vid_info"]/input')
         request_data = {x.attrib['id']: x.attrib['value'] for x in request_data}
-        assert len(request_data) > 0
 
         headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
@@ -891,7 +891,6 @@ class MovieFap(TnaFlix):
             'User-Agent': self.user_agent
         }
         tmp_request = self.session.get(request_data['config1'], headers=headers,)
-        assert tmp_request.ok
         raw_text = re.sub(r'<!\[CDATA\[', '', re.sub(r']]>', '', tmp_request.text))
         tmp_tree = self.parser.parse(raw_text)
         # todo: could be videoLink instead of videoLinkDownload

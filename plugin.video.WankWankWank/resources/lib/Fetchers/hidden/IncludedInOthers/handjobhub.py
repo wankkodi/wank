@@ -141,10 +141,10 @@ class HandJobHub(PornFetcher):
                   for x, y in zip(raw_objects, raw_numbers)])
         return links, titles, number_of_videos
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
         """
         headers = {

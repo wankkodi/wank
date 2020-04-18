@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornNoVideoError, PornErrorModule
+from ..fetchers.porn_fetcher import PornFetcher, PornNoVideoError
 from ..tools.external_fetchers import ExternalFetcher
 
 # Internet tools
@@ -12,7 +12,7 @@ import re
 import warnings
 
 # JSON
-import json
+from ..tools.text_json_manioulations import prepare_json_from_not_formatted_text
 
 # Nodes
 from ..catalogs.porn_catalog import PornCatalogCategoryNode, PornCatalogVideoPageNode, VideoNode, VideoSource
@@ -122,17 +122,15 @@ class Likuoo(PornFetcher):
         base_object_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
-
         request_data = [x for x in tmp_tree.xpath('.//script/text()') if 'ext' in x and 'ajax' in x]
-        assert len(request_data) > 0
         headers = {
             'Accept': 'application/json, text/javascript, */*; q=0.01',
             'Cache-Control': 'max-age=0',
@@ -149,18 +147,9 @@ class Likuoo(PornFetcher):
         videos = []
         for request_datum in request_data:
             req_suffix = re.findall(r'(?:url: *\')(.*?)(?:\')', request_datum)
-            assert len(req_suffix) == 1
             req_data = re.findall(r'(?:data: *\')(.*?)(?:\')', request_datum)
-            assert len(req_data) == 1
             req = self.session.post(urljoin(self.base_url, req_suffix[0]), headers=headers,
                                     data=dict([req_data[0].split('=')]))
-            assert req.ok
-            if not self._check_is_available_page(req):
-                server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
-                                              'Cannot fetch video links from the url {u}'.format(u=req.url),
-                                              None, None)
-                raise PornNoVideoError('No Video link for url {u}'.format(u=req.url), server_data)
-
             raw_data = req.json()
             tmp_new_tree = self.parser.parse(raw_data['i'])
             new_source = tmp_new_tree.xpath('.//iframe/@src')
@@ -178,24 +167,28 @@ class Likuoo(PornFetcher):
                 elif urlparse(new_source[0]).hostname == 'gounlimited.to':
                     videos.extend(self.external_fetchers.get_video_link_from_gotounlimited(new_source[0]))
                     continue
+                elif urlparse(new_source[0]).hostname == 'jetload.net':
+                    videos.extend([(new_source[0], 0)])
+                    continue
                 else:
                     warnings.warn('Unknown source {h}...'.format(h=urlparse(new_source[0]).hostname))
 
             # We have multiple sources
             new_source = re.findall(r'(?:setup\()({.*})(?:\);)', raw_data['i'])
             if len(new_source) > 0:
-                new_source = re.sub(r'\'', '"', new_source[0])
-                new_source = re.sub(r'\w+(?=:)(?!:[/\d])', lambda x: '"' + x.group(0) + '"', new_source)
-                new_source = re.sub(r', *[}\]]', lambda x: x.group(0)[-1], new_source)
-                new_source = json.loads(new_source)
+                new_source = prepare_json_from_not_formatted_text(new_source[0])
+                # new_source = re.sub(r'\'', '"', new_source[0])
+                # new_source = re.sub(r'\w+(?=:)(?!:[/\d])', lambda x: '"' + x.group(0) + '"', new_source)
+                # new_source = re.sub(r', *[}\]]', lambda x: x.group(0)[-1], new_source)
+                # new_source = json.loads(new_source)
                 videos.extend(((x['file'], int(re.findall(r'\d+', x['label'])[0])) for x in new_source['sources']))
                 continue
 
             # If we are here we have some unknown pattern...
-            server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
-                                          'Unknown pattern for the page {u}'.format(u=req.url),
-                                          None, None)
-            raise PornNoVideoError('Unknown pattern for the page {u}'.format(u=req.url), server_data)
+            error_module = self._prepare_porn_error_module_for_video_page(video_data, tmp_request.url,
+                                                                          'Unknown video source pattern for the page '
+                                                                          '{u}'.format(u=req.url))
+            raise PornNoVideoError(error_module.message, error_module)
 
         videos = sorted((VideoSource(link=x[0], resolution=x[1]) for x in videos),
                         key=lambda x: x.resolution, reverse=True)

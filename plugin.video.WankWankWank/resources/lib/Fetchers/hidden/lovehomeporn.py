@@ -102,12 +102,12 @@ class LoveHomePorn(PornFetcher):
                                          search_args=video_filters,
                                          )
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         split_url = video_data.url.split('/')
         headers = {
             'Accept': '*/*',
@@ -120,7 +120,8 @@ class LoveHomePorn(PornFetcher):
         params = {'key': split_url[4]}
         tmp_request = self.session.get(self.video_request_url, headers=headers, params=params)
         tree = self.parser.parse(tmp_request.text)
-        res = [VideoSource(link=x) for x in tree.xpath('.//file/text()')]
+        videos = tree.xpath('.//file')
+        res = [VideoSource(link=x.text) for x in videos]
         return VideoNode(video_sources=res,)
 
     def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):

@@ -14,8 +14,17 @@ import warnings
 # Heritages
 from abc import ABCMeta, abstractmethod
 
+# External Fetchers
+from ..tools.external_fetchers import NoVideosException
+
 # Math
 import math
+
+# JSON exceptions
+try:
+    from json import JSONDecodeError
+except ImportError:
+    JSONDecodeError = ValueError
 
 # Sys
 import sys
@@ -32,8 +41,9 @@ from ..fetchers.base_fetcher import BaseFetcher
 
 
 class PornErrorModule(object):
-    def __init__(self, server, site_name, url, message, page_filters, general_filters):
+    def __init__(self, server, error_mode, site_name, url, message, page_filters, general_filters):
         self.server = server
+        self.error_mode = error_mode
         self.site_name = site_name
         self.url = url
         self.message = message
@@ -45,7 +55,8 @@ class PornError(ValueError):
     def __init__(self, request, error_module=None):
         super(PornError, self).__init__(request)
         if error_module is not None and error_module.server is not None:
-            error_module.server.push_error(error_module.site_name, error_module.url, error_module.message,
+            error_module.server.push_error(error_module.error_mode, error_module.site_name, error_module.url,
+                                           error_module.message,
                                            error_module.page_filters, error_module.general_filters)
 
 
@@ -285,6 +296,21 @@ class PornFetcher(BaseFetcher):
                 self.get_search_data(element_object)
             else:
                 raise ValueError('Wrong type of the object {ot}!'.format(ot=element_object.object_type))
+            # We check whether a mandatory category doesn't have any sub-elements and in this case send the proper
+            # exception
+            if (
+                    element_object.true_object.object_type.category_type in (PornCategoryTypes.MAIN_CATEGORY,
+                                                                             PornCategoryTypes.SECONDARY_CATEGORY,
+                                                                             PornCategoryTypes.VIDEO_CATEGORY,
+                                                                             )
+                    and (element_object.sub_objects is None or len(element_object.sub_objects) == 0)):
+                error_module = self._prepare_porn_error_module(element_object, 1, element_object.url,
+                                                               'No sub-pages for object {obj}'
+                                                               ''.format(obj=element_object.title))
+                self.data_server.push_error(error_module.error_mode, error_module.site_name, error_module.url,
+                                            error_module.message,
+                                            error_module.page_filters, error_module.general_filters)
+
             return element_object.sub_objects
         except ValueError as err:
             raise PornValueError('Got the following err {r}.\nPage url {u}'.format(r=err, u=element_object.url))
@@ -385,6 +411,45 @@ class PornFetcher(BaseFetcher):
             self.fetch_sub_objects(object_data)
         fit_shows = [y for y in object_data.sub_objects if sub_object_id == y.id]
         return fit_shows
+
+    def get_video_links_from_video_data(self, video_data):
+        """
+        Extracts episode link from episode data.
+        :param video_data: Video data (dict).
+        :return:
+        """
+        try:
+            videos = self._get_video_links_from_video_data_no_exception_check(video_data)
+            if len(videos.video_sources) == 0:
+                error_module = self._prepare_porn_error_module_for_video_page(video_data)
+                raise PornNoVideoError(error_module.message, error_module)
+            return videos
+        except (IndexError, KeyError):
+            error_module = self._prepare_porn_error_module_for_video_page(
+                video_data, video_data.url,
+                'Cannot parse request data or request hash for url {u}.'.format(u=video_data.url))
+            raise PornNoVideoError(error_module.message, error_module)
+        except NoVideosException as err:
+            error_module = self._prepare_porn_error_module_for_video_page(video_data, err.error_module.url,
+                                                                          err.error_module.message)
+            raise PornNoVideoError(error_module.message, error_module)
+        except JSONDecodeError:
+            err_str = 'Cannot parse the JSON from the url {u}'.format(u=video_data.url)
+            error_module = self._prepare_porn_error_module_for_video_page(video_data, video_data.url, err_str)
+            raise PornNoVideoError(error_module.message, error_module)
+        except TypeError as err:
+            str_err = 'No Video link for url {u}, got error {e}'.format(u=video_data.url, e=err)
+            error_module = self._prepare_porn_error_module_for_video_page(video_data, video_data.url, str_err)
+            raise PornNoVideoError(error_module.message, error_module)
+
+    @abstractmethod
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
+        """
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
+        :return:
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def get_videos_data(self, page_data):
@@ -581,12 +646,15 @@ class PornFetcher(BaseFetcher):
                 right_page = page - 1
             page = int(math.ceil((right_page + left_page) / 2))
 
-    def _check_is_available_page(self, page_request):
+    def _check_is_available_page(self, page_object, page_request=None):
         """
         In binary search performs test whether the current page is available.
+        :param page_object: Page object.
         :param page_request: Page request.
         :return:
         """
+        if page_request is None:
+            page_request = self.get_object_request(page_object)
         return page_request.ok
 
     def _get_available_pages_from_tree(self, tree):
@@ -617,21 +685,36 @@ class PornFetcher(BaseFetcher):
         """
         res = super(PornFetcher, self).get_object_request(object_data, override_page_number, override_params,
                                                           override_url)
-        if not self._check_is_available_page(res):
+        if not self._check_is_available_page(object_data, res):
             if send_error is True:
-                current_page_filters = self.get_proper_filter(object_data).current_filters_text()
-                general_filters = self.general_filter.current_filters_text()
-                error_module = PornErrorModule(self.data_server,
-                                               self.source_name,
-                                               res.url,
-                                               'Could not fetch {url}'.format(url=res.url),
-                                               current_page_filters,
-                                               general_filters
-                                               )
+                error_module = self._prepare_porn_error_module(object_data, 0, res.url,
+                                                               'Could not fetch {url} in object {obj}'
+                                                               ''.format(url=res.url, obj=object_data.title))
             else:
                 error_module = None
             raise PornFetchUrlError(res, error_module)
         return res
+
+    def _prepare_porn_error_module(self, object_data, error_mode, url, title):
+        current_page_filters = self.get_proper_filter(object_data).current_filters_text()
+        general_filters = self.general_filter.current_filters_text()
+        error_module = PornErrorModule(self.data_server,
+                                       error_mode,
+                                       self.source_name,
+                                       url,
+                                       title,
+                                       current_page_filters,
+                                       general_filters
+                                       )
+        return error_module
+
+    def _prepare_porn_error_module_for_video_page(self, video_data, url=None, title=None):
+        if title is None:
+            title = 'Cannot fetch video links from the url {u}'.format(u=url)
+        if url is None:
+            url = video_data.url
+        error_module = PornErrorModule(self.data_server, 0, self.source_name, url, title, None, None)
+        return error_module
 
     def _format_duration(self, raw_duration):
         """

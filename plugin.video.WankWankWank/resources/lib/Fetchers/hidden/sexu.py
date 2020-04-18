@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError
+from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError, PornNoVideoError
 
 # Internet tools
 from .. import urljoin, quote_plus, parse_qs
@@ -8,10 +8,10 @@ from .. import urljoin, quote_plus, parse_qs
 from ..id_generator import IdGenerator
 
 # JSON
-from ..tools.text_json_manioulations import prepare_json_from_not_formatted_text
+# from ..tools.text_json_manioulations import prepare_json_from_not_formatted_text
 
 # Regex
-import re
+# import re
 
 # Nodes
 from ..catalogs.porn_catalog import PornCatalogCategoryNode, PornCatalogVideoPageNode, \
@@ -20,6 +20,8 @@ from ..catalogs.porn_catalog import PornCategories, PornFilter, PornFilterTypes
 
 
 class SexU(PornFetcher):
+    _video_api_url = 'https://sexu.com/api/video-info'
+
     @property
     def object_urls(self):
         return {
@@ -144,33 +146,38 @@ class SexU(PornFetcher):
         base_object_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
-        tmp_request = self.get_object_request(video_data)
-        tmp_tree = self.parser.parse(tmp_request.text)
+         """
+        # Fetch to get the correct cookie
+        # self.get_object_request(video_data)
+        video_id = video_data.url.split('/')[-2]
+        headers = {
+            'Accept': '*/*',
+            'Cache-Control': 'max-age=0',
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'Referer': video_data.url,
+            'Origin': self.base_url,
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin',
+            'User-Agent': self.user_agent,
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+        data = {'videoId': video_id}
+        tmp_request = self.session.post(self._video_api_url, headers=headers, data=data)
+        raw_data = tmp_request.json()
+        if raw_data['success'] is False:
+            error_module = self._prepare_porn_error_module_for_video_page(video_data, tmp_request.url)
+            raise PornNoVideoError(error_module.message, error_module)
 
-        videos = tmp_tree.xpath('.//div[@class="player-block__item"]/video/source')
-        if len(videos) > 0:
-            video_links = sorted((VideoSource(link=urljoin(video_data.url, x.attrib['src']),
-                                              resolution=int(x.attrib['title'][:-1])) for x in videos),
-                                 key=lambda x: x.resolution, reverse=True)
-        else:
-            # Another version
-            videos = tmp_tree.xpath('.//div[@class="player-block__item"]/video/script')
-            assert len(videos) == 1
-            raw_data = prepare_json_from_not_formatted_text(re.findall(r'(?:var playerSettings = )({.*}?)(?:;)',
-                                                                       videos[0].text)[0])
-            video_links = sorted((VideoSource(link=urljoin(video_data.url,
-                                                           re.sub(raw_data['clip']['defaultQuality'], x,
-                                                                  raw_data['clip']['downloadUrl']),
-                                                           ),
-                                              resolution=int(x[:-1]))
-                                  for x in raw_data['clip']['qualities']),
-                                 key=lambda x: x.resolution, reverse=True)
+        video_links = sorted((VideoSource(link=urljoin(video_data.url, x['src']),
+                                          resolution=int(x['quality'][:-1]))
+                              for x in raw_data['sources']),
+                             key=lambda x: x.resolution, reverse=True)
 
         return VideoNode(video_sources=video_links)
 

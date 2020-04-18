@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornValueError, PornNoVideoError, PornErrorModule
+from ..fetchers.porn_fetcher import PornFetcher, PornValueError
 
 # Internet tools
 from .. import urljoin, quote, parse_qs, urlparse
@@ -290,12 +290,12 @@ class Txxx(PornFetcher):
         else:
             return min(math.ceil(number_of_videos / self.number_of_videos_per_page), self._max_pages)
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         headers = {
             'Accept': 'application/json, text/plain, */*',
             'Cache-Control': 'max-age=0',
@@ -885,16 +885,15 @@ class UPornia(Txxx):
         porn_star_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
-        request = self.get_object_request(video_data)
-        tree = self.parser.parse(request.text)
+         """
+        tmp_request = self.get_object_request(video_data)
+        tree = self.parser.parse(tmp_request.text)
         raw_script = [x for x in tree.xpath('.//script') if x.text is not None and 'pC3' in x.text]
-        assert len(raw_script) == 1
         video_id = re.findall(r'(?:"*video_id"*: *)(\d+)', raw_script[0].text)[0]
         pc3 = re.findall(r'(?:"*pC3"*: *\'*)([\d|,]*)', raw_script[0].text)[0]
         params = {'param': video_id + ',' + pc3}
@@ -913,16 +912,11 @@ class UPornia(Txxx):
             'User-Agent': self.user_agent
         }
         request = self.session.post(self.video_data_request_url, headers=headers, data=params)
-        if not self._check_is_available_page(request):
-            server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
-                                          'Cannot fetch video links from the url {u}'.format(u=request.url),
-                                          None, None)
-            raise PornNoVideoError('No Video link for url {u}'.format(u=request.url), server_data)
         video_url = re.findall(r'(?:"*video_url"*: *")(.*?)(?:")', request.text)[0]
         video_url = re.sub(r'\\u\d{3}[a-e0-9]', lambda x: x.group(0).encode('utf-8').decode('unicode-escape'),
                            video_url)
         true_video_url = self._get_video_url_from_raw_url(video_url)
-        video_url = [VideoSource(link=x) for x in true_video_url]
+        video_url = [VideoSource(link=true_video_url)]
 
         return VideoNode(video_sources=video_url)
 

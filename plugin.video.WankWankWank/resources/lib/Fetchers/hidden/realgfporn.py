@@ -58,12 +58,12 @@ class RealGfPorn(PornFetcher):
         super(RealGfPorn, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
                                          session_id)
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         tree = self.parser.parse(tmp_request.text)
         video_links = [VideoSource(link=x) for x in tree.xpath('.//video/source/@src')]

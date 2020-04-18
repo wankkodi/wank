@@ -10,6 +10,9 @@ import re
 # Warnings
 import warnings
 
+# M3U8
+import m3u8
+
 # External fetchers
 from ..tools.external_fetchers import ExternalFetcher
 
@@ -18,7 +21,7 @@ from ..id_generator import IdGenerator
 
 # Nodes
 from ..catalogs.porn_catalog import PornCatalogCategoryNode, PornCatalogVideoPageNode, \
-    VideoSource, VideoNode
+    VideoSource, VideoNode, VideoTypes
 from ..catalogs.porn_catalog import PornCategories
 
 
@@ -118,29 +121,15 @@ class VePorns(PornFetcher):
         porn_star_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
-
-        video_url = video_data.url
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                      'q=0.8,application/signed-exchange;v=b3*',
-            'Cache-Control': 'max-age=0',
-            'Host': self.host_name,
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': self.user_agent
-        }
-        tmp_request = self.session.get(video_url, headers=headers)
+         """
+        tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
         commands = [x for x in tmp_tree.xpath('.//div[@class="r"]/a') if 'onclick' in x.attrib]
-        assert len(commands) >= 1
         res = []
         for command in commands:
             arguments = re.findall(r'(?:\()(.*)(?:\))', command.attrib['onclick'])
@@ -168,19 +157,51 @@ class VePorns(PornFetcher):
             tmp_request = self.session.get(self.video_request_url, headers=headers, params=params)
             tmp_tree = self.parser.parse(tmp_request.text)
             video_links = tmp_tree.xpath('.//iframe/@src')
-            if len(video_links) == 0:
-                continue
-
             if urlparse(video_links[0]).hostname == 'woof.tube':
                 res.extend([VideoSource(link=x[0], resolution=x[1])
                             for x in self.external_fetchers.get_video_link_from_woof_tube(video_links[0])]
                            )
             elif urlparse(video_links[0]).hostname == 'gounlimited.to':
                 res.extend([VideoSource(link=x[0], resolution=x[1])
-                            for x in self.external_fetchers.get_video_link_from_woof_tube(video_links[0])]
+                            for x in self.external_fetchers.get_video_link_from_gotounlimited(video_links[0])]
                            )
+            elif urlparse(video_links[0]).hostname == 'vidlox.me':
+                tmp_res = self.external_fetchers.get_video_link_from_vidlox(video_links[0], video_data.url)
+                for link, resolution in tmp_res:
+                    file_type = re.findall(r'(?:\.)(\w+$)', link)[0]
+                    if file_type == 'm3u8':
+                        headers = {
+                            'Accept': '*/*',
+                            # 'Accept-Encoding': 'gzip, deflate, br',
+                            'Cache-Control': 'max-age=0',
+                            # 'Referer': self.shows_url,
+                            'Sec-Fetch-Mode': 'cors',
+                            'Sec-Fetch-Site': 'same-origin',
+                            # 'Sec-Fetch-User': '?1',
+                            'User-Agent': self.user_agent,
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                        req = self.session.get(link, headers=headers)
+                        video_m3u8 = m3u8.loads(req.text)
+                        video_playlists = video_m3u8.playlists
+                        if all(vp.stream_info.bandwidth is not None for vp in video_playlists):
+                            video_playlists.sort(key=lambda k: k.stream_info.bandwidth, reverse=True)
+
+                        video_objects = [VideoSource(link=urljoin(link, x.uri),
+                                                     video_type=VideoTypes.VIDEO_SEGMENTS,
+                                                     quality=x.stream_info.bandwidth,
+                                                     resolution=x.stream_info.resolution[1],
+                                                     codec=x.stream_info.codecs)
+                                         for x in video_playlists]
+
+                        res.extend(video_objects)
+                    elif file_type == 'mp4':
+                        res.append(VideoSource(link=link, resolution=int(re.findall(r'\d+', resolution)[0])))
+                    else:
+                        warnings.warn('Unsupported file type {ft} for source vidlox.me')
+
             else:
-                warnings.warn('Unknown Server.')
+                warnings.warn('Unknown Server {s}'.format(s=urlparse(video_links[0]).hostname))
         res.sort(key=lambda x: x.resolution, reverse=True)
         return VideoNode(video_sources=res)
 
@@ -208,8 +229,8 @@ class VePorns(PornFetcher):
         """
         return [int(re.findall(r'(?:p=)(\d+)', x)[0]) for x in tree.xpath('.//p[@class="sayfalama"]/a/@href')
                 if len(re.findall(r'(?:p=)(\d+)', x)) > 0] + \
-               [int(self._clear_text(x.text)) for x in tree.xpath('.//p[@class="sayfalama"]/a')
-                if self._clear_text(x.text).isdigit()]
+               [int(re.findall(r'(\d+)(?:/*$)', x)[0]) for x in tree.xpath('.//p[@class="sayfalama"]/a/@href')
+                if len(re.findall(r'(\d+)(?:/*$)', x)) > 0]
 
     def get_videos_data(self, page_data):
         """
@@ -308,14 +329,14 @@ class VePorns(PornFetcher):
             'User-Agent': self.user_agent
         }
         split_url = fetch_base_url.split('/')
-        if page_data.page_number is not None and page_data.page_number != 1:
+        if page_number is not None and page_number != 1:
             if true_object.object_type == PornCategories.LATEST_VIDEO:
                 if split_url[-2] == 'videos':
                     # We override the previous value
                     split_url[-1] = str(page_number)
                 else:
-                    split_url.append('videos')
-                    split_url.append(str(page_number))
+                    split_url.insert(-1, 'videos')
+                    split_url[-1] = str(page_number)
             elif true_object.object_type == PornCategories.PORN_STAR_MAIN:
                 params['p'] = page_data.page_number
                 params['l'] = ''

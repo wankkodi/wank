@@ -12,7 +12,7 @@ from ..catalogs.porn_catalog import PornCatalogCategoryNode, PornCatalogVideoPag
 from ..catalogs.porn_catalog import PornCategories, PornFilterTypes, PornFilter
 
 # JSON
-import json
+from ..tools.text_json_manioulations import prepare_json_from_not_formatted_text
 
 # Generator id
 from ..id_generator import IdGenerator
@@ -136,7 +136,7 @@ class BaseFetcher(PornFetcher):
         Indicates whether we split the tags by letters.
         :return:
         """
-        return False
+        return True
 
     def _update_available_porn_stars(self, porn_star_data):
         """
@@ -188,56 +188,57 @@ class BaseFetcher(PornFetcher):
         porn_star_data.add_sub_objects(res)
         return res
 
-    def _update_available_tags(self, tag_data):
-        """
-        Fetches all the available categories.
-        :return: Object of all available shows (JSON).
-        """
-        return self._update_available_general_tags(tag_data, PornCategories.TAG)
+    # # Obsolete
+    # def _update_available_general_tags(self, tag_data, object_type):
+    #     """
+    #     Fetches all the available categories.
+    #     :return: Object of all available shows (JSON).
+    #     """
+    #     page_request = self.get_object_request(tag_data)
+    #     tree = self.parser.parse(page_request.text)
+    #     categories = tree.xpath('.//div[@class="default-padding"]/div[@class="pull-left text-left"]/a')
+    #     res = []
+    #     for category in categories:
+    #         link = category.attrib['href']
+    #         title = self._clear_text(category.text)
+    #
+    #         number_of_videos = category.xpath('./span[@class="tag-badge"]')
+    #         assert len(number_of_videos) == 1
+    #         number_of_videos = int(re.sub('[\r\n\t ,]*', '', self._clear_text(number_of_videos[0].text)))
+    #
+    #         res.append(PornCatalogCategoryNode(catalog_manager=self.catalog_manager,
+    #                                            obj_id=link,
+    #                                            url=urljoin(self.base_url, link),
+    #                                            title=title,
+    #                                            number_of_videos=number_of_videos,
+    #                                            object_type=object_type,
+    #                                            super_object=tag_data,
+    #                                            ))
+    #
+    #     tag_data.add_sub_objects(res)
+    #     return res
 
-    def _update_available_general_tags(self, tag_data, object_type):
+    def _get_tag_properties(self, page_request):
         """
-        Fetches all the available categories.
-        :return: Object of all available shows (JSON).
-        """
-        page_request = self.get_object_request(tag_data)
-        tree = self.parser.parse(page_request.text)
-        categories = tree.xpath('.//div[@class="default-padding"]/div[@class="pull-left text-left"]/a')
-        res = []
-        for category in categories:
-            link = category.attrib['href']
-            title = self._clear_text(category.text)
-
-            number_of_videos = category.xpath('./span[@class="tag-badge"]')
-            assert len(number_of_videos) == 1
-            number_of_videos = int(re.sub('[\r\n\t ,]*', '', self._clear_text(number_of_videos[0].text)))
-
-            res.append(PornCatalogCategoryNode(catalog_manager=self.catalog_manager,
-                                               obj_id=link,
-                                               url=urljoin(self.base_url, link),
-                                               title=title,
-                                               number_of_videos=number_of_videos,
-                                               object_type=object_type,
-                                               super_object=tag_data,
-                                               ))
-
-        tag_data.add_sub_objects(res)
-        return res
-
-    def get_video_links_from_video_data(self, video_data):
-        """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Fetches tag links and titles. The fetched objects MUST be sorted wrt title.
+        :param page_request: Page request.
         :return:
         """
+        res = [(urljoin(self.base_url, x['link']), x['name'], int(x['videos'].replace(',', '')))
+               for x in page_request.json()]
+        links, titles, number_of_videos = zip(*res)
+        return links, titles, number_of_videos
+
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
+        """
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
+        :return:
+         """
         tmp_request = self.get_object_request(video_data)
         request_data = re.findall(r'(?:sources: )({.*?})(?:,\n)', tmp_request.text, re.DOTALL)
-        assert len(request_data) == 1
-        request_data = re.sub(r'\'', '"', request_data[0])
-        request_data = re.sub(r'\\/', '/', request_data)
-        request_data = re.sub(r'\w+(?=:)(?!:/)', lambda x: '"' + x[0] + '"', request_data)
-        request_data = json.loads(request_data)
-        videos = sorted((VideoSource(link=x['src'], resolution=re.findall(r'\d+', x['desc'])[0])
+        request_data = prepare_json_from_not_formatted_text(request_data[0])
+        videos = sorted((VideoSource(link=x['src'].replace('\\/', '/'), resolution=re.findall(r'\d+', x['desc'])[0])
                          for x in request_data['mp4']),
                         key=lambda x: x.resolution, reverse=True)
         return VideoNode(video_sources=videos)
@@ -342,6 +343,18 @@ class BaseFetcher(PornFetcher):
             params['sorterColumn'] = [page_filter.sort_order.value]
             params['page'] = [page_number if page_number is not None else 1]
 
+        elif true_object.object_type in (PornCategories.TAG_MAIN,):
+            headers = {
+                'Accept': '*/*',
+                'Cache-Control': 'max-age=0',
+                'Referer': page_data.url,
+                'Host': self.host_name,
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-origin',
+                'User-Agent': self.user_agent,
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+            fetch_base_url = urljoin(page_data.url, 'json/')
         else:
             split_url = fetch_base_url.split('/')
             if true_object.object_type in (PornCategories.TAG_MAIN, PornCategories.VIDEO, PornCategories.PORN_STAR,

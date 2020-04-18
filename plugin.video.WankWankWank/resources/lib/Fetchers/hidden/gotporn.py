@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornErrorModule, PornFetchUrlError
+from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError
 
 # Internet tools
 from .. import urljoin, urlparse, quote_plus
@@ -10,10 +10,12 @@ import re
 # Math
 import math
 
-# Request Exception
-import json
+# # Request Exception
+# import json
+
 try:
-    from json import JSONDecodeError
+    from json import \
+        JSONDecodeError
 except ImportError:
     JSONDecodeError = ValueError
 
@@ -198,12 +200,12 @@ class GotPorn(PornFetcher):
                                                                        'span[@class="num"]/text()')]
         return links, titles, numbers_of_videos
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         video_url = video_data.url
         headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
@@ -272,7 +274,8 @@ class GotPorn(PornFetcher):
             tree = self.parser.parse(tmp_html['tpl'])
         except JSONDecodeError:
             tree = self.parser.parse(page_request.text)
-        videos = tree.xpath('.//li[@class="video-item poptrigger"]')
+        videos = (tree.xpath('.//li[@class="video-item poptrigger"]') +
+                  tree.xpath('.//li[@class="video-item  poptrigger "]'))
         res = []
         for video_tree_data in videos:
             link = video_tree_data.xpath('./a')
@@ -332,17 +335,11 @@ class GotPorn(PornFetcher):
             }
 
             page_request = self.session.get(page_data.url, headers=headers)
-            if not self._check_is_available_page(page_request):
+            if not self._check_is_available_page(page_data, page_request):
                 if send_error is True:
-                    current_page_filters = self.get_proper_filter(page_data).current_filters_text()
-                    general_filters = self.general_filter.current_filters_text()
-                    error_module = PornErrorModule(self.data_server,
-                                                   self.source_name,
-                                                   page_request.url,
-                                                   'Could not fetch {url}'.format(url=page_request.url),
-                                                   current_page_filters,
-                                                   general_filters,
-                                                   )
+                    error_module = self._prepare_porn_error_module(page_data, 0, page_request.url,
+                                                                   'Could not fetch {url} in object {obj}'
+                                                                   ''.format(url=page_request.url, obj=page_data.title))
                 else:
                     error_module = None
                 raise PornFetchUrlError(page_request, error_module)
@@ -362,8 +359,8 @@ class GotPorn(PornFetcher):
 
         # We update the cookies as well for orientation
         self.session.cookies.set(domain=self.host_name, name='orientation',
-                                 value=self.video_filters.general_filters.current_filters.general.value)
-        if self.video_filters.general_filters.current_filters.general.filter_id != PornFilterTypes.StraightType:
+                                 value=self.general_filter.current_filters.general.value)
+        if self.general_filter.current_filters.general.filter_id != PornFilterTypes.StraightType:
             if split_url[3] != self.video_filters.general_filters.current_filters.general.value:
                 split_url.insert(3, self.video_filters.general_filters.current_filters.general.value)
 
@@ -437,6 +434,7 @@ class GotPorn(PornFetcher):
 
 class PornHD(PornFetcher):
     prime_host_name = 'www.pornhdprime.com'
+    max_flip_images = 53
 
     @property
     def max_pages(self):
@@ -544,7 +542,7 @@ class PornHD(PornFetcher):
         :return: Object of all available shows (JSON).
         """
         return self._update_available_object(category_data,
-                                             './/ul[@class="tag-150-list"]/li',
+                                             './/section[@class="small-thumb-list lazy-load"]/article',
                                              PornCategories.CATEGORY)
 
     def _update_available_porn_stars(self, pornstar_data):
@@ -553,7 +551,7 @@ class PornHD(PornFetcher):
         :return: Object of all available shows (JSON).
         """
         return self._update_available_object(pornstar_data,
-                                             './/ul[@class="pornstar-tag-list"]/li',
+                                             './/section[@class="section-margin small-thumb-list lazy-load"]/article',
                                              PornCategories.PORN_STAR)
 
     def _update_available_channels(self, channel_data):
@@ -562,7 +560,7 @@ class PornHD(PornFetcher):
         :return: Object of all available shows (JSON).
         """
         return self._update_available_object(channel_data,
-                                             './/ul[@class="tag-150-list"]/li',
+                                             './/section[@class="section-margin small-thumb-list lazy-load"]/article',
                                              PornCategories.CHANNEL)
 
     def _update_available_object(self, object_data, page_xpath, object_type):
@@ -580,24 +578,29 @@ class PornHD(PornFetcher):
                 # dummy node
                 continue
 
-            image = category.xpath('./a/span/img/@data-original')
-            if len(image) == 0:
-                image = category.xpath('./a/span/img/@src')
-                assert len(image) > 0
+            image_data = link_data[0].xpath('./picture/img')
+            title = None
+            image = None
+            if len(image_data) > 0:
+                image = image_data[0].attrib['src']
+                if 'alt' in image_data[0].attrib:
+                    title = image_data[0].attrib['alt']
 
-            title = category.xpath('./a/span/img/@alt')
-            title = self._clear_text(title[0])
+            if title is None:
+                title = link_data[0].xpath('./*[@class="thumb-title"]')
+                assert len(title) == 1
+                title = self._clear_text(title[0].text)
 
-            additional_info = category.xpath('./div[@class="info"]/div[@class="video-count"]')
-            number_of_videos = re.findall(r'\d+', additional_info[0].text) if len(additional_info) > 0 else None
-            number_of_videos = int(number_of_videos[0]) \
-                if number_of_videos is not None and len(number_of_videos) > 0 else None
+            # additional_info = category.xpath('./div[@class="info"]/div[@class="video-count"]')
+            # number_of_videos = re.findall(r'\d+', additional_info[0].text) if len(additional_info) > 0 else None
+            # number_of_videos = int(number_of_videos[0]) \
+            #     if number_of_videos is not None and len(number_of_videos) > 0 else None
             sub_object_data = PornCatalogCategoryNode(catalog_manager=self.catalog_manager,
                                                       obj_id=link_data[0].attrib['href'],
                                                       url=urljoin(self.base_url, link_data[0].attrib['href']),
                                                       title=title,
-                                                      image_link=image[0],
-                                                      number_of_videos=number_of_videos,
+                                                      image_link=image,
+                                                      # number_of_videos=number_of_videos,
                                                       object_type=object_type,
                                                       super_object=object_data,
                                                       )
@@ -605,38 +608,23 @@ class PornHD(PornFetcher):
         object_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
-
+         """
         video_url = video_data.url
         if urlparse(video_url).hostname == self.prime_host_name:
             # In case of the prime video, we need to fetch it separately.
             return self._get_prime_video_links_from_video_data(video_data)
 
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                      'q=0.8,application/signed-exchange;v=b3*',
-            'Cache-Control': 'max-age=0',
-            # 'Host': self.host_name,
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': self.user_agent
-        }
-        tmp_request = self.session.get(video_url, headers=headers)
+        tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
-
-        request_data = re.findall(r'(?:sources:[ \n\r]*)({.*?})',
-                                  [x for x in tmp_tree.xpath('.//script/text()') if 'window.players' in x][0])
-        assert len(request_data) == 1
-        new_video_data = json.loads(request_data[0])
-        video_links = sorted((VideoSource(link=v, resolution=re.findall(r'\d*', k)[0])
-                              for k, v in new_video_data.items()),
+        videos = tmp_tree.xpath('.//video/source')
+        video_links = sorted((VideoSource(link=urljoin(self.base_url, x.attrib['src']),
+                                          resolution=int(x.attrib['res']))
+                              for x in videos),
                              key=lambda x: x.resolution, reverse=True)
 
         return VideoNode(video_sources=video_links)
@@ -647,24 +635,9 @@ class PornHD(PornFetcher):
         :param video_data: Video data.
         :return:
         """
-
-        video_url = video_data.url
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                      'q=0.8,application/signed-exchange;v=b3*',
-            'Cache-Control': 'max-age=0',
-            # 'Host': self.host_name,
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': self.user_agent
-        }
-        tmp_request = self.session.get(video_url, headers=headers)
+        tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
-
         request_data = tmp_tree.xpath('.//video[@id="html5-player"]/source')
-        assert len(request_data) > 0
         video_links = sorted((VideoSource(link=x.attrib['src'], resolution=int(x.attrib['res'])) for x in request_data),
                              key=lambda y: y.resolution, reverse=True)
 
@@ -678,7 +651,7 @@ class PornHD(PornFetcher):
         :return:
         """
         if category_data.object_type == PornCategories.LIVE_VIDEO:
-            return self._binary_search_max_number_of_live_pages(category_data)
+            return self._binary_search_max_number_of_live_pages(category_data, last_available_number_of_pages)
         # We perform binary search
         start_page = category_data.page_number if category_data.page_number is not None else 1
         page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
@@ -706,14 +679,8 @@ class PornHD(PornFetcher):
             else int(math.ceil((right_page + left_page) / 2))
         use_max_page_flag = True
         while 1:
-            page_request = self.get_object_request(category_data, page)
-            if not self._check_is_available_page(page_request):
-                # We moved too far...
-                right_page = page - 1
-                if left_page >= right_page:
-                    use_max_page_flag = False
-                    left_page = right_page - 1
-            else:
+            try:
+                page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
                 tree = self.parser.parse(page_request.text)
                 pages = self._get_available_pages_from_tree(tree)
                 if len(pages) == 0:
@@ -725,24 +692,30 @@ class PornHD(PornFetcher):
                         return max_page
 
                     left_page = max_page
+            except PornFetchUrlError:
+                # We moved too far...
+                right_page = page - 1
+                if left_page >= right_page:
+                    use_max_page_flag = False
+                    left_page = right_page - 1
             page = int(math.ceil((right_page + left_page) / 2))
 
-    def _binary_search_max_number_of_live_pages(self, category_data):
+    def _binary_search_max_number_of_live_pages(self, category_data, last_available_number_of_pages):
         """
         Override of super method with local modifications...
         Performs binary search in order to find the last available page.
         :param category_data: Category data.
+        :param last_available_number_of_pages: Last available number of pages. Will be the pivot for our next search.
+        By default is None, which mean the original pivot will be used...
         :return: Page request
         """
         left_page = 1
         right_page = self.max_pages
-        page = math.ceil((right_page + left_page) / 2)
+        page = last_available_number_of_pages if last_available_number_of_pages is not None \
+            else int(math.ceil((right_page + left_page) / 2))
         while 1:
-            page_request = self.get_object_request(category_data, page)
-            if not self._check_is_available_page(page_request):
-                # We moved too far...
-                right_page = page - 1
-            else:
+            try:
+                page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
                 tree = self.parser.parse(page_request.text)
                 videos = tree.xpath('.//ul[@class="thumbs live-girls"]/li')
                 if len(videos) == 0:
@@ -751,10 +724,15 @@ class PornHD(PornFetcher):
                 else:
                     left_page = page
 
-            if left_page == right_page:
-                return left_page
+                if left_page == right_page:
+                    return left_page
+            except PornFetchUrlError:
+                # We moved too far...
+                right_page = page - 1
+                if left_page >= right_page:
+                    left_page = right_page - 1
 
-            page = math.ceil((right_page + left_page) / 2)
+            page = int(math.ceil((right_page + left_page) / 2))
 
     # def _check_is_available_page(self, page_request):
     #     """
@@ -772,10 +750,8 @@ class PornHD(PornFetcher):
         :param tree: Current page tree.
         :return: List of available trees
         """
-        pages = tree.xpath('.//div[@class="pager paging"]/ul/li/span/@data-query-value')
-        tmp_res = [int(x) for x in pages if x.isdigit()]
-        if all(tmp_res[0] > x for x in tmp_res[1:]):
-            return tmp_res[1:]
+        tmp_res = [int(x.text) for x in tree.xpath('.//section[@class="section-margin pagination-wrapper"]/div/*')
+                   if x.text.isdigit()]
         return tmp_res
 
     @property
@@ -783,7 +759,74 @@ class PornHD(PornFetcher):
         """
         Available pages threshold. 1 by default.
         """
-        return 1
+        return 6
+
+    # # Obsolete
+    # def get_videos_data(self, page_data):
+    #     """
+    #     Gets videos data for the given category.
+    #     :param page_data: Page data.
+    #     :return:
+    #     """
+    #     page_request = self.get_object_request(page_data)
+    #     tree = self.parser.parse(page_request.text)
+    #     videos = ([x for x in tree.xpath('.//ul[@class="thumbs"]/li') if 'data-video' in x.attrib] +
+    #               [x for x in tree.xpath('.//ul[@class="thumbs live-girls"]/li')])
+    #     res = []
+    #     for video_tree_data in videos:
+    #         preview_video = video_tree_data.attrib['data-webm'] if 'data-webm' in video_tree_data.attrib else None
+    #         if preview_video is None:
+    #             preview_video = video_tree_data.attrib['data-mp4'] if 'data-mp4' in video_tree_data.attrib else None
+    #
+    #         link_data = [x for x in video_tree_data.xpath('./a')
+    #                      if 'class' in x.attrib and 'thumb' in x.attrib['class']]
+    #         if len(link_data) == 0:
+    #             # We want not to include premium content
+    #             continue
+    #             # link_data = video_tree_data.xpath('./a[@class="thumb videoThumb prime-video-thumb '
+    #             #                                   'rotate-video-thumb popTrigger"]')
+    #
+    #         if 'data-thumbs' in link_data[0].attrib:
+    #             flix_image = re.findall(r'(?:")(.*?)(?:")', link_data[0].attrib['data-thumbs'])
+    #             flix_image = [urljoin(page_data.url, re.sub(r'\\/', '/', x)) for x in flix_image]
+    #         else:
+    #             flix_image = None
+    #
+    #         assert len(link_data) == 1
+    #         link = link_data[0].attrib['href']
+    #         url = urljoin(self.base_url, link)
+    #
+    #         img = link_data[0].xpath('./img/@src')
+    #         assert len(img) == 1
+    #         if 'data:image' in img[0]:
+    #             img = link_data[0].xpath('./img/@data-original')
+    #         assert len(img) == 1
+    #         image = img[0]
+    #
+    #         video_length = link_data[0].xpath('./div[@class="meta"]/time/text()')
+    #         if len(video_length) == 0:
+    #             video_length = link_data[0].xpath('./div[@class="meta transition"]/time/text()')
+    #         assert len(video_length) == 1
+    #         video_length = self._clear_text(video_length[0])
+    #
+    #         title = video_tree_data.xpath('./a[@class="title"]/text()')
+    #         assert len(title) == 1
+    #         title = self._clear_text(title[0])
+    #
+    #         video_data = PornCatalogVideoPageNode(catalog_manager=self.catalog_manager,
+    #                                               obj_id=link,
+    #                                               url=url,
+    #                                               title=title,
+    #                                               image_link=image,
+    #                                               flip_images_link=flix_image,
+    #                                               preview_video_link=preview_video,
+    #                                               duration=self._format_duration(video_length),
+    #                                               object_type=PornCategories.VIDEO,
+    #                                               super_object=page_data,
+    #                                               )
+    #         res.append(video_data)
+    #     page_data.add_sub_objects(res)
+    #     return res
 
     def get_videos_data(self, page_data):
         """
@@ -793,61 +836,49 @@ class PornHD(PornFetcher):
         """
         page_request = self.get_object_request(page_data)
         tree = self.parser.parse(page_request.text)
-        videos = ([x for x in tree.xpath('.//ul[@class="thumbs"]/li') if 'data-video' in x.attrib] +
-                  [x for x in tree.xpath('.//ul[@class="thumbs live-girls"]/li')])
+        videos = ([x for x in tree.xpath('.//div[@class="video-list-container"]/article[@class="video-item "]')] +
+                  [x for x in tree.xpath('.//div[@class="video-list-container live-sex"]/'
+                                         'article[@class="video-item live-video-item"]')]
+                  )
         res = []
         for video_tree_data in videos:
-            preview_video = video_tree_data.attrib['data-webm'] if 'data-webm' in video_tree_data.attrib else None
-            if preview_video is None:
-                preview_video = video_tree_data.attrib['data-mp4'] if 'data-mp4' in video_tree_data.attrib else None
+            title = video_tree_data.xpath('./a')
+            assert len(title) == 1
+            title = self._clear_text(title[0].text)
 
-            link_data = [x for x in video_tree_data.xpath('./a')
-                         if 'class' in x.attrib and 'thumb' in x.attrib['class']]
-            if len(link_data) == 0:
-                # We want not to include premium content
-                continue
-                # link_data = video_tree_data.xpath('./a[@class="thumb videoThumb prime-video-thumb '
-                #                                   'rotate-video-thumb popTrigger"]')
-
-            if 'data-thumbs' in link_data[0].attrib:
-                flix_image = re.findall(r'(?:")(.*?)(?:")', link_data[0].attrib['data-thumbs'])
-                flix_image = [urljoin(page_data.url, re.sub(r'\\/', '/', x)) for x in flix_image]
-            else:
-                flix_image = None
-
+            main_section = video_tree_data.xpath('./section[@class="thumb-top"]')
+            assert len(main_section) == 1
+            link_data = main_section[0].xpath('./a')
             assert len(link_data) == 1
             link = link_data[0].attrib['href']
-            url = urljoin(self.base_url, link)
 
-            img = link_data[0].xpath('./img/@src')
-            assert len(img) == 1
-            if 'data:image' in img[0]:
-                img = link_data[0].xpath('./img/@data-original')
-            assert len(img) == 1
-            image = img[0]
+            image_data = link_data[0].xpath('./picture/source[@type="image/jpeg"]')
+            if len(image_data) == 0:
+                image_data = link_data[0].xpath('./picture/source[@type="image/webp"]')
+            image = image_data[0].attrib['srcset'] \
+                if 'srcset' in image_data[0].attrib else image_data[0].attrib['data-srcset']
+            flip_images = [re.sub(r'\d+.jpg', '{i}.jpg'.format(i=i), image)
+                           for i in range(1, self.max_flip_images + 1)] \
+                if len(re.findall(r'\d+.jpg', image)) > 0 else None
 
-            video_length = link_data[0].xpath('./div[@class="meta"]/time/text()')
-            if len(video_length) == 0:
-                video_length = link_data[0].xpath('./div[@class="meta transition"]/time/text()')
+            video_data = link_data[0].xpath('./picture/img')
+            video_preview = urljoin(self.base_url, video_data[0].attrib['data-preview-url'].replace('webm', 'mp4'))
+
+            video_length = main_section[0].xpath('.//span[@class="meta"]/*[@class="video-duration"]')
             assert len(video_length) == 1
-            video_length = self._clear_text(video_length[0])
+            video_length = video_length[0].text
 
-            title = video_tree_data.xpath('./a[@class="title"]/text()')
-            assert len(title) == 1
-            title = self._clear_text(title[0])
-
-            video_data = PornCatalogVideoPageNode(catalog_manager=self.catalog_manager,
-                                                  obj_id=link,
-                                                  url=url,
-                                                  title=title,
-                                                  image_link=image,
-                                                  flip_images_link=flix_image,
-                                                  preview_video_link=preview_video,
-                                                  duration=self._format_duration(video_length),
-                                                  object_type=PornCategories.VIDEO,
-                                                  super_object=page_data,
-                                                  )
-            res.append(video_data)
+            res.append(PornCatalogVideoPageNode(catalog_manager=self.catalog_manager,
+                                                obj_id=link,
+                                                url=urljoin(self.base_url, link),
+                                                title=title,
+                                                image_link=image,
+                                                flip_images_link=flip_images,
+                                                preview_video_link=video_preview,
+                                                duration=self._format_duration(video_length),
+                                                object_type=PornCategories.VIDEO,
+                                                super_object=page_data,
+                                                ))
         page_data.add_sub_objects(res)
         return res
 
@@ -934,72 +965,6 @@ class PinFlix(PornHD):
         super(PinFlix, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
                                       session_id)
 
-    def _update_available_categories(self, category_data):
-        """
-        Fetches all the available categories.
-        :return: Object of all available shows (JSON).
-        """
-        return self._update_available_object(category_data,
-                                             './/section[@class="small-thumb-list lazy-load"]/article/a',
-                                             PornCategories.CATEGORY)
-
-    def _update_available_porn_stars(self, pornstar_data):
-        """
-        Fetches all the available porn stars.
-        :return: Object of all available shows (JSON).
-        """
-        return self._update_available_object(pornstar_data,
-                                             './/section[@class="section-margin small-thumb-list lazy-load"]/'
-                                             'article/a',
-                                             PornCategories.PORN_STAR)
-
-    def _update_available_channels(self, channel_data):
-        """
-        Fetches all the available porn stars.
-        :return: Object of all available shows (JSON).
-        """
-        return self._update_available_object(channel_data,
-                                             './/section[@class="section-margin small-thumb-list lazy-load"]/'
-                                             'article/a',
-                                             PornCategories.CHANNEL)
-
-    def _update_available_object(self, object_data, page_xpath, object_type):
-        """
-        Fetches all the available object.
-        :return: Object of all available shows (JSON).
-        """
-        page_request = self.get_object_request(object_data)
-        tree = self.parser.parse(page_request.text)
-        categories = tree.xpath(page_xpath)
-        res = []
-        for category in categories:
-            link = category.attrib['href']
-
-            image_data = category.xpath('./picture/img')
-            assert len(image_data) == 1
-            image = image_data[0].attrib['src']
-
-            title = category.xpath('./span[@class="thumb-title"]') + category.xpath('./div[@class="thumb-title"]')
-            assert len(title) == 1
-            title = title[0].text
-
-            number_of_videos = category.xpath('./div[@class="video-count"]')
-            number_of_videos = \
-                int(re.findall(r'\d+', number_of_videos[0].text)[0]) if len(number_of_videos) == 1 else None
-
-            sub_object_data = PornCatalogCategoryNode(catalog_manager=self.catalog_manager,
-                                                      obj_id=link,
-                                                      url=urljoin(self.base_url, link),
-                                                      title=title,
-                                                      image_link=image[0],
-                                                      number_of_videos=number_of_videos,
-                                                      object_type=object_type,
-                                                      super_object=object_data,
-                                                      )
-            res.append(sub_object_data)
-        object_data.add_sub_objects(res)
-        return res
-
     def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Extracts category number of videos out of category data.
@@ -1007,52 +972,13 @@ class PinFlix(PornHD):
         :param category_data: Category data (dict).
         :return:
         """
+        if category_data.object_type == PornCategories.LIVE_VIDEO:
+            return self._binary_search_max_number_of_live_pages(category_data, last_available_number_of_pages)
         # We perform binary search
         page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
         tree = self.parser.parse(page_request.text)
         pages = self._get_available_pages_from_tree(tree)
-        if len(pages) == 0:
-            return 1
-        else:
-            return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
-
-    def _binary_search_max_number_of_pages(self, category_data, last_available_number_of_pages):
-        """
-        Performs binary search in order to find the last available page.
-        :param category_data: Category data.
-        :param last_available_number_of_pages: Last available number of pages. Will be the pivot for our next search.
-        By default is None, which mean the original pivot will be used...
-        :return: Page request
-        """
-        left_page = 1
-        right_page = self.max_pages
-        page = last_available_number_of_pages if last_available_number_of_pages is not None \
-            else math.ceil((right_page + left_page) / 2)
-        while 1:
-            page_request = self.get_object_request(category_data, page)
-            if not self._check_is_available_page(page_request):
-                # We moved too far...
-                right_page = page - 1
-            else:
-                tree = self.parser.parse(page_request.text)
-                videos = self._get_available_pages_from_tree(tree)
-                if len(videos) == 0:
-                    # We also moved too far...
-                    right_page = page - 1
-                else:
-                    left_page = page
-
-            if left_page == right_page:
-                return left_page
-
-            page = math.ceil((right_page + left_page) / 2)
-
-    @property
-    def _binary_search_page_threshold(self):
-        """
-        Available pages threshold. 1 by default.
-        """
-        return 1
+        return max(pages) if len(pages) > 0 else 1
 
     def _get_available_pages_from_tree(self, tree):
         """
@@ -1060,64 +986,12 @@ class PinFlix(PornHD):
         :param tree: Current page tree.
         :return: List of available trees
         """
-        our_page = tree.xpath('.//a[@class="btn page active"]')
-        our_page = int(self._clear_text(our_page[0].text)) if len(our_page) > 0 else None
-        pages = tree.xpath('.//a[@id="paginator-btn"]')
-        if our_page is not None:
-            pages += [int(self._clear_text(x.text))
-                      for x in tree.xpath('.//div[@class="btn-group btn-group-squared pagination"]/a')
-                      if x.text is not None and x.text.isdigit() and int(self._clear_text(x.text)) >= our_page]
-        return pages
-
-    def get_videos_data(self, page_data):
-        """
-        Gets videos data for the given category.
-        :param page_data: Page data.
-        :return:
-        """
-        page_request = self.get_object_request(page_data)
-        tree = self.parser.parse(page_request.text)
-        videos = ([x for x in tree.xpath('.//div[@class="video-list-container"]/article[@class="video-item "]')] +
-                  [x for x in tree.xpath('.//div[@class="video-list-container live-sex"]/'
-                                         'article[@class="video-item live-video-item"]')]
-                  )
-        res = []
-        for video_tree_data in videos:
-            link_data = [x for x in video_tree_data.xpath('./a')
-                         if 'class' in x.attrib and 'thumb-bottom' in x.attrib['class']]
-            assert len(link_data) == 1
-            link = link_data[0].attrib['href']
-            title = self._clear_text(link_data[0].text)
-            description = link_data[0].attrib['aria-label'] if 'aria-label' in link_data[0].attrib else None
-
-            image_data = video_tree_data.xpath('./section[@class="thumb-top"]/a/picture/img')
-            assert len(image_data) == 1
-            image = image_data[0].attrib['src']
-            image = urljoin(page_data.url, image)
-
-            video_length = video_tree_data.xpath('./section[@class="thumb-top"]/span[@class="meta"]/time/text()')
-            if len(video_length) == 0:
-                video_length = video_tree_data.xpath('./section[@class="thumb-top"]/'
-                                                     'span[@class="meta transition"]/time/text()')
-            video_length = self._clear_text(video_length[0]) if len(video_length) == 1 else None
-
-            video_data = PornCatalogVideoPageNode(catalog_manager=self.catalog_manager,
-                                                  obj_id=link,
-                                                  url=urljoin(page_data.url, link),
-                                                  title=title,
-                                                  description=description,
-                                                  image_link=image,
-                                                  duration=self._format_duration(video_length)
-                                                  if video_length is not None else None,
-                                                  object_type=PornCategories.VIDEO,
-                                                  super_object=page_data,
-                                                  )
-            res.append(video_data)
-        page_data.add_sub_objects(res)
-        return res
+        tmp_res = [int(x.attrib['data-last-page']) for x in tree.xpath('.//div[@class="button-wrapper text-center"]/a')
+                   if 'data-last-page' in x.attrib]
+        return tmp_res
 
 
-class PornRox(PinFlix):
+class PornRox(PornHD):
     @property
     def object_urls(self):
         return {
@@ -1150,7 +1024,7 @@ class PornRox(PinFlix):
         Base site url.
         :return:
         """
-        return 'https://www.pinflix.com/'
+        return 'https://www.pornrox.com/'
 
     def __init__(self, source_name='PornRox', source_id=0, store_dir='.', data_dir='../Data',
                  source_type='Porn', use_web_server=True, session_id=None):

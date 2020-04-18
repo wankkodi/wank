@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError, PornValueError, PornNoVideoError, PornErrorModule
+from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError, PornValueError
 
 # Internet tools
 from .. import urljoin, urlparse, quote, quote_plus, parse_qs
@@ -195,12 +195,12 @@ class PornDotCom(PornFetcher):
                                                 for x in raw_data])
         return links, titles, number_of_videos
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
         if urlparse(tmp_request.url).hostname == urlparse(self.embed_video_json_url).hostname:
@@ -219,12 +219,6 @@ class PornDotCom(PornFetcher):
                 'User-Agent': self.user_agent
             }
             tmp_request = self.session.post(self.embed_video_json_url, headers=headers, data=params)
-            if not self._check_is_available_page(tmp_request):
-                server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
-                                              'Cannot fetch video links from the url {u}'.format(u=tmp_request.url),
-                                              None, None)
-                raise PornNoVideoError('No Video link for url {u}'.format(u=tmp_request.url), server_data)
-
             raw_data = tmp_request.json()
             videos = sorted((VideoSource(link=x['url'], resolution=int(re.findall(r'\d+', x['id'])[0]))
                              for x in raw_data['player']['streams']),
@@ -667,21 +661,19 @@ class PornHub(PornFetcher):
         porn_star_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
         # new_video_data = json.loads([x for x in tmp_tree.xpath('.//script/text()') if 'gvideo' in x][0])
         # video_suffix = video_suffix = urlparse(tmp_data['contentUrl']).path
-
         raw_script = [x for x in tmp_tree.xpath('.//script/text()') if 'flashvars' in x][0]
         request_data = re.findall(r'({.*})(?:;)', raw_script)
         raw_data = json.loads(request_data[0])
-
         request_data2 = re.findall(r'(?:var )(\w+)(?: *= *)(.+?)(?:;)', raw_script)
         tmp_dict = {x[0]: x[1][1:-1] for x in request_data2 if x[1][0] == '"' and x[1][-1] == '"'}
         urls = {x[0]: x[1] for x in request_data2 if x[1][0] != '"' and x[1][-1] != '"'}
@@ -726,15 +718,9 @@ class PornHub(PornFetcher):
                 max_page -= 1
                 if max_page == 0:
                     # We reached the illegal page
-                    current_page_filters = self.get_proper_filter(category_data).current_filters_text()
-                    general_filters = self.general_filter.current_filters_text()
-                    error_module = PornErrorModule(self.data_server,
-                                                   self.source_name,
-                                                   err.request.url,
-                                                   'Could not fetch {url}'.format(url=err.request.url),
-                                                   current_page_filters,
-                                                   general_filters
-                                                   )
+                    error_module = self._prepare_porn_error_module(category_data, 0, err.request.url,
+                                                                   'Reached page 0 for object {obj}'
+                                                                   ''.format(obj=category_data.title))
                     raise PornFetchUrlError(err.request, error_module)
 
     def _get_available_pages_from_tree(self, tree):
@@ -1125,31 +1111,16 @@ class YouPorn(PornFetcher):
         porn_star_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
-
-        video_url = video_data.url
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                      'q=0.8,application/signed-exchange;v=b3*',
-            'Cache-Control': 'max-age=0',
-            # 'Host': self.host_name,
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': self.user_agent
-        }
-        tmp_request = self.session.get(video_url, headers=headers)
+         """
+        tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
         script = [x for x in tmp_tree.xpath('.//script/text()') if 'mediaDefinition' in x]
-        assert len(script) == 1
         raw_data = re.findall(r'(?:mediaDefinition = )(\[.*\])(?:;\n)', script[0])
-        assert len(raw_data) == 1
         raw_data = json.loads(raw_data[0])
 
         video_links = sorted((VideoSource(link=x['videoUrl'], quality=int(re.findall(r'\d+', x['quality'])[0]))
@@ -1583,29 +1554,15 @@ class TubeEight(PornFetcher):
         """
         return [int(x) for x in tree.xpath('.//ul[@id="pagination"]/li/strong//text()') if x.isdigit()]
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
-
-        video_url = video_data.url
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                      'q=0.8,application/signed-exchange;v=b3*',
-            'Cache-Control': 'max-age=0',
-            # 'Host': self.host_name,
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': self.user_agent
-        }
-        tmp_request = self.session.get(video_url, headers=headers)
+         """
+        tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
         script = [x for x in tmp_tree.xpath('.//script/text()') if 'var flashvars' in x]
-        assert len(script) == 1
         raw_data = re.findall(r'(?:var flashvars = )({.*})(?:;\n)', script[0])
         raw_data = json.loads(raw_data[0])
 
@@ -1623,16 +1580,14 @@ class TubeEight(PornFetcher):
         """
         page_request = self.get_object_request(page_data)
         tree = self.parser.parse(page_request.text)
-        videos = (tree.xpath('.//div[@id="category_video_list"]/div[@class="gridList"]/'
-                             'figure[@class="video_box"]') +
-                  tree.xpath('.//div[@id="search_results_page_wrapper"]/div[@class="gridList"]/'
-                             'figure[@class="video_box"]') +
+        videos = (tree.xpath('.//div[@id="category_video_list"]/div[@class="gridList"]/figure') +
+                  tree.xpath('.//div[@id="search_results_page_wrapper"]/div[@class="gridList"]/figure') +
                   tree.xpath('.//div[@class="pornstar-layout clearfix"]/div[@class="content"]/div[@class="gridList"]/'
-                             'figure[@class="video_box"]') +
+                             'figure') +
                   tree.xpath('.//div[@class="channel_content_wrapper"]//div[@class="gridList channel_video_list"]/'
-                             'figure[@class="video_box"]') +
-                  tree.xpath('.//div[@id="result_container_wrapper"]//div[@class="gridList"]/'
-                             'figure[@class="video_box"]'))
+                             'figure') +
+                  tree.xpath('.//div[@id="result_container_wrapper"]//div[@class="gridList"]/figure'))
+        videos = [x for x in videos if 'data-videoid' in x.attrib]
         res = []
         for video_tree_data in videos:
             # We skip vip title
@@ -1652,6 +1607,7 @@ class TubeEight(PornFetcher):
 
             is_hd = video_tree_data.xpath('./div[@class="thumb_box"]/span[@class="video-attributes-features"]/'
                                           'span[@class="hdIcon"]/text()')
+            is_hd = len(is_hd) > 0 and is_hd[0] == 'HD'
 
             video_length = video_tree_data.xpath('./div[@class="thumb_box"]/span[@class="video-attribute-duration"]/'
                                                  'span[@class="video-duration"]/text()')
@@ -1659,17 +1615,17 @@ class TubeEight(PornFetcher):
 
             title = video_tree_data.xpath('./figcaption/p[@class="video-title"]/a/text()')
             assert len(title) == 1
-            title = re.sub(r'^[ \r\n]*|[ \r\n]*$', '', title[0])
+            title = self._clear_text(title[0])
 
             number_of_viewers = video_tree_data.xpath('./figcaption/p[@class="video-attributes"]/'
                                                       'span[@class="video-views"]/span[2]/text()')
             assert len(number_of_viewers) == 1
-            number_of_viewers = re.sub(r'^[ \r\n]*|[ \r\n]*$', '', number_of_viewers[0])
+            number_of_viewers = self._clear_text(number_of_viewers[0])
 
             rating = video_tree_data.xpath('./figcaption/p[@class="video-attributes"]/'
                                            'span[@class="video-likes"]/span[@class="icon-video-likes"]')
             assert len(rating) == 1
-            rating = re.sub(r'^[ \r\n]*|[ \r\n]*$', '', rating[0].tail)
+            rating = self._clear_text(rating[0].tail)
 
             channel = video_tree_data.xpath('./figcaption/p[@class="video-attributes"]/'
                                             'span[@class="content-partner"]/a')
@@ -1682,7 +1638,7 @@ class TubeEight(PornFetcher):
                                                   title=title,
                                                   image_link=image,
                                                   flip_images_link=flip_image,
-                                                  is_hd=len(is_hd) > 0 and is_hd[0] == 'HD',
+                                                  is_hd=is_hd,
                                                   duration=self._format_duration(video_length)
                                                   if video_length is not None else None,
                                                   number_of_views=number_of_viewers,

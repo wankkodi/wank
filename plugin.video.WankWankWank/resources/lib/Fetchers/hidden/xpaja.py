@@ -107,16 +107,15 @@ class XPaja(PornFetcher):
         category_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
         videos = tmp_tree.xpath('.//video/source')
-        assert len(videos) > 0
         video_links = sorted((VideoSource(link=urljoin(self.base_url, x.attrib['src']),
                                           resolution=re.findall(r'\d+', x.attrib['label'])[0]) for x in videos),
                              key=lambda x: x.resolution, reverse=True)
@@ -223,9 +222,10 @@ class XPaja(PornFetcher):
         """
         return 4
 
-    def _check_is_available_page(self, page_request):
+    def _check_is_available_page(self, page_object, page_request=None):
         """
         In binary search performs test whether the current page is available.
+        :param page_object: Page object.
         :param page_request: Page request.
         :return:
         """
@@ -233,8 +233,7 @@ class XPaja(PornFetcher):
         current_page = page_request.url.split('/')
         current_page = int(current_page[-2]) if current_page[-2].isdigit() else None
         available_pages = self._get_available_pages_from_tree(tree)
-        if (len(available_pages) > 0 and current_page is not None and len(available_pages) > 0 and
-                max(available_pages) > current_page):
+        if len(available_pages) > 0 and current_page is not None and max(available_pages) >= current_page:
             return True
         elif current_page is None:
             return True
@@ -249,7 +248,9 @@ class XPaja(PornFetcher):
         """
         return [int(re.findall(r'(\d+)(?:/*$)', x.attrib['href'])[0])
                 for x in tree.xpath('.//ul[@class="pagination"]/li/a')
-                if 'href' in x.attrib and len(re.findall(r'(\d+)(?:/*$)', x.attrib['href'])) > 0]
+                if 'href' in x.attrib and len(re.findall(r'(\d+)(?:/*$)', x.attrib['href'])) > 0] + \
+               [int(x.text) for x in tree.xpath('.//ul[@class="pagination"]/li/a')
+                if x.text.isdigit()]
 
     def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url):
         """

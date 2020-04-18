@@ -180,30 +180,18 @@ class PornGo(PornFetcher):
                                                 if x.xpath('./span')[0].text])
         return links, titles, number_of_videos
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
-        video_url = video_data.url
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                      'q=0.8,application/signed-exchange;v=b3*',
-            'Cache-Control': 'max-age=0',
-            # 'Host': self.host_name,
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': self.user_agent
-        }
-        tmp_request = self.session.get(video_url, headers=headers)
+         """
+        tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
-
+        sources = tmp_tree.xpath('.//video/source')
         video_links = sorted((VideoSource(link=x.attrib['src'],
                                           resolution=re.findall(r'(\d+)(?:p)', x.attrib['label'])[0])
-                              for x in tmp_tree.xpath('.//video/source')),
+                              for x in sources),
                              key=lambda x: x.resolution, reverse=True)
         return VideoNode(video_sources=video_links)
 
@@ -215,7 +203,7 @@ class PornGo(PornFetcher):
         :return:
         """
         page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
-        if not self._check_is_available_page(page_request):
+        if not self._check_is_available_page(category_data, page_request):
             return 1
         tree = self.parser.parse(page_request.text)
         available_pages = self._get_available_pages_from_tree(tree)
@@ -318,6 +306,9 @@ class PornGo(PornFetcher):
             'Upgrade-Insecure-Requests': '1',
             'User-Agent': self.user_agent
         }
+        if true_object.object_type == PornCategories.VIDEO:
+            return self.session.get(fetch_base_url, headers=headers, params=params)
+
         if len(split_url[-1]) > 0:
             split_url.append('')
 

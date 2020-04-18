@@ -8,7 +8,7 @@ from .. import urljoin, urlparse, quote
 import re
 
 # JSON
-import json
+from ..tools.text_json_manioulations import prepare_json_from_not_formatted_text
 
 # Nodes
 from ..catalogs.porn_catalog import PornCatalogCategoryNode, PornCatalogVideoPageNode, VideoNode, VideoSource
@@ -227,20 +227,17 @@ class ClipHunter(PornFetcher):
         object_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         tmp_data = re.findall(r'(?:var gexoFiles *= *)({.*})(?:;)', tmp_request.text)
-        assert len(tmp_data) == 1
-        tmp_data = json.loads(tmp_data[0])
-        # new_video_data = json.loads([x for x in tmp_tree.xpath('.//script/text()') if 'gvideo' in x][0])
-        # video_suffix = video_suffix = urlparse(tmp_data['contentUrl']).path
+        tmp_data = prepare_json_from_not_formatted_text(tmp_data[0])
 
-        videos = sorted((VideoSource(link=x['url'], resolution=x['h']) for x in tmp_data.values()),
+        videos = sorted((VideoSource(link=x['url'].replace('\\/', '/'), resolution=x['h']) for x in tmp_data.values()),
                         key=lambda y: y.resolution, reverse=True)
         return VideoNode(video_sources=videos)
 

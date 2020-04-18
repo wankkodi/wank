@@ -374,20 +374,17 @@ class RedTube(PornFetcher):
         tag_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
         script = [x for x in tmp_tree.xpath('.//script/text()') if 'mediaDefinition' in x]
-        assert len(script) == 1
         raw_data = re.findall(r'(?:mediaDefinition: )(\[.*\])(?:,\n)', script[0])
-        assert len(raw_data) == 1
         raw_data = json.loads(raw_data[0])
-
         video_links = sorted((VideoSource(link=x['videoUrl'], quality=int(re.findall(r'\d+', x['quality'])[0]))
                               for x in raw_data),
                              key=lambda x: x.quality, reverse=True)
@@ -465,14 +462,14 @@ class RedTube(PornFetcher):
             duration_data = video_tree_data.xpath('./span[@class="video_thumb_wrap"]/a/span[@class="duration"]')
             assert len(duration_data) == 1
             if is_hd is True:
-                try_duration_data = duration_data[0].xpath('./span[@class="hd-video-text"]')
-                if len(try_duration_data) == 1:
-                    duration_data = try_duration_data
+                is_vr = duration_data[0].xpath('./span[@class="vr-video"]')
+                if len(is_vr) == 0:
                     is_vr = False
+                    video_length = self._clear_text(duration_data[0].text)
                 else:
-                    duration_data = duration_data[0].xpath('./span[@class="vr-video"]')
+                    duration_data = is_vr
                     is_vr = True
-                video_length = self._clear_text(duration_data[0].tail)
+                    video_length = self._clear_text(duration_data[0].tail)
             else:
                 video_length = self._clear_text(duration_data[0].text)
                 is_vr = False

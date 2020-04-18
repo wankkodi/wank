@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornNoVideoError, PornErrorModule
+from ..fetchers.porn_fetcher import PornFetcher
 
 # Internet tools
 from .. import urljoin, quote, quote_plus, unquote_plus, parse_qsl
@@ -29,7 +29,7 @@ class XHamster(PornFetcher):
     _default_single_page_sort_value = 'best'
     _default_video_page_sort_value = 'newest'
 
-    video_format_order = {'mp4': 2, 'h265': 1, 'vp9': 0}
+    video_format_order = {'mp4': 3, 'avc1.42e00a,mp4a.40.2': 2, 'h265': 1, 'vp9': 0}
     request_api = 'https://xhamster.com/x-api'
 
     @property
@@ -367,35 +367,32 @@ class XHamster(PornFetcher):
                                          ) for i, x in enumerate(tags[1:])]
         tag_data.add_sub_objects(new_pages)
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
-        # new_video_data = json.loads([x for x in tmp_tree.xpath('.//script/text()') if 'gvideo' in x][0])
-        # video_suffix = video_suffix = urlparse(tmp_data['contentUrl']).path
 
         request_data = re.findall(r'(?:window.initials = )({.*})(?:;)',
                                   [x for x in tmp_tree.xpath('.//script/text()') if 'window.initials' in x][0])
-        assert len(request_data) == 1
+        # MP4
         new_video_data = json.loads(request_data[0])
-        video_links = [VideoSource(link=x['url'], resolution=x['quality'][:-1], codec=k,
-                                   video_type=VideoTypes.VIDEO_REGULAR)
-                       for k, v in new_video_data['xplayerSettings']['sources']['standard'].items() for x in v]
-
-        segment_request = self.session.get(new_video_data['xplayerSettings']['hls']['url'])
-        if not self._check_is_available_page(segment_request):
-            server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
-                                          'Cannot fetch video links from the url {u}'.format(
-                                              u=segment_request.url),
-                                          None, None)
-            raise PornNoVideoError('No Video link for url {u}'.format(u=segment_request.url), server_data)
+        video_links = []
+        for k, v in new_video_data['xplayerSettings']['sources']['standard'].items():
+            for x in v:
+                url = urljoin(video_data.url, x['url'])
+                if re.findall(r'(?:\.)(\w+$)', url.split('?')[0])[0] == 'mp4':
+                    video_links.append(VideoSource(link=url, resolution=x['quality'][:-1], codec=k,
+                                                   video_type=VideoTypes.VIDEO_REGULAR))
+        # HLS
+        url = urljoin(video_data.url, new_video_data['xplayerSettings']['sources']['hls']['url'])
+        segment_request = self.session.get(url)
         video_m3u8 = m3u8.loads(segment_request.text)
         video_playlists = video_m3u8.playlists
-        video_links.extend([VideoSource(link=urljoin(new_video_data['xplayerSettings']['hls']['url'], x.uri),
+        video_links.extend([VideoSource(link=urljoin(url, x.uri),
                                         video_type=VideoTypes.VIDEO_SEGMENTS,
                                         quality=x.stream_info.bandwidth,
                                         resolution=x.stream_info.resolution[1],

@@ -147,27 +147,28 @@ class YesPornPlease(PornFetcher):
         channel_data.add_sub_objects(new_pages)
         return new_pages
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
         new_video_url = tmp_tree.xpath('.//iframe/@src')
-        assert len(new_video_url) == 1
         hostname = urlparse(new_video_url[0]).hostname
         if hostname == 'vshare.io':
             video_links = [VideoSource(link=x[0], resolution=x[1])
-                           for x in self.external_fetchers.get_video_link_from_vshare(urljoin(video_data.url,
-                                                                                              new_video_url[0]),
-                                                                                      video_data.url)]
+                           for x in self.external_fetchers.get_video_link_from_vshare(
+                    urljoin(video_data.url, new_video_url[0]), video_data.url)]
         elif hostname == 'fileone.tv':
             video_links = [VideoSource(link=x[0], resolution=x[1])
-                           for x in self.external_fetchers.get_video_link_from_fileone(urljoin(video_data.url,
-                                                                                               new_video_url[0]),
-                                                                                       video_data.url)]
+                           for x in self.external_fetchers.get_video_link_from_fileone(
+                    urljoin(video_data.url, new_video_url[0]), video_data.url)]
+        elif hostname == 'no-scam-hosting.com':
+            video_links = [VideoSource(link=x[0], resolution=x[1])
+                           for x in self.external_fetchers.get_video_link_from_no_scam_hosting(
+                    urljoin(video_data.url, new_video_url[0]), video_data.url)]
         else:
             warnings.warn('Unknown source {h}...'.format(h=hostname))
             video_links = []

@@ -235,25 +235,12 @@ class Beeg(PornFetcher):
 
         tag_data.add_sub_objects(new_pages)
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
-
-        video_url = video_data.url
-        headers = {
-            'Accept': '*/*',
-            'Cache-Control': 'max-age=0',
-            # 'Referer': self.category_url,
-            'Host': self.host_name,
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'same-origin',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': self.user_agent,
-            'X-Requested-With': 'XMLHttpRequest',
-        }
+         """
         params = {
             'v': 2,
         }
@@ -262,7 +249,7 @@ class Beeg(PornFetcher):
         if 'end' in video_data.raw_data['thumbs'][0]:
             params['e'] = video_data.raw_data['thumbs'][0]['end']
         # todo: add crop to the wanted length...
-        tmp_request = self.session.get(video_url, headers=headers, params=params)
+        tmp_request = self.get_object_request(video_data, override_params=params)
         new_video_data = tmp_request.json()
         video_links = sorted([VideoSource(link='https:' +
                                                v.format(DATA_MARKERS='data=pc_US__{b}_'.format(b=self.bundle)),

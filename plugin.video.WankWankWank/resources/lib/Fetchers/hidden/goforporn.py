@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornErrorModule, PornNoVideoError
+from ..fetchers.porn_fetcher import PornFetcher
 
 # Internet tools
 from .. import urljoin, quote_plus
@@ -164,20 +164,15 @@ class GoForPorn(PornFetcher):
                                                 for x in raw_data])
         return links, titles, number_of_videos
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
-        if not self._check_is_available_page(tmp_request):
-            server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
-                                          'Cannot fetch video links from the url {u}'.format(u=tmp_request.url),
-                                          None, None)
-            raise PornNoVideoError('No Video link for url {u}'.format(u=tmp_request.url), server_data)
-
-        new_url = urljoin(video_data.url, re.findall(r'(?:sourceUrl: \')(.*?)(?:\')', tmp_request.text)[0])
+        new_url_suffix = re.findall(r'(?:sourceUrl: \')(.*?)(?:\')', tmp_request.text)
+        new_url = urljoin(video_data.url, new_url_suffix[0])
         headers = {
             'Accept': '*/*',
             'Cache-Control': 'max-age=0',
@@ -189,18 +184,12 @@ class GoForPorn(PornFetcher):
         }
         tmp_request = self.session.get(new_url, headers=headers)
         raw_data = tmp_request.json()
-        try:
-            videos = sorted((VideoSource(link=x['url'],
-                                         resolution=int(re.findall(r'\d+', x['name'])[0])
-                                         if len(re.findall(r'\d+', x['name'])) > 0 else
-                                         (1 if len(re.findall(r'high', x['name'])) > 0 else 0))
-                             for x in raw_data['content']['urls']),
-                            key=lambda x: x.resolution, reverse=True)
-        except TypeError as err:
-            str_err = 'No Video link for url {u}, got error {e}'.format(u=tmp_request.url, e=err)
-            server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
-                                          str_err, None, None)
-            raise PornNoVideoError(str_err, server_data)
+        videos = sorted((VideoSource(link=x['url'],
+                                     resolution=int(re.findall(r'\d+', x['name'])[0])
+                                     if len(re.findall(r'\d+', x['name'])) > 0 else
+                                     (1 if len(re.findall(r'high', x['name'])) > 0 else 0))
+                         for x in raw_data['content']['urls']),
+                        key=lambda x: x.resolution, reverse=True)
         return VideoNode(video_sources=videos)
 
     def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):

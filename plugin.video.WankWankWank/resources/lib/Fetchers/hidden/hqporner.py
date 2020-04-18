@@ -2,13 +2,16 @@
 from ..fetchers.porn_fetcher import PornFetcher
 
 # Internet tools
-from .. import urljoin, quote_plus
+from .. import urljoin, quote_plus, urlparse
 
 # Regex
 import re
 
 # Math
 import math
+
+# JSON
+from ..tools.text_json_manioulations import prepare_json_from_not_formatted_text
 
 # Nodes
 from ..catalogs.porn_catalog import PornCatalogCategoryNode, PornCatalogVideoPageNode, VideoNode, VideoSource
@@ -19,7 +22,9 @@ from ..id_generator import IdGenerator
 
 
 class HQPorner(PornFetcher):
-    video_request_base_url = 'https://mydaddy.cc/'
+    video_request_base_url = {"mydaddy.cc": 'https://mydaddy.cc/',
+                              "www.flyflv.com": 'https://www.flyflv.com/',
+                              }
 
     @property
     def max_pages(self):
@@ -124,52 +129,76 @@ class HQPorner(PornFetcher):
         object_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
-
-        video_url = video_data.url
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                      'q=0.8,application/signed-exchange;v=b3*',
-            'Cache-Control': 'max-age=0',
-            # 'Host': self.host_name,
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': self.user_agent
-        }
-        tmp_request = self.session.get(video_url, headers=headers)
+         """
+        tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
-        new_video_url = tmp_tree.xpath('.//div[@class="videoWrapper"]/iframe/@src')
-        assert len(new_video_url) == 1
+        new_video_url = tmp_tree.xpath('.//div[@class="videoWrapper"]/iframe')
+        new_video_url = urljoin(self.base_url, new_video_url[0].attrib['src'])
         headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
                       'q=0.8,application/signed-exchange;v=b3*',
             'Cache-Control': 'max-age=0',
-            'Referer': video_url,
+            'Referer': video_data.url,
             'Sec-Fetch-Mode': 'navigate',
             'Sec-Fetch-Site': 'same-origin',
             'Sec-Fetch-User': '?1',
             'Upgrade-Insecure-Requests': '1',
             'User-Agent': self.user_agent
         }
-        tmp_request = self.session.get(urljoin(self.video_request_base_url, new_video_url[0]), headers=headers)
-        video_data = re.findall(r'(?:srca = )(\[.*\])(?:;if)', tmp_request.text)
-        assert len(video_data) >= 1
-        found_video_links = re.findall(r'(?:file: *")(.*?)(?:")', video_data[0])
-        found_video_resolution = re.findall(r'(?:label: *")(.*?)(?:")', video_data[0])
-        assert len(found_video_links) == len(found_video_resolution)
+        tmp_request = self.session.get(new_video_url, headers=headers)
+        if urlparse(new_video_url).hostname == 'hqwo.cc':
+            tree = self.parser.parse(tmp_request.text)
+            new_video_url = [x.attrib['src'] for x in tree.xpath('.//body/script/[@src]')]
+            tmp_request = self.session.get(new_video_url[0], headers=headers)
+            raw_data = prepare_json_from_not_formatted_text(re.findall(r'(?:play\()(\[.*\])(?:[,)])',
+                                                                       tmp_request.text, re.DOTALL)[0])
+            video_links = sorted((VideoSource(link=x['file'],
+                                              resolution=int(x['q'] if 'q' in x
+                                                             else re.findall(r'(\d+)(?:p)', x['label'])[0]),
+                                              )
+                                  for x in raw_data),
+                                 key=lambda x: x.resolution, reverse=True)
 
-        video_links = sorted((VideoSource(link=urljoin(self.video_request_base_url, x),
-                                          resolution=int(re.findall(r'\d+', v)[0]))
-                              for x, v in zip(found_video_links, found_video_resolution)
-                              if len(re.findall(r'\d+', v)) > 0),
-                             key=lambda x: x.resolution, reverse=True)
+        # elif urlparse(new_video_url).hostname == 'mydaddy.cc':
+        #     new_video_data = re.findall(r'(?:srca = )(\[.*\])(?:;if)', tmp_request.text)
+        #     found_video_links = re.findall(r'(?:file: *")(.*?)(?:")', new_video_data[0])
+        #     found_video_resolution = re.findall(r'(?:label: *")(.*?)(?:")', new_video_data[0])
+        #     assert len(found_video_links) == len(found_video_resolution)
+        #
+        #     video_links = sorted(
+        #         (VideoSource(link=urljoin(self.video_request_base_url[urlparse(new_video_url).hostname], x),
+        #                      resolution=int(re.findall(r'\d+', v)[0])
+        #                      )
+        #          for x, v in zip(found_video_links, found_video_resolution)
+        #          if len(re.findall(r'\d+', v)) > 0),
+        #         key=lambda x: x.resolution, reverse=True)
+        elif urlparse(new_video_url).hostname == 'www.flyflv.com':
+            tree = self.parser.parse(tmp_request.text)
+            videos = tree.xpath('.//video/source')
+            video_links = sorted(
+                (VideoSource(link=urljoin(self.video_request_base_url[urlparse(new_video_url).hostname],
+                                          x.attrib['src']),
+                             resolution=int(re.findall(r'\d+', x.attrib['label'])[0]))
+                 for x in videos),
+                key=lambda x: x.resolution, reverse=True)
+        else:
+            possible_sections = [x for x in re.findall(r'(?:\.html\(")(.*?)(?:"\);)', tmp_request.text, re.DOTALL)
+                                 if 'video' in x]
+            tree = self.parser.parse(possible_sections[-1])
+            videos = tree.xpath('.//video/source')
+
+            video_links = sorted((VideoSource(link=urljoin(self.base_url,
+                                                           re.findall(r'(?:\\")(.*?)(?:\\")', x.attrib['src'])[0]),
+                                              resolution=int(re.findall(r'\d+', x.attrib['title'])[0]),
+                                              fps=int(re.findall(r'(?:p)(\d+)', x.attrib['title'])[0])
+                                              if len(re.findall(r'(?:p)(\d+)', x.attrib['title'])) > 0 else None)
+                                  for x in videos),
+                                 key=lambda x: (x.resolution, x.fps), reverse=True)
         return VideoNode(video_sources=video_links)
 
     def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
@@ -267,7 +296,7 @@ class HQPorner(PornFetcher):
 
     def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url):
         split_url = fetch_base_url.split('/')
-        if true_object.object_type == PornCategories.TOP_RATED_VIDEO:
+        if true_object.object_type in self._default_sort_by:
             if page_filter.period.value is not None:
                 split_url.append(page_filter.period.value)
 

@@ -152,39 +152,24 @@ class CumLouder(PornFetcher):
         object_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
-
-        video_url = video_data.url
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                      'q=0.8,application/signed-exchange;v=b3*',
-            'Cache-Control': 'max-age=0',
-            # 'Host': self.host_name,
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': self.user_agent
-        }
-        tmp_request = self.session.get(video_url, headers=headers)
-
+         """
+        tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
         raw_links = [x for x in tmp_tree.xpath('.//script/text()') if 'flashPlayerEvents' in x]
-        video_links = [VideoSource(link=urljoin(video_url, re.sub(r'&amp;', '&', x)))
+        video_links = [VideoSource(link=urljoin(video_data.url, re.sub(r'&amp;', '&', x)))
                        for x in re.findall(r'(?:var urlVideo = \')(.*)(?:\';)', raw_links[0])]
         request_headers = {
             'Accept-Encoding': 'identity;q=1, *;q=0',
             'Range': 'bytes=0-',
-            'Referer': video_url,
+            'Referer': video_data.url,
             'Sec-Fetch-Mode': 'no-cors',
             'User-Agent': self.user_agent
         }
-
         return VideoNode(video_sources=video_links, headers=request_headers)
 
     def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
@@ -232,7 +217,7 @@ class CumLouder(PornFetcher):
         page_request = self.get_object_request(page_data)
 
         tree = self.parser.parse(page_request.text)
-        videos = tree.xpath('.//div[@class="medida"]/a[@class="muestra-escena"]')
+        videos = tree.xpath('.//body/div[@class="listado-escenas"]/div[@class="medida"]/a[@class="muestra-escena"]')
         res = []
         for video_tree_data in videos:
 
@@ -241,14 +226,14 @@ class CumLouder(PornFetcher):
 
             number_of_views = video_tree_data.xpath('./span[@class="box-fecha-mins"]/span[@class="vistas"]/'
                                                     'span[@class="ico-vistas sprite"]')
-            assert len(number_of_views) == 1
+            number_of_views = self._clear_text(number_of_views[0].tail) if len(number_of_views) == 1 else None
 
             added_before = video_tree_data.xpath('./span[@class="box-fecha-mins"]/span[@class="fecha"]/'
                                                  'span[@class="ico-fecha sprite"]')
-            assert len(added_before) == 1
+            added_before = self._clear_text(added_before[0].tail) if len(added_before) == 1 else None
 
             video_length = video_tree_data.xpath('./span[@class="minutos"]/span[@class="ico-minutos sprite"]')
-            assert len(video_length) == 1
+            video_length = self._clear_text(video_length[0].tail) if len(video_length) == 1 else None
 
             is_hd = video_tree_data.xpath('./span[@class="hd sprite"]')
 
@@ -257,9 +242,9 @@ class CumLouder(PornFetcher):
                                                   url=urljoin(self.base_url, video_tree_data.attrib['href']),
                                                   title=img[0].attrib['alt'],
                                                   image_link=img[0].attrib['src'],
-                                                  number_of_views=self._clear_text(number_of_views[0].tail),
-                                                  added_before=self._clear_text(added_before[0].tail),
-                                                  duration=self._clear_text(video_length[0].tail),
+                                                  number_of_views=number_of_views,
+                                                  added_before=added_before,
+                                                  duration=video_length,
                                                   is_hd=len(is_hd) > 0,
                                                   object_type=PornCategories.VIDEO,
                                                   super_object=page_data,

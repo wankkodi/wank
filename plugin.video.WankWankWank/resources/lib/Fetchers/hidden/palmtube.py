@@ -130,17 +130,15 @@ class PalmTube(PornFetcher):
         object_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
-
         videos = tmp_tree.xpath('.//video/source')
-        assert len(videos) > 0
         videos = [VideoSource(link=x.attrib['src']) for x in videos]
         return VideoNode(video_sources=videos)
 
@@ -183,12 +181,15 @@ class PalmTube(PornFetcher):
         """
         return [int(x.text) for x in tree.xpath('.//div[@class="Pagination"]/*') if x.text.isdigit()]
 
-    def _check_is_available_page(self, page_request):
+    def _check_is_available_page(self, page_object, page_request=None):
         """
         In binary search performs test whether the current page is available.
+        :param page_object: Page object.
         :param page_request: Page request.
         :return:
         """
+        if page_request is None:
+            page_request = self.get_object_request(page_object)
         if not page_request.ok:
             return False
         if len(page_request.history) > 0:

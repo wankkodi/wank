@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornErrorModule, PornNoVideoError
+from ..fetchers.porn_fetcher import PornFetcher
 
 # Internet tools
 from .. import urljoin, quote_plus
@@ -211,12 +211,12 @@ class FreeOnes(PornFetcher):
         """
         return False
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
                       'q=0.8,application/signed-exchange;v=b3*',
@@ -231,12 +231,6 @@ class FreeOnes(PornFetcher):
         tmp_request = self.session.get(video_data.url, headers=headers)
         request_data = re.findall(r'(?:loadFOPlayer\(\'foplayer\', )({.*?})(?:\);)', tmp_request.text, re.DOTALL)
         assert len(request_data) == 1
-        # request_data = re.sub(r'\'', '"', request_data[0])
-        # request_data = re.sub(r'\\/', '/', request_data)
-        # request_data = re.sub(r'\w+(?=:[ {\[])(?!:/)', lambda x: '"' + x.group(0) + '"', request_data)
-        # request_data = re.sub(r': \w+.*?,', ': "",', request_data)
-        # request_data = re.sub(r',[ \n\t\r]*[[}]', lambda x: x.group(0)[1:], request_data)
-        # request_data = json.loads(request_data)
         request_data = prepare_json_from_not_formatted_text(request_data[0])
         videos = []
         qualities = request_data['qualitySelector']['qualities'].split(',')
@@ -246,12 +240,6 @@ class FreeOnes(PornFetcher):
             if src['type'] == 'application/x-mpegURL':
                 # We have segments
                 segment_request = self.session.get(src['src'], headers=headers)
-                if not self._check_is_available_page(segment_request):
-                    server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
-                                                  'Cannot fetch video links from the url {u}'.format(
-                                                      u=segment_request.url),
-                                                  None, None)
-                    raise PornNoVideoError('No Video link for url {u}'.format(u=segment_request.url), server_data)
                 video_m3u8 = m3u8.loads(segment_request.text)
                 video_playlists = video_m3u8.playlists
                 videos.extend([VideoSource(link=urljoin(src['src'], x.uri),

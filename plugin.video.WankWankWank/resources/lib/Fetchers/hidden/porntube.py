@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher
+from ..fetchers.porn_fetcher import PornFetcher, PornNoVideoError
 
 # Internet tools
 from .. import urljoin, quote, quote_plus
@@ -326,13 +326,12 @@ class PornTube(PornFetcher):
         channel_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
-
+         """
         headers = {
             'Accept': 'application/json, text/plain, */*',
             'Cache-Control': 'max-age=0',
@@ -504,7 +503,7 @@ class PornTube(PornFetcher):
 
 
 class FourTube(PornTube):
-    video_request_format = 'https://token.4tube.com/{id}/desktop/1080+720+480+360+240'
+    video_request_format = 'https://token.4tube.com/{id}/desktop/{formats}'
 
     @property
     def max_pages(self):
@@ -674,21 +673,23 @@ class FourTube(PornTube):
         object_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
-        # new_video_data = json.loads([x for x in tmp_tree.xpath('.//script/text()') if 'gvideo' in x][0])
-        # video_suffix = video_suffix = urlparse(tmp_data['contentUrl']).path
-
         page_id = tmp_tree.xpath('.//div[@class="links-list inline text-center"]//button/@data-id')
-        assert all(x == page_id[0] for x in page_id)
+        if any(x != page_id[0] for x in page_id):
+            error_module = self._prepare_porn_error_module_for_video_page(
+                video_data, tmp_request.url, 'Inconsistent page id in url {u}'.format(u=tmp_request.url))
+            raise PornNoVideoError(error_module.message, error_module)
         page_id = page_id[0].zfill(16)
-        video_request_page = self.video_request_format.format(id=page_id)
+        formats = sorted((int(x.attrib['data-quality']) for x in tmp_tree.xpath('.//button')
+                          if 'data-quality' in x.attrib), reverse=True)
+        video_request_page = self.video_request_format.format(id=page_id, formats='+'.join(str(x) for x in formats))
         headers = {
             'Accept': 'application/json, text/javascript, */*; q=0.01',
             'Cache-Control': 'max-age=0',
@@ -719,12 +720,14 @@ class FourTube(PornTube):
         else:
             return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
 
-    def _binary_search_check_is_available_page(self, page_request):
+    def _check_is_available_page(self, page_object, page_request=None):
         """
         In binary search performs test whether the current page is available.
         :param page_request: Page request.
         :return:
         """
+        if page_request is None:
+            page_request = self.get_object_request(page_object)
         tree = self.parser.parse(page_request.text)
         error_message = tree.xpath('.//div[@class="col-xs-12 text-center"]/h1/strong')
         return not (len(error_message) == 1 and error_message[0].text == 'Oops!' and
@@ -827,6 +830,8 @@ class FourTube(PornTube):
             params['duration'] = page_filter.length.value
         if page_filter.added_before.value is not None:
             params['time'] = page_filter.added_before.value
+        if page_number is not None and page_number > 1:
+            params['p'] = page_number
         params.update(original_params)
         fetch_base_url = '/'.join(split_url)
         page_request = self.session.get(fetch_base_url, headers=headers, params=params)

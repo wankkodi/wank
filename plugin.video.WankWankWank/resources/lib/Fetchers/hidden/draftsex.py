@@ -8,7 +8,7 @@ from .. import urljoin, quote
 import re
 
 # JSON
-import json
+from ..tools.text_json_manioulations import prepare_json_from_not_formatted_text
 
 import base64
 
@@ -189,14 +189,13 @@ class DraftSex(PornFetcher):
         tag_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         video_url = re.findall(r'(?:\')(https://.*)(?:\')', video_data.raw_data)
-        assert len(video_url) == 1
         headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
                       'q=0.8,application/signed-exchange;v=b3*',
@@ -210,16 +209,8 @@ class DraftSex(PornFetcher):
         tmp_request = self.session.get(video_url[0], headers=headers)
         tmp_tree = self.parser.parse(tmp_request.text)
         script = [x for x in tmp_tree.xpath('.//script/text()') if 'window.globParams' in x]
-        script = re.sub(r'[ \r\n]*', '', script[0])
-        script = re.findall(r'(?:window.globParams=)({.*})', script)
-        assert len(script) == 1
-        script = re.sub(r'\'', '"', script[0])
-        script = re.sub(r'\w+(?=:)(?!:\\/)', lambda x: '"' + x[0] + '"', script)
-        script = json.loads(script)
-
-        # Implementation from site JS:
-        #     function getServer() {
-        #         return base64_decode(strrev(bc.globParams.server))
+        script = re.findall(r'(?:window.globParams *= *)({.*})', script[0], re.DOTALL)
+        script = prepare_json_from_not_formatted_text(script[0])
 
         url_prefix = 'https://{s}/videos/{i1}/{i2}/'.format(s=base64.b64decode(script['server'][::-1]).decode(),
                                                             i1=script['video']['id'].split('_')[0],
@@ -269,15 +260,21 @@ class DraftSex(PornFetcher):
                 right_page = page - 1
             page = int(math.ceil((right_page + left_page) / 2))
 
-    def _check_is_available_page(self, page_request):
+    def _check_is_available_page(self, page_object, page_request=None):
         """
         In binary search performs test whether the current page is available.
+        :param page_object: Page object.
         :param page_request: Page request.
         :return:
         """
-        tree = self.parser.parse(page_request.text)
-        is_show_more = tree.xpath('.//div[@class="more"]')
-        videos = tree.xpath('.//div[@class="video-item"]')
+        if page_request is None:
+            page_request = self.get_object_request(page_object)
+        if page_object.object_type == PornCategories.VIDEO:
+            return page_request.ok
+        else:
+            tree = self.parser.parse(page_request.text)
+            is_show_more = tree.xpath('.//div[@class="more"]')
+            videos = tree.xpath('.//div[@class="video-item"]')
         return len(is_show_more) > 0 or len(videos) > 0
 
     @property

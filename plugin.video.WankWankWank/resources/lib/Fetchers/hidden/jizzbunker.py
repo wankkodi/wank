@@ -126,15 +126,14 @@ class JizzBunker(PornFetcher):
         category_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         video_data = re.findall(r'(?:sources.push\()({.*})(?:\);)', tmp_request.text)
-        assert len(video_data) >= 1
         video_links = re.findall(r'(?:src: *\')(.*?)(?:\')', video_data[0])
         video_links = [VideoSource(link=x, resolution=re.findall(r'(\d+$)', x)[0]) for x in video_links]
         video_links.sort(key=lambda x: x.resolution)
@@ -279,15 +278,14 @@ class XXXDan(JizzBunker):
         super(JizzBunker, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
                                          session_id)
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         video_data = re.findall(r'(?:sources.push\()({.*})(?:\);)', tmp_request.text)
-        assert len(video_data) >= 1
         video_links = re.findall(r'(?:src: *\')(.*?)(?:\')', video_data[0])
         video_links = [VideoSource(link=x) for x in video_links]
         return VideoNode(video_sources=video_links)

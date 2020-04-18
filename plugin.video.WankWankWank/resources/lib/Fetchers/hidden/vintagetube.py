@@ -10,6 +10,12 @@ import re
 # Math
 import math
 
+# Warnings
+import warnings
+
+# External fetchers
+from ..tools.external_fetchers import ExternalFetcher
+
 # Nodes
 from ..catalogs.porn_catalog import PornCatalogCategoryNode, PornCatalogVideoPageNode, \
     VideoSource, VideoNode
@@ -111,6 +117,8 @@ class VintageTube(PornFetcher):
         """
         super(VintageTube, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
                                           session_id)
+        self.external_fetchers = ExternalFetcher(session=self.session, user_agent=self.user_agent,
+                                                 parser=self.parser)
         self.host_name = urlparse(self.porn_stars_api_url).hostname
 
     def _update_available_categories(self, category_data):
@@ -155,16 +163,29 @@ class VintageTube(PornFetcher):
         porn_star_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         page_request = self.get_object_request(video_data)
         raw_data = page_request.json()
-        videos = sorted((VideoSource(link=x['link'], resolution=x['w']) for x in raw_data['files'].values()),
-                        key=lambda x: x.resolution, reverse=True)
+        videos = []
+        if 'files' in raw_data:
+            videos.extend((VideoSource(link=x['link'], resolution=x['w']) for x in raw_data['files'].values()))
+        if 'embed' in raw_data:
+            tree = self.parser.parse(raw_data['embed'])
+            sources = [x.attrib['src'] for x in tree.xpath('.//script') if 'src' in x.attrib]
+            for source in sources:
+                if urlparse(source).hostname == 'pt.protoawe.com':
+                    res = self.external_fetchers.get_video_link_from_protoawe(source)
+                    videos.append(VideoSource(link=res[0][0], resolution=res[0][1]))
+                else:
+                    warnings.warn('Unknown source {s}'.format(s=urlparse(source).hostname))
+
+        videos.sort(key=lambda x: x.resolution, reverse=True)
+
         return VideoNode(video_sources=videos)
 
     def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):

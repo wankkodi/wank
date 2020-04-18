@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError
+from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError, PornNoVideoError
 
 # Internet tools
 from .. import urljoin, quote_plus, parse_qsl
@@ -19,7 +19,7 @@ from ..catalogs.porn_catalog import PornCategories, PornFilterTypes, PornFilter
 import math
 
 # External Fetchers
-from ..tools.external_fetchers import KTMoviesFetcher
+from ..tools.external_fetchers import KTMoviesFetcher, NoVideosException
 
 # ID generator
 from ..id_generator import IdGenerator
@@ -202,10 +202,10 @@ class AnyPorn(PornFetcher):
                                                 for x in raw_data])
         return links, titles, number_of_videos
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
         """
         return self._get_video_links_from_video_data1(video_data)
@@ -222,8 +222,10 @@ class AnyPorn(PornFetcher):
         # video_suffix = video_suffix = urlparse(tmp_data['contentUrl']).path
 
         videos = tmp_tree.xpath('.//video/source')
-        assert len(videos) > 0
-        if len(videos) > 1:
+        if len(videos) == 0:
+            error_module = self._prepare_porn_error_module_for_video_page(video_data, tmp_request.url)
+            raise PornNoVideoError(error_module.message, error_module)
+        elif len(videos) > 1:
             videos = sorted((VideoSource(link=x.attrib['src'], resolution=self.video_quality_index[x.attrib['title']])
                              for x in videos),
                             key=lambda x: x.resolution, reverse=True)
@@ -238,7 +240,13 @@ class AnyPorn(PornFetcher):
         :param video_data: Video data.
         :return:
         """
-        videos, resolutions = self.kt_fetcher.get_video_link(video_data.url)
+        try:
+            videos, resolutions = self.kt_fetcher.get_video_link(video_data.url)
+        except NoVideosException as err:
+            error_module = self._prepare_porn_error_module_for_video_page(video_data, err.error_module.url,
+                                                                          err.error_module.message)
+            raise PornNoVideoError(error_module.message, error_module)
+
         video_sources = [VideoSource(link=x, resolution=res) for x, res in zip(videos, resolutions)]
         if not all(x is None for x in resolutions):
             video_sources.sort(key=lambda x: x.resolution, reverse=True)
@@ -256,8 +264,10 @@ class AnyPorn(PornFetcher):
         # video_suffix = video_suffix = urlparse(tmp_data['contentUrl']).path
 
         videos = tmp_tree.xpath('.//video/source')
-        assert len(videos) > 0
-        if len(videos) > 1:
+        if len(videos) == 0:
+            error_module = self._prepare_porn_error_module_for_video_page(video_data, tmp_request.url)
+            raise PornNoVideoError(error_module.message, error_module)
+        elif len(videos) > 1:
             videos = VideoNode(video_sources=sorted(((VideoSource(link=x.attrib['src'],
                                                                   resolution=re.findall(r'\d+', x.attrib['title'])[0],
                                                                   video_type=VideoTypes.VIDEO_REGULAR)
@@ -277,7 +287,6 @@ class AnyPorn(PornFetcher):
         """
         tmp_request = self.get_object_request(video_data)
         request_data = re.findall(r'(?:var flashvars = )({.*?})(?:;)', tmp_request.text, re.DOTALL)
-        assert len(request_data) == 1
         raw_data = prepare_json_from_not_formatted_text(request_data[0])
 
         videos = [VideoSource(link=raw_data['video_url'])]
@@ -624,10 +633,10 @@ class PervertSluts(AnyPorn):
         tag_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
         """
         return self._get_video_links_from_video_data2(video_data)
@@ -1242,10 +1251,10 @@ class PornRewind(PervertSluts):
 
         return links, titles, number_of_videos
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
         """
         return self._get_video_links_from_video_data4(video_data)
@@ -1541,12 +1550,12 @@ class HellPorno(AnyPorn):
         """
         return [int(x) for x in tree.xpath('.//div[@class="pagination"]/*/text()') if x.isdigit()]
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         return self._get_video_links_from_video_data3(video_data)
 
     def get_videos_data(self, page_data):
@@ -2144,12 +2153,12 @@ class MegaTubeXXX(PervertSluts):
         super(MegaTubeXXX, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
                                           session_id)
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         return self._get_video_links_from_video_data4(video_data)
 
     def get_videos_data(self, page_data):
@@ -2499,12 +2508,12 @@ class XBabe(AnyPorn):
         porn_star_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         return self._get_video_links_from_video_data3(video_data)
 
     def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
@@ -3879,12 +3888,12 @@ class TropicTube(PervertSluts):
         object_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         return self._get_video_links_from_video_data2(video_data)
 
     def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
@@ -4138,12 +4147,12 @@ class ZedPorn(AnyPorn):
         category_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         return self._get_video_links_from_video_data3(video_data)
 
     def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
@@ -4479,12 +4488,12 @@ class PornFd(PervertSluts):
         """
         return True
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         return self._get_video_links_from_video_data2(video_data)
 
     def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
@@ -6322,12 +6331,12 @@ class PunishBang(PervertSluts):
         """
         return True
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         return self._get_video_links_from_video_data2(video_data)
 
     def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
@@ -7491,12 +7500,12 @@ class AnySex(Sex3):
         category_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         return self._get_video_links_from_video_data3(video_data)
 
     def _get_available_pages_from_tree(self, tree):
@@ -7911,12 +7920,12 @@ class WatchMyGfTv(AnyPorn):
         category_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         return self._get_video_links_from_video_data3(video_data)
 
     def _get_available_pages_from_tree(self, tree):
@@ -8253,12 +8262,12 @@ class WatchMyExGf(PervertSluts):
                                                 for x in raw_data])
         return links, titles, number_of_videos
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         return self._get_video_links_from_video_data3(video_data)
 
     def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
@@ -8625,12 +8634,12 @@ class PornoDep(AnyPorn):
             return super(PornoDep, self)._add_category_sub_pages(category_data, sub_object_type, page_request,
                                                                  clear_sub_elements)
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         return self._get_video_links_from_video_data2(video_data)
 
     def _get_available_pages_from_tree(self, tree):
@@ -9040,12 +9049,12 @@ class WatchMyGfMe(AnyPorn):
                      for x in (ord('#'),) + tuple(range(ord('A'), ord('Z')+1))]
         tag_data.add_sub_objects(new_pages)
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         return self._get_video_links_from_video_data2(video_data)
 
     def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):

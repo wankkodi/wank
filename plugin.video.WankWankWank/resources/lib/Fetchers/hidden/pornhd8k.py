@@ -1,8 +1,8 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornNoVideoError, PornErrorModule
+from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError, PornNoVideoError
 
 # Internet tools
-from .. import urljoin, quote
+from .. import urljoin, quote, urlparse
 
 # Playlist tools
 import m3u8
@@ -16,6 +16,13 @@ import ctypes
 
 # md5
 from hashlib import md5
+
+# JSON
+# import json
+try:
+    from json import JSONDecodeError
+except ImportError:
+    JSONDecodeError = ValueError
 
 # requests
 # from requests import cookies
@@ -35,9 +42,10 @@ def base_n(num, b, numerals="0123456789abcdefghijklmnopqrstuvwxyz"):
 
 
 class PornHDEightK(PornFetcher):
-    video_link_request_page_template = 'http://www2.pornhd8k.net/ajax/v2_get_episodes/{v}'
-    video_link_request_page2_template = 'http://www2.pornhd8k.net/ajax/get_sources/{v}/{c}?count=1&mobile=false'
+    video_link_request_page_template = 'http://www{sn}.pornhd8k.net/ajax/v2_get_episodes/{v}'
+    video_link_request_page2_template = 'http://www{sn}.pornhd8k.net/ajax/get_sources/{v}/{c}?count=1&mobile=false'
     video_host_base_url = 'https://btc.embeddrive.net/hls/'
+    _base_url_template = 'http://www{sn}.pornhd8k.net/'
     max_pages = 100
 
     @property
@@ -59,7 +67,39 @@ class PornHDEightK(PornFetcher):
         Base site url.
         :return:
         """
-        return 'http://www4.pornhd8k.net/'
+        if len(self.server_number) == 0:
+            # We update the server number
+            referer = None
+            headers = {
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
+                          'q=0.8,application/signed-exchange;v=b3;q=0.9',
+                'Accept-Encoding': 'gzip, deflate',
+                'Cache-Control': 'max-age=0',
+                'Connection': 'keep-alive',
+                'Pragma': 'no-cache',
+                'Upgrade-Insecure-Requests': '1',
+                'User-Agent': self.user_agent
+            }
+            while 1:
+                headers['Host'] = urlparse(self._base_url_template.format(sn=self.server_number)).hostname
+                if referer is not None:
+                    headers['Referer'] = referer
+                page_request = self.session.head(self._base_url_template.format(sn=self.server_number),
+                                                 headers=headers)
+                if page_request.status_code == 200:
+                    break
+                else:
+                    new_server = re.findall(r'(?:www)(\d+)', page_request.headers['location'])
+                    if new_server[0] != self.server_number:
+                        referer = (urlparse(self._base_url_template.format(sn=self.server_number)).scheme + '://' +
+                                   urlparse(self._base_url_template.format(sn=self.server_number)).hostname)
+                        self.server_number = new_server[0]
+                    else:
+                        raise PornFetchUrlError(page_request)
+            self.server_number = re.findall(r'(?:www)(\d+)', page_request.url)
+            self.server_number = self.server_number[0] if len(self.server_number) > 0 else ''
+
+        return self._base_url_template.format(sn=self.server_number)
 
     def __init__(self, source_name='PornHD8K', source_id=0, store_dir='.', data_dir='../Data',
                  source_type='Porn', use_web_server=True, session_id=None):
@@ -67,6 +107,7 @@ class PornHDEightK(PornFetcher):
         C'tor
         :param source_name: save directory
         """
+        self.server_number = ''
         super(PornHDEightK, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
                                            session_id)
 
@@ -118,29 +159,15 @@ class PornHDEightK(PornFetcher):
         object_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
-
-        video_url = video_data.url
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                      'q=0.8,application/signed-exchange;v=b3*',
-            'Cache-Control': 'max-age=0',
-            'Host': self.host_name,
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': self.user_agent,
-        }
-        tmp_request = self.session.get(video_url, headers=headers)
+         """
+        tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
         request_data = tmp_tree.xpath('.//input[@type="hidden"]')
-        assert len(request_data)
         headers = {
             'Accept': '*/*',
             'Cache-Control': 'max-age=0',
@@ -149,15 +176,14 @@ class PornHDEightK(PornFetcher):
             'User-Agent': self.user_agent,
             'X-Requested-With': 'XMLHttpRequest',
         }
-        ajax_request_page = self.video_link_request_page_template.format(v=request_data[0].attrib['value'])
+        ajax_request_page = self.video_link_request_page_template.format(sn=self.server_number,
+                                                                         v=request_data[0].attrib['value'])
         tmp_request = self.session.get(ajax_request_page, headers=headers)
         if tmp_request.text != 'ok':
             err_str = 'Cannot fetch video links from the url {u}, got status {s}'.format(u=tmp_request.url,
                                                                                          s=tmp_request.text)
-            server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
-                                          err_str,
-                                          None, None)
-            raise PornNoVideoError(err_str, server_data)
+            error_module = self._prepare_porn_error_module_for_video_page(video_data, tmp_request.url, err_str)
+            raise PornNoVideoError(error_module.message, error_module)
         headers = {
             'Accept': 'application/json, text/javascript, */*; q=0.01',
             'Cache-Control': 'max-age=0',
@@ -171,29 +197,30 @@ class PornHDEightK(PornFetcher):
         #     cookies.create_cookie(domain=self.host_name, name=new_cookie_name, value=cookie_value))
         self.session.cookies.set(domain=self.host_name, name=new_cookie_name, value=cookie_value)
         ajax_request_page = \
-            self.video_link_request_page2_template.format(v=request_data[0].attrib['value'], c=new_class)
+            self.video_link_request_page2_template.format(sn=self.server_number,
+                                                          v=request_data[0].attrib['value'], c=new_class)
         tmp_request = self.session.get(ajax_request_page, headers=headers)
         raw_data = tmp_request.json()
 
-        video_links = sorted(((x['file'], x['label']) for x in raw_data['playlist'][0]['sources']),
-                             key=lambda y: int(re.findall(r'\d+', y[1])[0]), reverse=True)
-        video_links = [x[0] for x in video_links]
-
-        for video_link in video_links:
-            req = self.session.get(video_link)
-            if not self._check_is_available_page(req):
-                server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
-                                              'Cannot fetch video links from the url {u}'.format(u=req.url),
-                                              None, None)
-                raise PornNoVideoError('No Video link for url {u}'.format(u=req.url), server_data)
-
-            video_m3u8 = m3u8.loads(req.text)
-            video_links = sorted((VideoSource(link=urljoin(self.video_host_base_url, x.uri),
-                                              video_type=VideoTypes.VIDEO_SEGMENTS,
-                                              quality=x.stream_info.bandwidth,
-                                              codec=x.stream_info.codecs)
-                                  for x in video_m3u8.playlists),
-                                 key=lambda x: x.quality, reverse=True)
+        # video_links = sorted(((x['file'], x['label']) for x in raw_data['playlist'][0]['sources']),
+        #                      key=lambda y: int(re.findall(r'\d+', y[1])[0]), reverse=True)
+        # video_links = [x[0] for x in video_links]
+        video_links = []
+        for video_datum in raw_data['playlist'][0]['sources']:
+            if video_datum['type'] == 'video/mp4':
+                video_links.append(VideoSource(link=video_datum['file'],
+                                               resolution=int(re.findall(r'\d+', video_datum['label'])[0])))
+            else:
+                req = self.session.get(video_datum['file'])
+                video_m3u8 = m3u8.loads(req.text)
+                video_links.extend((VideoSource(link=urljoin(self.video_host_base_url, x.uri),
+                                                video_type=VideoTypes.VIDEO_SEGMENTS,
+                                                quality=x.stream_info.bandwidth,
+                                                resolution=x.stream_info.resolution[1],
+                                                codec=x.stream_info.codecs)
+                                    for x in video_m3u8.playlists)
+                                   )
+        video_links.sort(key=lambda x: x.resolution, reverse=True)
         return VideoNode(video_sources=video_links)
 
     @staticmethod

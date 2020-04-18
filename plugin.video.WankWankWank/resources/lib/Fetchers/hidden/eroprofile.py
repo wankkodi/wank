@@ -64,16 +64,15 @@ class EroProfile(PornFetcher):
         category_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
         videos = tmp_tree.xpath('.//video/source/@src')
-        assert len(videos) > 0
         videos = [VideoSource(link=urljoin(video_data.url, x)) for x in videos]
         return VideoNode(video_sources=videos)
 

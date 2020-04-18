@@ -260,22 +260,18 @@ class Porn300(PornFetcher):
                                          ) for i, x in enumerate(tags)]
         tag_data.add_sub_objects(new_pages)
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
-        # new_video_data = json.loads([x for x in tmp_tree.xpath('.//script/text()') if 'gvideo' in x][0])
-        # video_suffix = video_suffix = urlparse(tmp_data['contentUrl']).path
-
         video_resolutions = tmp_tree.xpath('.//video[@id="video-js"]')
-        videos = sorted((VideoSource(link=x.xpath('./source/@src')[0], resolution=x.attrib['width'])
+        videos = sorted((VideoSource(link=x.xpath('./source')[0].attrib['src'], resolution=x.attrib['width'])
                          for x in video_resolutions),
                         key=lambda x: x.resolution, reverse=True)
-        assert len(videos) > 0
         return VideoNode(video_sources=videos)
 
     def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):

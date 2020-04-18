@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher
+from ..fetchers.porn_fetcher import PornFetcher, PornNoVideoError
 
 # Internet tools
 from .. import urljoin, quote_plus
@@ -7,8 +7,12 @@ from .. import urljoin, quote_plus
 # Regex
 import re
 
+# JSON
+from ..tools.text_json_manioulations import prepare_json_from_not_formatted_text
+
 # Nodes
-from ..catalogs.porn_catalog import PornCatalogCategoryNode, PornCatalogVideoPageNode, VideoNode, VideoSource
+from ..catalogs.porn_catalog import PornCatalogCategoryNode, PornCatalogVideoPageNode, VideoNode, VideoSource, \
+    VideoTypes
 from ..catalogs.porn_catalog import PornCategories, PornFilterTypes, PornFilter
 
 # Generator id
@@ -202,12 +206,12 @@ class EPorner(PornFetcher):
                                                 for x in raw_objects])
         return links, titles, number_of_videos
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
 
         def base_n(num, b, numerals="0123456789abcdefghijklmnopqrstuvwxyz"):
             return ((num == 0) and numerals[0]) or (
@@ -217,9 +221,6 @@ class EPorner(PornFetcher):
             return base_n(int(a[0:8], 16), 36) + base_n(int(a[8:16], 16), 36) + base_n(int(a[16:24], 16), 36) + \
                    base_n(int(a[24:32], 16), 36)
 
-        video_url = video_data.url
-        video_web_id = video_url.split('/')[-3]
-        fetch_url = 'https://www.eporner.com/xhr/video/{vid}'.format(vid=video_web_id)
         headers = {
             'Accept': '*/*',
             'Cache-Control': 'max-age=0',
@@ -230,37 +231,57 @@ class EPorner(PornFetcher):
             'Upgrade-Insecure-Requests': '1',
             'User-Agent': self.user_agent
         }
-        tmp_request = self.session.get(video_url, headers=headers)
+        tmp_request = self.session.get(video_data.url, headers=headers)
+        if not self._check_is_available_page(video_data, tmp_request):
+            error_module = self._prepare_porn_error_module_for_video_page(video_data, tmp_request.url)
+            raise PornNoVideoError(error_module.message, error_module)
+
         tmp_tree = self.parser.parse(tmp_request.text)
-        # new_video_data = json.loads([x for x in tmp_tree.xpath('.//script/text()') if 'gvideo' in x][0])
-        # video_suffix = video_suffix = urlparse(tmp_data['contentUrl']).path
 
         request_data = re.findall(r'(?:\'EPvideo\', )( *{.*} *)(?:, function)',
                                   [x for x in tmp_tree.xpath('.//script/text()') if 'EPinitPlayerVR' in x][0],
                                   re.DOTALL)
-        assert len(request_data) == 1
-        request_hash = re.findall(r'(?:hash: \')(.*?)(?:\')', request_data[0])
-        assert len(request_hash) == 1
-        request_hash = _get_hash(request_hash[0])
+        request_data = prepare_json_from_not_formatted_text(request_data[0])
+        request_hash = request_data['plugins']['EP']['hash']
+        request_hash = _get_hash(request_hash)
+
         query = {
             'hash': request_hash,
             'device': 'generic',
             'domain': self.host_name,
             'fallback': False,
             'embed': False,
-            'supportedFormats': 'mp4',
+            'supportedFormats': 'dash,mp4',
             'tech': 'htmml5',
         }
+        video_web_id = video_data.url.split('/')[-3]
+        fetch_url = 'https://www.eporner.com/xhr/video/{vid}'.format(vid=video_web_id)
 
         page_request = self.session.get(fetch_url, headers=headers, params=query)
         video_data = page_request.json()
-        if page_request.status_code != 200 or video_data['available'] is False:
-            raise RuntimeError('Cannot fetch video {t} from url {u}.'.format(t=video_data['title'], u=video_url))
+        if not self._check_is_available_page(video_data, page_request) or video_data['available'] is False:
+            error_module = self._prepare_porn_error_module_for_video_page(
+                video_data, tmp_request.url,
+                'Cannot fetch video {t} from url {u}.'.format(t=video_data['title'], u=video_data.url)
+                                                                          )
+            raise PornNoVideoError(error_module.message, error_module)
 
-        # todo: add support for dash
-        res = sorted((VideoSource(link=v['src'], resolution=re.findall(r'(\d*)(?:p)', k)[0])
-                      for k, v in video_data['sources']['mp4'].items()),
-                     key=lambda x: x.resolution, reverse=True)
+        # mp4 support
+        res = []
+        if 'mp4' in video_data['sources']:
+            res.extend([VideoSource(link=v['src'], resolution=re.findall(r'(\d*)(?:p)', k)[0])
+                        for k, v in video_data['sources']['mp4'].items()
+                        ])
+        # dash support
+        if 'dash' in video_data['sources']:
+            res.append(VideoSource(link=video_data['sources']['dash']['auto']['src'],
+                                   video_type=VideoTypes.VIDEO_DASH,
+                                   resolution=max((int(x)
+                                                   for x in re.findall(r'(?:,)([\d,]+)(?:,p)',
+                                                                       video_data['sources']['dash']['auto']['src'])
+                                                  [0].split(',')))
+                                   ))
+        res.sort(key=lambda x: x.resolution, reverse=True)
         return VideoNode(video_sources=res)
 
     def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):

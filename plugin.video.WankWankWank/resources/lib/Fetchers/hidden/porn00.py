@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 from ..fetchers.porn_fetcher import PornFetcher
-from ..tools.external_fetchers import ExternalFetcher, NoVideosException
+from ..tools.external_fetchers import ExternalFetcher
 
 # Internet tools
 from .. import urlparse, urljoin, quote_plus
@@ -110,12 +110,16 @@ class Porn00(PornFetcher):
         category_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
+        org_request = self.get_object_request(video_data)
+        org_tree = self.parser.parse(org_request.text)
+        tmp_url = org_tree.xpath('.//div[@class="video-con"]/iframe')
+        original_tmp_url = tmp_url[0].attrib['src']
         headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
                       'q=0.8,application/signed-exchange;v=b3*',
@@ -127,12 +131,7 @@ class Porn00(PornFetcher):
             'Upgrade-Insecure-Requests': '1',
             'User-Agent': self.user_agent
         }
-        org_request = self.get_object_request(video_data)
-        org_tree = self.parser.parse(org_request.text)
-        tmp_url = org_tree.xpath('.//div[@class="video-con"]/iframe/@src')
-        assert len(tmp_url) == 1
-        original_tmp_url = tmp_url[0]
-        tmp_request = self.session.get(tmp_url[0], headers=headers)
+        tmp_request = self.session.get(original_tmp_url, headers=headers)
         tmp_tree = self.parser.parse(tmp_request.text)
 
         videos = [VideoSource(link=x.attrib['src'], resolution=int(re.findall(r'\d+', x.attrib['title'])[0]))
@@ -145,13 +144,10 @@ class Porn00(PornFetcher):
             tmp_tree = self.parser.parse(tmp_request.text)
             new_source = tmp_tree.xpath('.//div[@class="video-con"]/iframe/@src')
             if urlparse(new_source[0]).hostname == 'verystream.com':
-                try:
-                    # Not available anymore...
-                    # videos.extend([VideoSource(link=x[0], resolution=x[1])
-                    #                for x in self.external_fetchers.get_video_link_from_verystream(new_source[0])])
-                    continue
-                except NoVideosException:
-                    continue
+                # Not available anymore...
+                # videos.extend([VideoSource(link=x[0], resolution=x[1])
+                #                for x in self.external_fetchers.get_video_link_from_verystream(new_source[0])])
+                continue
             else:
                 warnings.warn('Unknown source {h}...'.format(h=urlparse(new_source[0]).hostname))
 

@@ -143,15 +143,14 @@ class Faapy(PornFetcher):
         channel_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         request_data = re.findall(r'(?:var flashvars = )({.*?})(?:;)', tmp_request.text, re.DOTALL)
-        assert len(request_data) == 1
         request_data = prepare_json_from_not_formatted_text(request_data[0])
         videos = [VideoSource(link=re.findall(r'http.*$', request_data['video_url'])[0],
                               resolution=re.findall(r'\d+', request_data['video_url_text'])[0])]

@@ -8,7 +8,7 @@ from .. import urljoin, quote_plus
 import re
 
 # JSON
-import json
+from ..tools.text_json_manioulations import prepare_json_from_not_formatted_text
 
 # Nodes
 from ..catalogs.porn_catalog import PornCatalogCategoryNode, PornCatalogVideoPageNode, VideoNode, \
@@ -205,22 +205,15 @@ class Base1(PornFetcher):
         number_of_videos = [int(re.findall(r'\d+', x.tail)[0]) for x in link_data]
         return links, titles, number_of_videos
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
-        assert tmp_request.status_code == 200
         raw_data = re.findall(r'(?:playerInstance.setup\()(.*?)(?:\);)', tmp_request.text, re.DOTALL)
-        raw_data = re.sub(r'[\n\r\t ]*', '', raw_data[0])
-        raw_data = re.sub(r',}', '}', raw_data)
-        raw_data = re.sub(r'\'.*?\'', lambda x: '"{x}"'.format(x=re.sub(r'"', '\'', x[0][1:-1])[0]), raw_data)
-        raw_data = re.sub(r'(["\']*[a-zA-Z]+)(?::)',
-                          lambda x: '"{x}":'.format(x=x[1]) if x[1][0] not in ('"', '\'') else '{x}:'.format(x=x[1]),
-                          raw_data)
-        raw_data = json.loads(raw_data)
+        raw_data = prepare_json_from_not_formatted_text(raw_data[0])
         res = [(x['label'], x['file']) for x in raw_data['sources']]
         res = [VideoSource(link=x[1], resolution=re.findall(r'(\d+)(?:p*)', x[0])[0],
                            video_type=VideoTypes.VIDEO_REGULAR)

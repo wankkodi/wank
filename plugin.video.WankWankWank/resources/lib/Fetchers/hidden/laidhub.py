@@ -255,32 +255,18 @@ class BaseClass(PornFetcher):
                   for x, y in zip(raw_objects, raw_numbers)])
         return links, titles, number_of_videos
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
-
-        video_url = video_data.url
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                      'q=0.8,application/signed-exchange;v=b3*',
-            'Cache-Control': 'max-age=0',
-            'Host': self.host_name,
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': self.user_agent
-        }
-        tmp_request = self.session.get(video_url, headers=headers)
+         """
+        tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
 
         if video_data.is_vr is True:
             # The site uses special engine for vr.
             request_data = tmp_tree.xpath('.//dl8-video/source')
-            assert len(request_data) > 0
             new_video_data = [dict(x.attrib) for x in request_data]
             res = sorted((VideoSource(link=x['src'], resolution=re.findall(r'\d+', x['quality'])[0])
                           for x in new_video_data if 'quality' in x and 'src' in x),
@@ -292,10 +278,7 @@ class BaseClass(PornFetcher):
             else:
                 # We try another method
                 request_data = tmp_tree.xpath('.//li/a[@data-mb="download"]')
-                if len(request_data) > 0:
-                    res = [VideoSource(link=x.attrib['href']) for x in request_data]
-                else:
-                    raise RuntimeError('Canot fetch video url from {u}'.format(u=video_data.url))
+                res = [VideoSource(link=x.attrib['href']) for x in request_data]
 
         return VideoNode(video_sources=res, verify=False)
 

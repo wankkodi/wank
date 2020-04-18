@@ -112,7 +112,7 @@ class SexyPorn(PornFetcher):
         try:
             self.server_number = re.findall(r'(?:tmp\[1\]\+= ")(\d+)(?:")', main_server.text)[0]
         except IndexError:
-            server_data = PornErrorModule(self.data_server, self.source_name, self.main_js,
+            server_data = PornErrorModule(self.data_server, 0, self.source_name, self.main_js,
                                           'Cannot fetch the server number from {u}'.format(u=self.main_js),
                                           None, None)
             raise PornValueError('Wrong server number', error_module=server_data)
@@ -208,24 +208,21 @@ class SexyPorn(PornFetcher):
                      for i, (link, name) in enumerate(zip(porn_star_page_links, porn_star_page_names))]
         porn_star_data.add_sub_objects(new_pages)
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         video_id = re.findall(r'(?:/)(\w+)(?:.html)', video_data.url)[0]
         tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
-
         request_data = tmp_tree.xpath('.//span[@class="vidsnfo"]/@data-vnfo')
-        assert len(request_data) == 1
         new_video_data = json.loads(request_data[0])
         # suffix = re.findall(r'(?:/cdn/c)(\d*)', new_video_data[video_id])[0]
         video_links = [VideoSource(link=urljoin(self.base_url,
                                                 re.sub('^/cdn/', '/cdn{n}/'.format(n=self.server_number),
                                                        new_video_data[video_id])))]
-
         video_header = {
             'Accept': '*/*',
             'Accept-Encoding': 'identity;q=1, *;q=0',

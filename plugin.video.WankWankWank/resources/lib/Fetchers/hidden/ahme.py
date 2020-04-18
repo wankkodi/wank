@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher
+from ..fetchers.porn_fetcher import PornFetcher, PornNoVideoError
 
 # Internet tools
 from .. import urljoin, quote_plus
@@ -123,17 +123,15 @@ class AhMe(PornFetcher):
         category_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
         """
         tmp_request = self.get_object_request(video_data)
-        assert tmp_request.ok
         tree = self.parser.parse(tmp_request.text)
         videos = tree.xpath('.//div[@class="video-container"]')
-        assert len(videos) > 0
         res = [(x.attrib['data-size'], x.attrib['data-src']) for x in videos]
         res.sort(key=lambda x: int(''.join(re.findall(r'(\d+)(?:p*)', x[0]))), reverse=True)
         params = {'rnd': int(datetime.timestamp(datetime.now()) * 1000)}

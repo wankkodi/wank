@@ -180,21 +180,20 @@ class DaChix(PornFetcher):
         porn_star_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         # tree = self.parser.parse(tmp_request.text)
         # videos = [VideoSource(link=x.attrib['src']) for x in tree.xpath('.//video/source')]
-        raw_data = prepare_json_from_not_formatted_text(
-            re.findall(r'(?:crakPlayer\()(.*?)(?:\))', tmp_request.text, re.DOTALL)[0])
+        raw_data = re.findall(r'(?:crakPlayer\()(.*?)(?:\))', tmp_request.text, re.DOTALL)
+        raw_data = prepare_json_from_not_formatted_text(raw_data[0])
         videos = sorted((VideoSource(link=url, codec=codec, resolution=k.split('x')[0])
                          for k, v in raw_data['sizes'].items() for codec, url in v.items()),
                         key=lambda x: x.resolution, reverse=True)
-        assert len(videos) > 0
         return VideoNode(video_sources=videos)
 
     def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):

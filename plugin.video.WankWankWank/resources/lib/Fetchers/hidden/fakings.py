@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError, PornNoVideoError, PornErrorModule
+from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError
 
 # Internet tools
 from .. import urljoin, quote_plus
@@ -158,21 +158,15 @@ class FakingsTV(PornFetcher):
         links, titles, number_of_videos = zip(*[(x.attrib['href'], x.text, None) for x in raw_objects])
         return links, titles, number_of_videos
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
-
         videos = tmp_tree.xpath('.//div[@class="video-container"]/iframe')
-        if len(videos) == 0 or 'src' not in videos[0].attrib:
-            server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
-                                          'Cannot fetch video links from the url {u}'.format(u=tmp_request.url),
-                                          None, None)
-            raise PornNoVideoError('No Video link for url {u}'.format(u=tmp_request.url), server_data)
         headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
                       'q=0.8,application/signed-exchange;v=b3',
@@ -188,11 +182,6 @@ class FakingsTV(PornFetcher):
         page_request = self.session.get(videos[0].attrib['src'], headers=headers)
         tmp_tree = self.parser.parse(page_request.text)
         videos = tmp_tree.xpath('.//video/source')
-        if len(videos) == 0 or 'src' not in videos[0].attrib:
-            server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
-                                          'Cannot fetch video links from the url {u}'.format(u=page_request.url),
-                                          None, None)
-            raise PornNoVideoError('No Video link for url {u}'.format(u=page_request.url), server_data)
         videos = sorted((VideoSource(link=x.attrib['src'],
                                      quality=self._quality[x.attrib['title']] if 'title' in x.attrib else None)
                          for x in videos),

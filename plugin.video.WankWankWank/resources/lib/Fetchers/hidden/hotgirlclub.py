@@ -2,7 +2,7 @@
 from ..fetchers.porn_fetcher import PornFetcher
 
 # Internet tools
-from .. import urljoin
+from .. import urljoin, parse_qs
 
 # datetime
 from datetime import timedelta
@@ -164,28 +164,14 @@ class HotGirlClub(PornFetcher):
                   for x in tree.xpath('.//div[@id="tags_list"]//div[@class="info-col"]/a')])
         return links, titles, numbers_of_videos
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
-
-        video_url = video_data.url
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                      'q=0.8,application/signed-exchange;v=b3*',
-            'Cache-Control': 'max-age=0',
-            'Host': self.host_name,
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': self.user_agent
-        }
-        tmp_request = self.session.get(video_url, headers=headers)
+         """
+        tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
-
         videos = tmp_tree.xpath('.//video/source')
         videos = [VideoSource(link=x.attrib['src']) for x in videos]
         return VideoNode(video_sources=videos)
@@ -225,6 +211,8 @@ class HotGirlClub(PornFetcher):
         videos = tree.xpath('.//ul[@class="thumbs-items"]/li[@class="thumb thumb-video"]/a')
         res = []
         for video_tree_data in videos:
+            link = urljoin(self.base_url, video_tree_data.attrib['href']) if 'rel' not in video_tree_data.attrib \
+                else urljoin(self.base_url, parse_qs(video_tree_data.attrib['href'].split('?')[1])['bu'][0])
             image_data = video_tree_data.xpath('./span[@class="thumb-image"]/img')
             assert len(image_data) == 1
             if 'src' in image_data[0].attrib:
@@ -247,8 +235,8 @@ class HotGirlClub(PornFetcher):
             assert len(added_before) == 1
 
             video_data = PornCatalogVideoPageNode(catalog_manager=self.catalog_manager,
-                                                  obj_id=video_tree_data.attrib['href'],
-                                                  url=urljoin(self.base_url, video_tree_data.attrib['href']),
+                                                  obj_id=link,
+                                                  url=link,
                                                   title=video_tree_data.attrib['title'],
                                                   image_link=image,
                                                   flip_images_link=flip_images,

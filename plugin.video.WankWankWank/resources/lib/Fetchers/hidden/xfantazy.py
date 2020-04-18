@@ -188,15 +188,14 @@ class XFantazy(PornFetcher):
         links, titles, numbers_of_videos, raw_data = zip(*raw_tags)
         return links, titles, numbers_of_videos, raw_data
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         page_request = self.get_object_request(video_data)
         raw_data = page_request.json()
-
         res = sorted((VideoSource(resolution=(int(re.findall(r'\d+', x['label'])[0])
                                               if x['label'] != 'original' else 1080),
                                   link=x['src'])

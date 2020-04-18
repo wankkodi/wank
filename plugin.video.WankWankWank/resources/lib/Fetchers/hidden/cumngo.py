@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornNoVideoError, PornErrorModule
+from ..fetchers.porn_fetcher import PornFetcher, PornNoVideoError, PornValueError
 
 # Internet tools
 from .. import urljoin, quote_plus, parse_qsl
@@ -177,22 +177,23 @@ class CumNGo(PornFetcher):
         links, titles, number_of_videos = zip(*res)
         return links, titles, number_of_videos
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
         ext_link = tmp_tree.xpath('.//section[@class="player float-left clearfix"]//iframe')
         if len(ext_link) == 0 or 'src' not in ext_link[0].attrib:
-            server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
-                                          'Cannot fetch video links from the url {u}'.format(u=tmp_request.url),
-                                          None, None)
-            raise PornNoVideoError('No Video link for url {u}'.format(u=tmp_request.url), server_data)
+            error_module = self._prepare_porn_error_module_for_video_page(video_data, tmp_request.url)
+            raise PornNoVideoError(error_module.message, error_module)
         new_link = ext_link[0].attrib['src']
         new_request = self.external_fetchers.get_video_link_from_videyo_tube(new_link)
+        if not self._check_is_available_page(video_data, new_request):
+            error_module = self._prepare_porn_error_module_for_video_page(video_data, new_request.url)
+            raise PornNoVideoError(error_module.message, error_module)
         videos = []
         for source in new_request['sources']:
             if source['type'] == "application/x-mpegURL":
@@ -204,9 +205,12 @@ class CumNGo(PornFetcher):
                     'User-Agent': self.user_agent
                 }
                 segment_request = self.session.get(source['src'], headers=headers)
-                assert segment_request.ok
+                if not self._check_is_available_page(video_data, segment_request):
+                    error_module = self._prepare_porn_error_module_for_video_page(video_data, new_request.url)
+                    raise PornNoVideoError(error_module.message, error_module)
                 video_m3u8 = m3u8.loads(segment_request.text)
                 video_playlists = video_m3u8.playlists
+
                 videos.extend([VideoSource(link=urljoin(source['src'], x.uri),
                                            video_type=VideoTypes.VIDEO_SEGMENTS,
                                            quality=x.stream_info.bandwidth,
@@ -214,7 +218,9 @@ class CumNGo(PornFetcher):
                                            codec=x.stream_info.codecs)
                                for x in video_playlists])
             else:
-                raise ValueError('Unsupported type {t}'.format(t=source['type']))
+                error_module = self._prepare_porn_error_module_for_video_page(
+                    video_data, new_request.url, 'Unsupported type {t}'.format(t=source['type']))
+                raise PornValueError(error_module.message, error_module)
 
         return VideoNode(video_sources=videos)
 

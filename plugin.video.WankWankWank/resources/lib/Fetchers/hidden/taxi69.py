@@ -1,8 +1,8 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornNoVideoError, PornErrorModule
+from ..fetchers.porn_fetcher import PornFetcher
 
 # Internet tools
-from .. import urljoin, quote_plus
+from .. import urljoin, urlparse, quote_plus
 
 # Nodes
 from ..catalogs.porn_catalog import PornCatalogCategoryNode, PornCatalogVideoPageNode, PornCatalogPageNode, \
@@ -148,20 +148,15 @@ class Taxi69(PornFetcher):
             return super(Taxi69, self)._add_category_sub_pages(category_data, sub_object_type, page_request,
                                                                clear_sub_elements)
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
         videos = tmp_tree.xpath('.//video/source')
-        if len(videos) == 0 or 'src' not in videos[0].attrib:
-            server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
-                                          'Cannot fetch video links from the url {u}'.format(u=tmp_request.url),
-                                          None, None)
-            raise PornNoVideoError('No Video link for url {u}'.format(u=tmp_request.url), server_data)
         videos = [VideoSource(link=x.attrib['src']) for x in videos]
         return VideoNode(video_sources=videos)
 
@@ -206,7 +201,7 @@ class Taxi69(PornFetcher):
             link_data = video_tree_data.xpath('./a')
             assert len(link_data) == 1
             link = link_data[0].attrib['href']
-            if len(link) == 0:
+            if len(link) == 0 or urlparse(link).hostname != self.host_name:
                 continue
 
             image_data = link_data[0].xpath('./img')
@@ -240,9 +235,6 @@ class Taxi69(PornFetcher):
             'Upgrade-Insecure-Requests': '1',
             'User-Agent': self.user_agent
         }
-        if true_object.object_type == PornCategories.VIDEO:
-            page_request = self.session.get(fetch_base_url, headers=headers, params=params)
-            return page_request
 
         if page_number is not None and page_number != 1:
             split_url.append('page')

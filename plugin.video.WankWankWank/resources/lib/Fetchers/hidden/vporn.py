@@ -210,16 +210,15 @@ class VPorn(PornFetcher):
         porn_star_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
         videos = tmp_tree.xpath('.//video/source')
-        assert len(videos) > 0
         video_links = sorted((VideoSource(link=x.attrib['src'], resolution=re.findall(r'\d+', x.attrib['label'])[0])
                               for x in videos),
                              key=lambda x: x.resolution, reverse=True)
@@ -394,6 +393,9 @@ class VPorn(PornFetcher):
             'Upgrade-Insecure-Requests': '1',
             'User-Agent': self.user_agent
         }
+        if true_object.object_type == PornCategories.VIDEO:
+            return self.session.get(fetch_base_url, headers=headers, params=params)
+
         split_url = split_url[:4]
         if page_filter.sort_order.value is not None and true_object.object_type not in self._default_sort_by:
             split_url.append(page_filter.sort_order.value)

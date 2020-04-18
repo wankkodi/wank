@@ -114,15 +114,14 @@ class WankGalore(PornFetcher):
         category_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         page_request = self.get_object_request(video_data)
         videos = [VideoSource(link=x) for x in re.findall(r'(?:sources.*src: *\')(.*?)(?:\')', page_request.text)]
-        assert len(videos) > 0
         return VideoNode(video_sources=videos)
 
     def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):

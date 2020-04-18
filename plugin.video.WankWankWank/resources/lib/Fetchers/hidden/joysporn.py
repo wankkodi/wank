@@ -82,18 +82,30 @@ class JoysPorn(PornFetcher):
         category_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
-        video_url = video_data.url
-        video_raw_data = self.external_fetchers.get_video_link_from_cdna(video_url)
+         """
+        video_raw_data = self.external_fetchers.get_video_link_from_fapmedia(video_data.url)
+        # video_raw_data = self.external_fetchers.get_video_link_from_cdna(video_url)
         video_links = sorted((VideoSource(link=x[0], resolution=x[1]) for x in video_raw_data),
                              key=lambda x: x.resolution, reverse=True)
+        headers = {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;'
+                      'q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+            'Cache-Control': 'max-age=0',
+            'Referer': video_data.url,
+            'Sec-Fetch-Desy': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'same-origin',
+            'Sec-Fetch-User': 'none',
+            'Upgrade-Insecure-Requests': '1',
+            'User-Agent': self.user_agent
+        }
 
-        return VideoNode(video_sources=video_links)
+        return VideoNode(video_sources=video_links, headers=headers)
 
     def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """

@@ -97,6 +97,7 @@ class PornFilterTypes(CategoryEnum):
     ElevenType = (FilterTypes.GENERAL_TYPE, 11)
     TwelveType = (FilterTypes.GENERAL_TYPE, 12)
     ThirteenType = (FilterTypes.GENERAL_TYPE, 13)
+    FourteenType = (FilterTypes.GENERAL_TYPE, 14)
     # Profession
     AllProfession = (FilterTypes.PROFESSION_TYPE, 0)
     OneProfession = (FilterTypes.PROFESSION_TYPE, 1)
@@ -195,6 +196,7 @@ class PornFilterTypes(CategoryEnum):
     ChannelViewsOrder = (FilterTypes.SORT_ORDER_TYPE, 35)
     HDOrder = (FilterTypes.SORT_ORDER_TYPE, 36)
     LiveOrder = (FilterTypes.SORT_ORDER_TYPE, 37)
+    LoginOrder = (FilterTypes.SORT_ORDER_TYPE, 38)
     # Country filters
     AfghanistanCountry = (FilterTypes.COUNTRY_TYPE, 0)
     AlbaniaCountry = (FilterTypes.COUNTRY_TYPE, 1)
@@ -405,6 +407,8 @@ class PornFilterTypes(CategoryEnum):
     FunnyType = TenType
     ExtremeType = ElevenType
     AmateurType = TwelveType
+    CoupleType = ThirteenType
+    NewType = FourteenType
 
     # Professions
     PornStarProfession = OneProfession

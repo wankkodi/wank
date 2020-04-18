@@ -232,19 +232,16 @@ class CollectionOfBestPorn(PornFetcher):
     #
     #     return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
-        # new_video_data = json.loads([x for x in tmp_tree.xpath('.//script/text()') if 'gvideo' in x][0])
-        # video_suffix = video_suffix = urlparse(tmp_data['contentUrl']).path
 
         videos = tmp_tree.xpath('.//video/source')
-        assert len(videos) > 0
         videos = sorted((VideoSource(link=x.attrib['src'], resolution=x.attrib['res']) for x in videos),
                         key=lambda y: y.resolution, reverse=True)
         return VideoNode(video_sources=videos)

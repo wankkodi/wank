@@ -8,7 +8,7 @@ from .. import urljoin, quote_plus
 import re
 
 # JSON
-import json
+from ..tools.text_json_manioulations import prepare_json_from_not_formatted_text
 
 # Nodes
 from ..catalogs.porn_catalog import PornCatalogCategoryNode, PornCatalogVideoPageNode, \
@@ -339,30 +339,15 @@ class PornDig(PornFetcher):
         channel_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
-
-        video_url = video_data.url
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                      'q=0.8,application/signed-exchange;v=b3*',
-            'Cache-Control': 'max-age=0',
-            'Host': self.host_name,
-            'Referer': video_data.super_object.url,
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': self.user_agent
-        }
-        tmp_request = self.session.get(video_url, headers=headers)
+         """
+        tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
         request_data = tmp_tree.xpath('.//link[@rel="prefetch"]/@href')
-        assert len(request_data) == 1
         headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
                       'q=0.8,application/signed-exchange;v=b3*',
@@ -376,13 +361,12 @@ class PornDig(PornFetcher):
         tmp_request = self.session.get(request_data[0], headers=headers)
         tmp_tree = self.parser.parse(tmp_request.text)
         request_data = [x for x in tmp_tree.xpath('.//script/text()') if 'vc' in x]
-        assert len(request_data) == 1
         raw_data = re.findall(r'(?:var vc *= *)({.*})(?:;\n)', request_data[0], re.DOTALL)
         assert len(raw_data) == 1
-        raw_data = json.loads(raw_data[0])
+        raw_data = prepare_json_from_not_formatted_text(raw_data[0])
 
         # todo: could be videoLink instead of videoLinkDownload
-        res = sorted((VideoSource(resolution=x['res'], link=x['src'])
+        res = sorted((VideoSource(link=x['src'].replace('\\/', '/'), resolution=x['res'])
                       for x in raw_data['sources'] if 'res' in x and 'src' in x),
                      key=lambda x: x.resolution, reverse=True)
         return VideoNode(video_sources=res)
@@ -508,6 +492,21 @@ class PornDig(PornFetcher):
         :param page_data: Page data.
         :return: Page request
         """
+        if true_object.object_type == PornCategories.VIDEO:
+            headers = {
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
+                          'q=0.8,application/signed-exchange;v=b3*',
+                'Cache-Control': 'max-age=0',
+                'Host': self.host_name,
+                'Referer': page_data.super_object.url,
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'same-origin',
+                'Sec-Fetch-User': '?1',
+                'Upgrade-Insecure-Requests': '1',
+                'User-Agent': self.user_agent
+            }
+            return self.session.get(page_data.url, headers=headers)
+
         if page_number == 1:
             split_url = fetch_base_url.split('/')
             if self.general_filter.current_filters.general.value is not None:

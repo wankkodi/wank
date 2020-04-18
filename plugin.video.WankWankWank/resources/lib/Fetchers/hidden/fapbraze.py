@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornErrorModule, PornNoVideoError
+from ..fetchers.porn_fetcher import PornFetcher, PornNoVideoError
 
 # Internet tools
 from .. import urljoin, quote_plus, urlparse
@@ -198,12 +198,12 @@ class FapBraze(PornFetcher):
         object_data.add_sub_objects(res)
         return res
 
-    def get_video_links_from_video_data(self, video_data):
+    def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
-        Extracts episode link from episode data.
-        :param video_data: Video data.
+        Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
+        :param video_data: Video data (dict).
         :return:
-        """
+         """
         tmp_request = self.get_object_request(video_data)
         vid = re.findall(r'(?:https://www.fembed.com/v/)(.*?)(?:")', tmp_request.text)
         if len(vid) > 0:
@@ -225,18 +225,11 @@ class FapBraze(PornFetcher):
                 'd': urlparse(self.video_json_request).hostname
             }
             tmp_request2 = self.session.post(new_url, headers=headers, data=params)
-            if not self._check_is_available_page(tmp_request2):
-                server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
-                                              'Cannot fetch video links from the url {u}'.format(u=tmp_request2.url),
-                                              None, None)
-                raise PornNoVideoError('No Video link for url {u}'.format(u=tmp_request2.url), server_data)
-
             videos = tmp_request2.json()
             if not videos['success']:
-                server_data = PornErrorModule(self.data_server, self.source_name, video_data.url,
-                                              videos['data'],
-                                              None, None)
-                raise PornNoVideoError(videos['data'], server_data)
+                error_module = self._prepare_porn_error_module_for_video_page(video_data, tmp_request2.url,
+                                                                              videos['data'])
+                raise PornNoVideoError(error_module.message, error_module)
             videos = sorted((VideoSource(link=x['file'], resolution=re.findall(r'\d+', x['label'])[0])
                              for x in videos['data']),
                             key=lambda x: x.resolution, reverse=True)
@@ -245,7 +238,6 @@ class FapBraze(PornFetcher):
             # Version 2
             tmp_tree = self.parser.parse(tmp_request.text)
             videos = tmp_tree.xpath('.//video/source')
-            assert len(videos) > 0
             video_links = sorted((VideoSource(link=x.attrib['src'],
                                               resolution=re.findall(r'\d+', x.attrib['label']
                                               if 'label' in x.attrib else x.attrib['title'])[0])
@@ -496,13 +488,13 @@ class FreeHDInterracialPorn(FapBraze):
                                          )
 
     def __init__(self, source_name='FreeHDInterracialPorn', source_id=0, store_dir='.', data_dir='../Data',
-                 source_type='Porn', session_id=None):
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
         super(FreeHDInterracialPorn, self).__init__(source_name, source_id, store_dir, data_dir, source_type,
-                                                    session_id)
+                                                    use_web_server, session_id)
 
     def _update_available_categories(self, category_data):
         """
