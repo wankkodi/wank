@@ -327,9 +327,9 @@ class YouJizz(PornFetcher):
             link_data = video_tree_data.xpath('./div[@class="frame-wrapper"]/a')
             assert len(link_data) >= 1
 
-            image_data = video_tree_data.xpath('./div[@class="frame-wrapper"]/a/img/@src')
+            image_data = video_tree_data.xpath('./div[@class="frame-wrapper"]/a/img')
             assert len(image_data) >= 1
-            image = urljoin(self.base_url, image_data[0])
+            image = urljoin(self.base_url, image_data[0].attrib['src'])
             flip_images = [re.sub(r'\d+.jpg', '{i}.jpg'.format(i=i), image)
                            for i in range(1, self.max_flip_images + 1)]
 
@@ -349,22 +349,24 @@ class YouJizz(PornFetcher):
             rating = video_tree_data.xpath('./div[@class="video-content-wrapper text-center"]/'
                                            'select[@class="video-bar-rating-view"]')
             assert len(rating) == 1
+            rating = rating[0].attrib['data-value']
 
             viewers = video_tree_data.xpath('./div[@class="video-content-wrapper text-center"]/'
-                                            'span[@class="views format-views"]/text()')
+                                            'span[@class="views format-views"]')
             assert len(viewers) == 1
+            viewers = viewers[0].text
 
             res.append(PornCatalogVideoPageNode(catalog_manager=self.catalog_manager,
                                                 obj_id=link_data[0].attrib['data-video-id'],
                                                 url=urljoin(self.base_url, link_data[0].attrib['href']),
                                                 title=title,
-                                                image_link=image[0],
+                                                image_link=image,
                                                 flip_images_link=flip_images,
                                                 preview_video_link=video_preview,
                                                 is_hd=is_hd,
                                                 duration=video_length,
-                                                number_of_views=viewers[0],
-                                                rating=rating[0].attrib['data-value'],
+                                                number_of_views=viewers,
+                                                rating=rating,
                                                 object_type=PornCategories.VIDEO,
                                                 super_object=page_data,
                                                 ))
