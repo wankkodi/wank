@@ -228,7 +228,7 @@ class PornGo(PornFetcher):
         try:
             page_request = self.get_object_request(page_data)
         except PornFetchUrlError:
-            return []
+            return None
         tree = self.parser.parse(page_request.text)
         videos = tree.xpath('.//div[@class="thumbs-list"]/div[@class="thumb item "]')
         res = []

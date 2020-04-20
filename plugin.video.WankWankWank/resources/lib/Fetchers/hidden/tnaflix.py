@@ -353,12 +353,7 @@ class TnaFlix(PornFetcher):
         By default is None, which mean the original pivot will be used...
         :return: Page request
         """
-        try:
-            page_request = self.get_object_request(category_data, override_page_number=1)
-        except PornFetchUrlError as err:
-            # page_request = self.get_object_request(category_data, override_page_number=1)
-            raise err
-
+        page_request = self.get_object_request(category_data, override_page_number=1)
         page_json = page_request.json()
         tree = self.parser.parse(page_json['content'])
         pages = self._get_available_pages_from_tree(tree)
@@ -372,8 +367,8 @@ class TnaFlix(PornFetcher):
         page = last_available_number_of_pages if last_available_number_of_pages is not None \
             else int(math.ceil((right_page + left_page) / 2))
         while 1:
-            try:
-                page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
+            page_request = self._get_object_request_no_exception_check(category_data, override_page_number=page)
+            if self._check_is_available_page(category_data, page_request):
 
                 page_json = page_request.json()
                 tree = self.parser.parse(page_json['content'])
@@ -389,7 +384,7 @@ class TnaFlix(PornFetcher):
                         return max_page
 
                     left_page = max_page
-            except PornFetchUrlError:
+            else:
                 # We moved too far...
                 right_page = page - 1
             page = int(math.ceil((right_page + left_page) / 2))
@@ -426,17 +421,17 @@ class TnaFlix(PornFetcher):
         else:
             start_page = self.max_pages
             while 1:
-                try:
-                    self.get_object_request(category_data, start_page, send_error=False)
+                page_request = self.get_object_request(category_data, start_page)
+                if self._check_is_available_page(category_data, page_request):
                     # We propagate the start page
                     start_page += self.max_pages
-                except PornFetchUrlError as err:
+                else:
                     # We have been redirected to the last available page.
                     if category_data.object_type in (PornCategories.PORN_STAR_MAIN, PornCategories.PORN_STAR,
                                                      PornCategories.SEARCH_MAIN, PornCategories.TAG):
-                        return int(re.findall(r'(?:page=)(\d+)', err.request.url)[0])
+                        return int(re.findall(r'(?:page=)(\d+)', page_request.url)[0])
                     else:
-                        return int(re.findall(r'(?:/)(\d+)(?:\?|/|$)', err.request.url)[0])
+                        return int(re.findall(r'(?:/)(\d+)(?:\?|/|$)', page_request.url)[0])
 
     def _check_is_available_page(self, page_object, page_request=None):
         """

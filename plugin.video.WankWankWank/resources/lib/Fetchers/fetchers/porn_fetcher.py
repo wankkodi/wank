@@ -628,8 +628,8 @@ class PornFetcher(BaseFetcher):
             if right_page == left_page:
                 return left_page
 
-            try:
-                page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
+            page_request = self._get_object_request_no_exception_check(category_data, override_page_number=page)
+            if self._check_is_available_page(category_data, page_request):
                 tree = self.parser.parse(page_request.text)
                 pages = self._get_available_pages_from_tree(tree)
                 if len(pages) == 0:
@@ -641,7 +641,7 @@ class PornFetcher(BaseFetcher):
                         return max_page
 
                     left_page = max_page
-            except PornFetchUrlError:
+            else:
                 # We moved too far...
                 right_page = page - 1
             page = int(math.ceil((right_page + left_page) / 2))
@@ -672,28 +672,36 @@ class PornFetcher(BaseFetcher):
         """
         return NotImplemented
 
-    def get_object_request(self, object_data, override_page_number=None, override_params=None, override_url=None,
-                           send_error=True):
+    def get_object_request(self, object_data, override_page_number=None, override_params=None, override_url=None):
         """
         Fetches the page number with respect to base url.
         :param object_data: Page data.
         :param override_page_number: Override page number.
         :param override_params: Override params.
         :param override_url: Override url.
-        :param send_error: Flag that indicates whether we send the error to the server. True by default.
         :return: Page request
         """
-        res = super(PornFetcher, self).get_object_request(object_data, override_page_number, override_params,
+        res = self._get_object_request_no_exception_check(object_data, override_page_number, override_params,
                                                           override_url)
         if not self._check_is_available_page(object_data, res):
-            if send_error is True:
-                error_module = self._prepare_porn_error_module(object_data, 0, res.url,
-                                                               'Could not fetch {url} in object {obj}'
-                                                               ''.format(url=res.url, obj=object_data.title))
-            else:
-                error_module = None
+            error_module = self._prepare_porn_error_module(
+                object_data, 0, res.url,
+                'Could not fetch {url} in object {obj}'.format(url=res.url, obj=object_data.title))
             raise PornFetchUrlError(res, error_module)
         return res
+
+    def _get_object_request_no_exception_check(self, object_data, override_page_number=None, override_params=None,
+                                               override_url=None):
+        """
+        Fetches the page number with respect to base url.
+        :param object_data: Page data.
+        :param override_page_number: Override page number.
+        :param override_params: Override params.
+        :param override_url: Override url.
+        :return: Page request
+        """
+        return super(PornFetcher, self).get_object_request(object_data, override_page_number, override_params,
+                                                           override_url)
 
     def _prepare_porn_error_module(self, object_data, error_mode, url, title):
         current_page_filters = self.get_proper_filter(object_data).current_filters_text()

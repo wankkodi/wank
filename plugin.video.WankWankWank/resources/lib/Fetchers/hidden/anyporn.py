@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError, PornNoVideoError
+from ..fetchers.porn_fetcher import PornFetcher, PornNoVideoError
 
 # Internet tools
 from .. import urljoin, quote_plus, parse_qsl
@@ -301,10 +301,9 @@ class AnyPorn(PornFetcher):
         """
         if category_data.object_type in (PornCategories.CATEGORY_MAIN, PornCategories.TAG_MAIN):
             return 1
-        try:
-            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
-                else fetched_request
-        except PornFetchUrlError:
+        page_request = self._get_object_request_no_exception_check(category_data) if fetched_request is None \
+            else fetched_request
+        if not self._check_is_available_page(category_data, page_request):
             return 1
         tree = self.parser.parse(page_request.text)
         available_pages = self._get_available_pages_from_tree(tree)
@@ -1533,10 +1532,9 @@ class HellPorno(AnyPorn):
         """
         if category_data.object_type in (PornCategories.TAG_MAIN, PornCategories.PORN_STAR_MAIN):
             return 1
-        try:
-            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
-                else fetched_request
-        except PornFetchUrlError:
+        page_request = self._get_object_request_no_exception_check(category_data) if fetched_request is None \
+            else fetched_request
+        if not self._check_is_available_page(category_data, page_request):
             return 1
         tree = self.parser.parse(page_request.text)
         available_pages = self._get_available_pages_from_tree(tree)
@@ -2525,10 +2523,9 @@ class XBabe(AnyPorn):
         """
         if category_data.object_type in (PornCategories.TAG_MAIN,):
             return 1
-        try:
-            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
-                else fetched_request
-        except PornFetchUrlError:
+        page_request = self._get_object_request_no_exception_check(category_data) if fetched_request is None \
+            else fetched_request
+        if not self._check_is_available_page(category_data, page_request):
             return 1
         tree = self.parser.parse(page_request.text)
         if category_data.object_type in (PornCategories.TAG, PornCategories.PORN_STAR):
@@ -2559,12 +2556,12 @@ class XBabe(AnyPorn):
         page = last_available_number_of_pages if last_available_number_of_pages is not None \
             else math.ceil((right_page + left_page) / 2)
         while 1:
-            try:
-                self.get_object_request(category_data, override_page_number=page, send_error=False)
+            page_request = self._get_object_request_no_exception_check(category_data, override_page_number=page)
+            if self._check_is_available_page(category_data, page_request):
                 left_page = page
                 if left_page == right_page:
                     return left_page
-            except PornFetchUrlError:
+            else:
                 # We moved too far...
                 right_page = page - 1
             page = math.ceil((right_page + left_page) / 2)
@@ -3428,10 +3425,9 @@ class HellMoms(XBabe):
         """
         if category_data.object_type in (PornCategories.TAG_MAIN,):
             return 1
-        try:
-            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
-                else fetched_request
-        except PornFetchUrlError:
+        page_request = self._get_object_request_no_exception_check(category_data) if fetched_request is None \
+            else fetched_request
+        if not self._check_is_available_page(category_data, page_request):
             return 1
         tree = self.parser.parse(page_request.text)
         available_pages = self._get_available_pages_from_tree(tree)
@@ -3649,10 +3645,9 @@ class PornPlus(HellMoms):
         """
         if category_data.object_type in (PornCategories.TAG_MAIN, PornCategories.CATEGORY_MAIN):
             return 1
-        try:
-            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
-                else fetched_request
-        except PornFetchUrlError:
+        page_request = self._get_object_request_no_exception_check(category_data) if fetched_request is None \
+            else fetched_request
+        if not self._check_is_available_page(category_data, page_request):
             return 1
         tree = self.parser.parse(page_request.text)
         available_pages = self._get_available_pages_from_tree(tree)
@@ -4164,10 +4159,9 @@ class ZedPorn(AnyPorn):
         """
         if category_data.object_type in (PornCategories.TAG_MAIN,):
             return 1
-        try:
-            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
-                else fetched_request
-        except PornFetchUrlError:
+        page_request = self._get_object_request_no_exception_check(category_data) if fetched_request is None \
+            else fetched_request
+        if not self._check_is_available_page(category_data, page_request):
             return 1
         tree = self.parser.parse(page_request.text)
         available_pages = self._get_available_pages_from_tree(tree)
@@ -4827,8 +4821,8 @@ class PornBimbo(PornFd):
             if right_page == left_page:
                 return left_page
 
-            try:
-                page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
+            page_request = self._get_object_request_no_exception_check(category_data, override_page_number=page)
+            if self._check_is_available_page(category_data, page_request):
                 tree = self.parser.parse(page_request.text)
                 pages = self._get_available_pages_from_tree(tree)
                 if len(pages) == 0:
@@ -4840,7 +4834,7 @@ class PornBimbo(PornFd):
                         return max_page
 
                     left_page = max_page
-            except PornFetchUrlError:
+            else:
                 # We moved too far...
                 right_page = page - 1
             page = int(math.ceil((right_page + left_page) / 2))
@@ -6896,10 +6890,9 @@ class VQTube(MadThumbs):
         :param category_data: Category data (dict).
         :return:
         """
-        try:
-            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
-                else fetched_request
-        except PornFetchUrlError:
+        page_request = self._get_object_request_no_exception_check(category_data) if fetched_request is None \
+            else fetched_request
+        if not self._check_is_available_page(category_data, page_request):
             return 1
         tree = self.parser.parse(page_request.text)
         available_pages = self._get_available_pages_from_tree(tree)

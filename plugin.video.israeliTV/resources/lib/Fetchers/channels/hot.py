@@ -422,10 +422,7 @@ class Hot(VODFetcher):
     def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         raise NotImplemented
 
-    def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url,
-                                override_params=None):
-        if override_params is not None:
-            params.update(override_params)
+    def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url):
         headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
                       'q=0.8,application/signed-exchange;v=b3',

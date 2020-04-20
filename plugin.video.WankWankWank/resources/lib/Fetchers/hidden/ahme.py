@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornNoVideoError
+from ..fetchers.porn_fetcher import PornFetcher
 
 # Internet tools
 from .. import urljoin, quote_plus

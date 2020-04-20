@@ -1,8 +1,8 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError
+from ..fetchers.porn_fetcher import PornFetcher
 
 # Internet tools
-from .. import urlparse, urljoin, quote_plus
+from .. import urljoin, quote_plus
 
 # Regex
 import re
@@ -95,9 +95,8 @@ class Porn300(PornFetcher):
         max_page = None
         res = []
         while 1:
-            try:
-                page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
-            except PornFetchUrlError:
+            page_request = self._get_object_request_no_exception_check(category_data)
+            if not self._check_is_available_page(category_data, page_request):
                 break
             page_json = page_request.json()
             if max_page is None:
@@ -148,9 +147,8 @@ class Porn300(PornFetcher):
         max_page = None
         res = []
         while 1:
-            try:
-                page_request = self.get_object_request(tag_data, override_page_number=page, send_error=False)
-            except PornFetchUrlError:
+            page_request = self._get_object_request_no_exception_check(tag_data)
+            if not self._check_is_available_page(tag_data, page_request):
                 break
 
             page_json = page_request.json()

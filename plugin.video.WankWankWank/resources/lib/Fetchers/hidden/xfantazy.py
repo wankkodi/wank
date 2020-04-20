@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError
+from ..fetchers.porn_fetcher import PornFetcher
 
 # Internet tools
 from .. import urljoin, quote
@@ -210,10 +210,9 @@ class XFantazy(PornFetcher):
         :param category_data: Category data (dict).
         :return:
         """
-        try:
-            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
-                else fetched_request
-        except PornFetchUrlError:
+        page_request = self._get_object_request_no_exception_check(category_data) if fetched_request is None \
+            else fetched_request
+        if not self._check_is_available_page(category_data, page_request):
             return 1
         raw_data = page_request.json()
         key = [k for k in raw_data['data'] if 'get' in k]

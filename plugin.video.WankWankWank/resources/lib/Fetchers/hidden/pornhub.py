@@ -706,22 +706,22 @@ class PornHub(PornFetcher):
             return 1
         max_page = 1
         while 1:
-            try:
-                page_request = self.get_object_request(category_data, override_page_number=max_page, send_error=False)
+            page_request = self.get_object_request(category_data, override_page_number=max_page)
+            if self._check_is_available_page(category_data, page_request):
                 tree = self.parser.parse(page_request.text)
                 available_pages = self._get_available_pages_from_tree(tree)
                 if len(available_pages) > 0 and max(available_pages) > max_page:
                     max_page = max(available_pages)
                 else:
                     return max_page
-            except PornFetchUrlError as err:
+            else:
                 max_page -= 1
                 if max_page == 0:
                     # We reached the illegal page
-                    error_module = self._prepare_porn_error_module(category_data, 0, err.request.url,
+                    error_module = self._prepare_porn_error_module(category_data, 0, page_request.url,
                                                                    'Reached page 0 for object {obj}'
                                                                    ''.format(obj=category_data.title))
-                    raise PornFetchUrlError(err.request, error_module)
+                    raise PornFetchUrlError(page_request, error_module)
 
     def _get_available_pages_from_tree(self, tree):
         """

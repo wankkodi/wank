@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError
+from ..fetchers.porn_fetcher import PornFetcher
 
 # Internet tools
 from .. import urljoin, quote_plus, parse_qs
@@ -219,10 +219,9 @@ class SexTvX(PornFetcher):
         """
         if category_data.object_type in (PornCategories.CATEGORY_MAIN, ):
             return 1
-        try:
-            page_request = self.get_object_request(category_data, override_page_number=2) \
-                if fetched_request is None else fetched_request
-        except PornFetchUrlError:
+        page_request = self._get_object_request_no_exception_check(category_data) if fetched_request is None \
+            else fetched_request
+        if not self._check_is_available_page(category_data, page_request):
             return 1
         tree = self.parser.parse(page_request.text)
         available_pages = self._get_available_pages_from_tree(tree)

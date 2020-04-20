@@ -387,7 +387,7 @@ class CatalogManager(object):
             try:
                 with open(self.store_filename, 'rb') as fl:
                     self.store_data = pickle.load(fl)
-            except EOFError:
+            except (EOFError, ValueError):
                 self.store_data = {}
             if self.session_id in self.store_data:
                 self._nodes = self.store_data[self.session_id]
@@ -809,7 +809,7 @@ class VideoFilter(object):
                 with open(self.store_filename, 'rb') as fl:
                     self._filters, self._current_filter_values, self._conditions = pickle.load(fl)
                 init_data = False
-        except EOFError:
+        except (EOFError, ValueError):
             init_data = True
         if init_data is True:
             raw_data = self._prepare_input(general_filters, length_filters, added_before_filters,

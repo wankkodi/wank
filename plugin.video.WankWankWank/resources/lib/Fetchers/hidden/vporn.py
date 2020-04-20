@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError
+from ..fetchers.porn_fetcher import PornFetcher
 
 # Internet tools
 from .. import urljoin, quote_plus
@@ -353,10 +353,9 @@ class VPorn(PornFetcher):
         In binary search performs test whether the current page is available.
         :return:
         """
-        try:
-            page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
-        except PornFetchUrlError as err:
-            return False, err.request
+        page_request = self._get_object_request_no_exception_check(category_data, override_page_number=page)
+        if not self._check_is_available_page(category_data, page_request):
+            return False, page_request
         tree = self.parser.parse(page_request.text)
         pages = self._get_available_pages_from_tree(tree)
         if len(pages) == 0:

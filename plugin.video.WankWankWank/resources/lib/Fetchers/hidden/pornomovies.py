@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError
+from ..fetchers.porn_fetcher import PornFetcher
 
 # Internet tools
 from .. import urljoin, parse_qs, quote
@@ -186,8 +186,8 @@ class PornoMovies(PornFetcher):
             elif left_page > right_page:
                 # We had a mistake on the previous measurement
                 right_page = 2 * (right_page - left_page) + left_page
-            try:
-                page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
+            page_request = self._get_object_request_no_exception_check(category_data, override_page_number=page)
+            if self._check_is_available_page(category_data, page_request):
                 tree = self.parser.parse(page_request.text)
                 pages = self._get_available_pages_from_tree(tree)
                 if len(pages) == 0:
@@ -199,7 +199,7 @@ class PornoMovies(PornFetcher):
                         return max_page
 
                     left_page = max_page
-            except PornFetchUrlError:
+            else:
                 # We moved too far...
                 right_page = page - 1
             page = int(math.ceil((right_page + left_page) / 2))

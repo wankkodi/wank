@@ -160,10 +160,9 @@ class TubeV(PornFetcher):
         """
         if category_data.object_type in (PornCategories.CHANNEL_MAIN, ):
             return 1
-        try:
-            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
-                else fetched_request
-        except PornFetchUrlError:
+        page_request = self._get_object_request_no_exception_check(category_data) if fetched_request is None \
+            else fetched_request
+        if not self._check_is_available_page(category_data, page_request):
             return 1
         tree = self.parser.parse(page_request.text)
         pages = self._get_available_pages_from_tree(tree)
@@ -196,8 +195,8 @@ class TubeV(PornFetcher):
                 # Strange case where we don't have the particular page number,
                 # so we move backward till we find the true page number
                 left_page = right_page - self._binary_search_page_threshold
-            try:
-                page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
+            page_request = self._get_object_request_no_exception_check(category_data, override_page_number=page)
+            if self._check_is_available_page(category_data, page_request):
                 tree = self.parser.parse(page_request.text)
                 pages = self._get_available_pages_from_tree(tree)
                 if len(pages) == 0:
@@ -209,7 +208,7 @@ class TubeV(PornFetcher):
                         return max_page
 
                     left_page = max_page
-            except PornFetchUrlError:
+            else:
                 # We moved too far...
                 right_page = page - 1
             page = int(math.ceil((right_page + left_page) / 2))

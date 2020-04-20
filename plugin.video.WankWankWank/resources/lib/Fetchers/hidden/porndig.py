@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError
+from ..fetchers.porn_fetcher import PornFetcher
 
 # Internet tools
 from .. import urljoin, quote_plus
@@ -395,8 +395,8 @@ class PornDig(PornFetcher):
         page = last_available_number_of_pages if last_available_number_of_pages is not None \
             else int(math.ceil((right_page + left_page) / 2))
         while 1:
-            try:
-                page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
+            page_request = self._get_object_request_no_exception_check(category_data, override_page_number=page)
+            if self._check_is_available_page(category_data, page_request):
                 if page == 1:
                     # todo: take care of this section...
                     print('debug, remove afterwards...')
@@ -413,7 +413,7 @@ class PornDig(PornFetcher):
                     left_page = page
                     if left_page >= right_page:
                         return left_page
-            except PornFetchUrlError:
+            else:
                 # We moved too far...
                 return 1
             page = int(math.ceil((right_page + left_page) / 2))

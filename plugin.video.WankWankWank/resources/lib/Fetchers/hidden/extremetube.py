@@ -10,7 +10,8 @@ import re
 
 # JSON
 from ..tools.text_json_manioulations import prepare_json_from_not_formatted_text
-import json
+# import json
+
 try:
     from json import JSONDecodeError
 except ImportError:
@@ -274,10 +275,9 @@ class ExtremeTube(PornFetcher):
         """
         if category_data.object_type in (PornCategories.CATEGORY_MAIN, PornCategories.HOTTEST_VIDEO):
             return 1
-        try:
-            page_request = self.get_object_request(category_data, page_type='json', send_error=False) \
-                if fetched_request is None else fetched_request
-        except PornFetchUrlError:
+        page_request = self.get_object_request(category_data, page_type='json') \
+            if fetched_request is None else fetched_request
+        if not self._check_is_available_page(category_data, page_request):
             return 1
         try:
             raw_res = page_request.json()
@@ -419,7 +419,7 @@ class ExtremeTube(PornFetcher):
         raise NotImplemented
 
     def get_object_request(self, page_data, override_page_number=None, override_params=None, override_url=None,
-                           page_type='regular', send_error=True):
+                           page_type='regular'):
         """
         Fetches the page number with respect to base url.
         :param page_data: Page data.
@@ -427,7 +427,26 @@ class ExtremeTube(PornFetcher):
         :param override_params: Override params.
         :param override_url: Override url.
         :param page_type: Indicates whether we want to have 'regular' or 'json' page.
-        :param send_error: Flag that indicates whether we send the error to the server. True by default.
+        :return: Page request
+        """
+        res = self._get_object_request_no_exception_check(page_data, override_page_number, override_params,
+                                                          override_url, page_type)
+        if not self._check_is_available_page(page_data, res):
+            error_module = self._prepare_porn_error_module(
+                page_data, 0, res.url,
+                'Could not fetch {url} in object {obj}'.format(url=res.url, obj=page_data.title))
+            raise PornFetchUrlError(res, error_module)
+        return res
+
+    def _get_object_request_no_exception_check(self, page_data, override_page_number=None, override_params=None,
+                                               override_url=None, page_type='regular'):
+        """
+        Fetches the page number with respect to base url.
+        :param page_data: Page data.
+        :param override_page_number: Override page number.
+        :param override_params: Override params.
+        :param override_url: Override url.
+        :param page_type: Indicates whether we want to have 'regular' or 'json' page.
         :return: Page request
         """
         if page_type == 'json':
@@ -1217,10 +1236,9 @@ class SpankWire(PornFetcher):
         :param category_data: Category data (dict).
         :return:
         """
-        try:
-            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
-                else fetched_request
-        except PornFetchUrlError:
+        page_request = self.get_object_request(category_data) if fetched_request is None \
+            else fetched_request
+        if not self._check_is_available_page(category_data, page_request):
             return 1
         raw_res = page_request.json()
         return raw_res['pages']
@@ -1308,15 +1326,14 @@ class SpankWire(PornFetcher):
                                 page_filter, fetch_base_url):
         raise NotImplemented
 
-    def get_object_request(self, page_data, override_page_number=None, override_params=None, override_url=None,
-                           send_error=True):
+    def _get_object_request_no_exception_check(self, page_data, override_page_number=None, override_params=None,
+                                               override_url=None):
         """
         Fetches the page number with respect to base url.
         :param page_data: Page data.
         :param override_page_number: Override page number.
         :param override_params: Override params.
         :param override_url: Override url.
-        :param send_error: Flag that indicates whether we send the error to the server. True by default.
         :return: Page request
         """
         url, additional_params = self._prepare_request_params(page_data)
@@ -1343,16 +1360,6 @@ class SpankWire(PornFetcher):
             'User-Agent': self.user_agent
         }
         page_request = self.session.get(url, headers=headers, params=params)
-
-        if not self._check_is_available_page(page_data, page_request):
-            if send_error is True:
-                error_module = self._prepare_porn_error_module(page_data, 0, page_request.url,
-                                                               'Could not fetch {url} in object {obj}'
-                                                               ''.format(url=page_request.url, obj=page_data.title))
-            else:
-                error_module = None
-            raise PornFetchUrlError(page_request, error_module)
-
         return page_request
 
     def _prepare_new_search_query(self, query):

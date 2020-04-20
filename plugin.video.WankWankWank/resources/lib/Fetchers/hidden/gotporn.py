@@ -308,8 +308,28 @@ class GotPorn(PornFetcher):
         page_data.add_sub_objects(res)
         return res
 
-    def get_object_request(self, page_data, override_page_number=None, override_params=None, override_url=None,
-                           force_fetch_channel_page=False, send_error=True):
+    def get_object_request(self, object_data, override_page_number=None, override_params=None, override_url=None,
+                           force_fetch_channel_page=False):
+        """
+        Fetches the page number with respect to base url.
+        :param object_data: Page data.
+        :param override_page_number: Override page number.
+        :param override_params: Override params.
+        :param override_url: Override url.
+        :param force_fetch_channel_page: Flag that indicates whether we fetch the whole channel page or its, json.
+        :return: Page request
+        """
+        res = self._get_object_request_no_exception_check(object_data, override_page_number, override_params,
+                                                          override_url, force_fetch_channel_page)
+        if not self._check_is_available_page(object_data, res):
+            error_module = self._prepare_porn_error_module(
+                object_data, 0, res.url,
+                'Could not fetch {url} in object {obj}'.format(url=res.url, obj=object_data.title))
+            raise PornFetchUrlError(res, error_module)
+        return res
+
+    def _get_object_request_no_exception_check(self, page_data, override_page_number=None, override_params=None,
+                                               override_url=None, force_fetch_channel_page=False, ):
         """
         Fetches the page number with respect to base url.
         :param page_data: Page data.
@@ -317,7 +337,6 @@ class GotPorn(PornFetcher):
         :param override_params: Override params.
         :param override_url: Override url.
         :param force_fetch_channel_page: Flag that indicates whether we fetch the whole channel page or its, json.
-        :param send_error: Flag that indicates whether we send the error to the server. True by default.
         :return: Page request
         """
         if page_data.object_type == PornCategories.CHANNEL and force_fetch_channel_page is True:
@@ -335,15 +354,6 @@ class GotPorn(PornFetcher):
             }
 
             page_request = self.session.get(page_data.url, headers=headers)
-            if not self._check_is_available_page(page_data, page_request):
-                if send_error is True:
-                    error_module = self._prepare_porn_error_module(page_data, 0, page_request.url,
-                                                                   'Could not fetch {url} in object {obj}'
-                                                                   ''.format(url=page_request.url, obj=page_data.title))
-                else:
-                    error_module = None
-                raise PornFetchUrlError(page_request, error_module)
-
             return page_request
         else:
             return super(GotPorn, self).get_object_request(page_data, override_page_number, override_params,
@@ -679,8 +689,8 @@ class PornHD(PornFetcher):
             else int(math.ceil((right_page + left_page) / 2))
         use_max_page_flag = True
         while 1:
-            try:
-                page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
+            page_request = self._get_object_request_no_exception_check(category_data, override_page_number=page)
+            if self._check_is_available_page(category_data, page_request):
                 tree = self.parser.parse(page_request.text)
                 pages = self._get_available_pages_from_tree(tree)
                 if len(pages) == 0:
@@ -692,7 +702,7 @@ class PornHD(PornFetcher):
                         return max_page
 
                     left_page = max_page
-            except PornFetchUrlError:
+            else:
                 # We moved too far...
                 right_page = page - 1
                 if left_page >= right_page:
@@ -714,8 +724,8 @@ class PornHD(PornFetcher):
         page = last_available_number_of_pages if last_available_number_of_pages is not None \
             else int(math.ceil((right_page + left_page) / 2))
         while 1:
-            try:
-                page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
+            page_request = self._get_object_request_no_exception_check(category_data, override_page_number=page)
+            if self._check_is_available_page(category_data, page_request):
                 tree = self.parser.parse(page_request.text)
                 videos = tree.xpath('.//ul[@class="thumbs live-girls"]/li')
                 if len(videos) == 0:
@@ -726,7 +736,7 @@ class PornHD(PornFetcher):
 
                 if left_page == right_page:
                     return left_page
-            except PornFetchUrlError:
+            else:
                 # We moved too far...
                 right_page = page - 1
                 if left_page >= right_page:

@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError
+from ..fetchers.porn_fetcher import PornFetcher
 
 # Internet tools
 from .. import urljoin, urlparse, quote_plus
@@ -209,10 +209,9 @@ class NubileFilmXXX(BaseObject):
         if category_data.object_type in (PornCategories.CATEGORY_MAIN, PornCategories.PORN_STAR_MAIN,
                                          PornCategories.CHANNEL_MAIN):
             return 1
-        try:
-            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
-                else fetched_request
-        except PornFetchUrlError:
+        page_request = self._get_object_request_no_exception_check(category_data) if fetched_request is None \
+            else fetched_request
+        if not self._check_is_available_page(category_data, page_request):
             return 1
         tree = self.parser.parse(page_request.text)
         available_pages = self._get_available_pages_from_tree(tree)
@@ -334,9 +333,8 @@ class PlusOne8(NubileFilmXXX):
         max_page = None
         res = []
         while 1:
-            try:
-                page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
-            except PornFetchUrlError:
+            page_request = self._get_object_request_no_exception_check(category_data, override_page_number=page)
+            if not self._check_is_available_page(category_data, page_request):
                 break
             tree = self.parser.parse(page_request.text)
             if max_page is None:
@@ -420,10 +418,9 @@ class PlusOne8(NubileFilmXXX):
         """
         if category_data.object_type in (PornCategories.TAG_MAIN, PornCategories.CATEGORY_MAIN):
             return 1
-        try:
-            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
-                else fetched_request
-        except PornFetchUrlError:
+        page_request = self._get_object_request_no_exception_check(category_data) if fetched_request is None \
+            else fetched_request
+        if not self._check_is_available_page(category_data, page_request):
             return 1
         tree = self.parser.parse(page_request.text)
         available_pages = self._get_available_pages_from_tree(tree)

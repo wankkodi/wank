@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError
+from ..fetchers.porn_fetcher import PornFetcher
 
 # Internet tools
 from .. import urljoin, quote_plus
@@ -199,10 +199,9 @@ class FakingsTV(PornFetcher):
         if category_data.object_type in (PornCategories.TAG_MAIN, ):
             return 1
         start_page = category_data.page_number if category_data.page_number is not None else 1
-        try:
-            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
-                else fetched_request
-        except PornFetchUrlError:
+        page_request = self._get_object_request_no_exception_check(category_data) if fetched_request is None \
+            else fetched_request
+        if not self._check_is_available_page(category_data, page_request):
             return 1
 
         tree = self.parser.parse(page_request.text)
@@ -238,8 +237,8 @@ class FakingsTV(PornFetcher):
             if right_page == left_page:
                 return left_page
 
-            try:
-                page_request = self.get_object_request(category_data, override_page_number=page, send_error=False)
+            page_request = self._get_object_request_no_exception_check(category_data, override_page_number=page)
+            if self._check_is_available_page(category_data, page_request):
                 tree = self.parser.parse(page_request.text)
                 pages = self._get_available_pages_from_tree(tree)
                 if len(pages) > 0:
@@ -247,7 +246,7 @@ class FakingsTV(PornFetcher):
                     left_page = page + 1
                 else:
                     right_page = page
-            except PornFetchUrlError:
+            else:
                 # We moved too far...
                 right_page = page - 1
             page = int(math.floor((right_page + left_page) / 2))

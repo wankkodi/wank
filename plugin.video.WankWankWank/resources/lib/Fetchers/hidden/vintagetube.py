@@ -1,5 +1,5 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError
+from ..fetchers.porn_fetcher import PornFetcher
 
 # Internet tools
 from .. import urlparse, quote, quote_plus
@@ -197,10 +197,9 @@ class VintageTube(PornFetcher):
         """
         if category_data.number_of_videos is not None:
             return math.ceil(category_data.number_of_videos / self.items_per_page)
-        try:
-            page_request = self.get_object_request(category_data, send_error=False) if fetched_request is None \
-                else fetched_request
-        except PornFetchUrlError:
+        page_request = self._get_object_request_no_exception_check(category_data) if fetched_request is None \
+            else fetched_request
+        if not self._check_is_available_page(category_data, page_request):
             return 1
         tree = page_request.json()
         available_pages = self._get_available_pages_from_tree(tree)
