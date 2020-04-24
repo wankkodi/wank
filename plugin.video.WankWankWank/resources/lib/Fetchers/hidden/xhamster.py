@@ -63,6 +63,14 @@ class XHamster(PornFetcher):
         """
         return 'https://xhamster.com/'
 
+    @property
+    def possible_empty_pages(self):
+        """
+        Defines whether it is possible to have empty pages in the site.
+        :return:
+        """
+        return True
+
     def _set_video_filter(self):
         """
         Sets the video filters and the default values of the current filters
@@ -213,7 +221,7 @@ class XHamster(PornFetcher):
         for porn_star in porn_stars:
             link_data = porn_star.xpath('./a[@class="pornstar-thumb-container__image"]')
             image_data = link_data[0].xpath('./img')
-            image = image_data[0].attrib['src']
+            image = image_data[0].attrib['src'] if len(image_data) > 0 and 'src' in image_data[0].attrib else None
 
             ranking = porn_star.xpath('./a[2]/text()')
             assert len(ranking) == 1
@@ -469,6 +477,7 @@ class XHamster(PornFetcher):
 
                 link_data = video_tree_data.xpath('./a')
                 assert len(link_data) == 1
+                link = link_data[0].attrib['href']
 
                 is_hd = video_tree_data.xpath('./a/i')
                 is_vr = False
@@ -485,36 +494,47 @@ class XHamster(PornFetcher):
                     is_vr = True
                 else:
                     raise RuntimeError('Wrong class of HD indicator!')
+                is_hd = resolution != 'SD'
 
-                image = video_tree_data.xpath('./a/img/@src')
+                image = video_tree_data.xpath('./a/img')
                 assert len(image) == 1
+                image = image[0].attrib['src']
+                preview_video_link = link_data[0].attrib['data-previewvideo'] \
+                    if 'data-previewvideo' in link_data[0].attrib else None
 
-                video_length = video_tree_data.xpath('./a/div[@class="thumb-image-container__duration"]/text()')
+                video_length = video_tree_data.xpath('./a/div[@class="thumb-image-container__duration"]')
                 assert len(video_length) == 1
+                video_length = self._format_duration(video_length[0].text)
 
-                title = video_tree_data.xpath('.//div[@class="video-thumb-info"]/a/text()')
+                title = video_tree_data.xpath('.//div[@class="video-thumb-info"]/a')
                 assert len(title) == 1
+                title = title[0].text
 
                 viewers = video_tree_data.xpath('.//div[@class="video-thumb-info"]//'
-                                                'div[@class="video-thumb-info__metric-container views"]/span/text()')
+                                                'div[@class="video-thumb-info__metric-container views"]/span')
                 assert len(viewers) == 1
+                viewers = viewers[0].text
 
-                rating = video_tree_data.xpath('.//div[@class="video-thumb-info"]//'
-                                               'div[@class="video-thumb-info__metric-container rating colored-green"]/'
-                                               'span/text()')
+                rating = (video_tree_data.xpath('.//div[@class="video-thumb-info"]//'
+                                                'div[@class="video-thumb-info__metric-container rating colored-green"]/'
+                                                'span') +
+                          video_tree_data.xpath('.//div[@class="video-thumb-info"]//'
+                                                'div[@class="video-thumb-info__metric-container rating colored-red"]/'
+                                                'span'))
                 assert len(rating) == 1
+                rating = rating[0].text
 
                 res.append(PornCatalogVideoPageNode(catalog_manager=self.catalog_manager,
-                                                    obj_id=link_data[0].attrib['href'],
-                                                    url=urljoin(self.base_url, link_data[0].attrib['href']),
-                                                    title=title[0],
-                                                    image_link=image[0],
-                                                    preview_video_link=link_data[0].attrib['data-previewvideo'],
-                                                    is_hd=resolution != 'SD',
+                                                    obj_id=link,
+                                                    url=urljoin(self.base_url, link),
+                                                    title=title,
+                                                    image_link=image,
+                                                    preview_video_link=preview_video_link,
+                                                    is_hd=is_hd,
                                                     is_vr=is_vr,
-                                                    duration=self._format_duration(video_length[0]),
-                                                    number_of_views=viewers[0],
-                                                    rating=rating[0],
+                                                    duration=video_length,
+                                                    number_of_views=viewers,
+                                                    rating=rating,
                                                     object_type=PornCategories.VIDEO,
                                                     super_object=page_data,
                                                     ))

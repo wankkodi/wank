@@ -49,6 +49,14 @@ class OkXXX(PornFetcher):
         """
         return 'https://ok.xxx/'
 
+    @property
+    def possible_empty_pages(self):
+        """
+        Defines whether it is possible to have empty pages in the site.
+        :return:
+        """
+        return True
+
     def _set_video_filter(self):
         """
         Sets the video filters and the default values of the current filters
@@ -106,7 +114,7 @@ class OkXXX(PornFetcher):
 
             image_data = link_data[0].xpath('./img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src']
+            image = urljoin(self.base_url, image_data[0].attrib['src'])
 
             number_of_videos_data = category.xpath('./div[@class="thumb-total"]/i')
             assert len(number_of_videos_data) == 1
@@ -185,9 +193,14 @@ class OkXXX(PornFetcher):
             link = video_tree_data.attrib['href']
             title = video_tree_data.attrib['title']
 
-            image = video_tree_data.xpath('./img')
-            image = (image[0].attrib['data-src'] if 'data-src' in image[0].attrib else image[0].attrib['src']) \
-                if len(image) == 1 else None
+            image_data = video_tree_data.xpath('./img')
+            image = (image_data[0].attrib['data-src'] if 'data-src' in image_data[0].attrib
+                     else image_data[0].attrib['src']) \
+                if len(image_data) == 1 else None
+            if image is not None:
+                if 'data:image' in image:
+                    image = image_data[0].attrib['data-original']
+                image = urljoin(self.base_url, image)
             flip_images = [re.sub(r'\d+.jpg$', '{p}.jpg'.format(p=p), image)
                            for p in range(1, self.max_flip_images + 1)]
 

@@ -497,7 +497,7 @@ class PornCatalogMainCategoryNode(PornCatalogNode):
                  subtitle=None, description=None, duration=None, date=None,
                  object_type=None, additional_data=None, raw_data=None,
                  number_of_videos=None, number_of_photos=None, number_of_views=None, number_of_subscribers=None,
-                 rating=None, video_preview_link=None,
+                 rating=None, preview_video_link=None,
                  ):
         """
         C'tor
@@ -524,7 +524,7 @@ class PornCatalogMainCategoryNode(PornCatalogNode):
         :param number_of_views:
         :param number_of_subscribers:
         :param rating:
-        :param video_preview_link:
+        :param preview_video_link:
         """
         super(PornCatalogMainCategoryNode, self).__init__(catalog_manager, obj_id, title, number, page_number, url,
                                                           image_link, poster_link, related_objects,
@@ -536,7 +536,7 @@ class PornCatalogMainCategoryNode(PornCatalogNode):
         self.number_of_views = number_of_views
         self.number_of_subscribers = number_of_subscribers
         self.rating = rating
-        self.video_preview_link = video_preview_link
+        self.preview_video_link = preview_video_link
 
 
 class PornCatalogCategoryNode(PornCatalogMainCategoryNode):

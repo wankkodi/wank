@@ -46,6 +46,14 @@ class FapBraze(PornFetcher):
         }
 
     @property
+    def possible_empty_pages(self):
+        """
+        Defines whether it is possible to have empty pages in the site.
+        :return:
+        """
+        return True
+
+    @property
     def base_url(self):
         """
         Base site url.
@@ -531,7 +539,7 @@ class FreeHDInterracialPorn(FapBraze):
 
             image_data = link_data[0].xpath('./img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src']
+            image = urljoin(self.base_url, image_data[0].attrib['src'])
             title = link_data[0].attrib['title'] if 'title' in link_data[0].attrib else image_data[0].attrib['alt']
 
             number_of_videos = category.xpath('./div[@class="{kw}-info {kw}-videos"]/i'.format(kw=xpath_keyword))

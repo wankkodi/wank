@@ -203,12 +203,32 @@ class GoForPorn(PornFetcher):
             return 1
         page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
         tree = self.parser.parse(page_request.text)
-        max_videos = tree.xpath('.//div[@class="beast"]/span[@class="artifact"]')
-        assert len(max_videos) == 1
-        max_videos = re.findall(r'([\d.]*)(K* *$)', max_videos[0].text)
-        max_videos = int(float(max_videos[0][0]) * (1000 if 'K' in max_videos[0][1] else 1))
-        videos_per_page = len(tree.xpath('.//div[@class="camp cow"]/div[@class="tightly"]'))
-        return math.ceil(max_videos / videos_per_page)
+        pages = self._get_available_pages_from_tree(tree)
+        if len(pages) == 0:
+            return 1
+        elif (max(pages) - 1) < self._binary_search_page_threshold:
+            return max(pages)
+        else:
+            return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
+        # max_videos = tree.xpath('.//div[@class="beast"]/span[@class="artifact"]')
+        # assert len(max_videos) == 1
+        # max_videos = re.findall(r'([\d.]*)(K* *$)', max_videos[0].text)
+        # max_videos = int(float(max_videos[0][0]) * (1000 if 'K' in max_videos[0][1] else 1))
+        # videos_per_page = len(tree.xpath('.//div[@class="camp cow"]/div[@class="tightly"]'))
+        # return math.ceil(max_videos / videos_per_page)
+
+    def _get_available_pages_from_tree(self, tree):
+        """
+        In binary looks for the available pages from current page tree.
+        :param tree: Current page tree.
+        :return: List of available trees
+        """
+        return [int(x.text) for x in tree.xpath('.//ul[@class="hidden seal"]/li/*')
+                if x.text is not None and x.text.isdigit()]
+
+    @property
+    def _binary_search_page_threshold(self):
+        return 5
 
     def get_videos_data(self, page_data):
         """
@@ -237,7 +257,8 @@ class GoForPorn(PornFetcher):
             for info in additional_info:
                 items = info.xpath('./div/a') + info.xpath('./div/a')
                 title = info.xpath('./div/span') + info.xpath('./span')
-
+                if len(items) == 0 and len(title) == 0:
+                    continue
                 title = title[0].text
                 if title == 'Cats: ':
                     additional_data['categories'] = [{'name': x.text, 'link': x.attrib['href']} for x in items]

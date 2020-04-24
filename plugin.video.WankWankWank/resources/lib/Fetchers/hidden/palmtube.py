@@ -114,7 +114,7 @@ class PalmTube(PornFetcher):
 
             image_data = category.xpath('./img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src']
+            image = urljoin(self.base_url, image_data[0].attrib['src'])
             title = image_data[0].attrib['alt'] \
                 if 'alt' in image_data[0].attrib else category.xpath('./span[@class="Thumb_Title"]')[0].text
 
@@ -192,7 +192,8 @@ class PalmTube(PornFetcher):
             page_request = self.get_object_request(page_object)
         if not page_request.ok:
             return False
-        if len(page_request.history) > 0:
+        # todo: maybe temporary restriction for porn star category. To recheck later...
+        if len(page_request.history) > 0 and page_object.true_object.object_type not in (PornCategories.PORN_STAR, ):
             if len(page_request.history) != 1 or page_request.history[0].url.split('?')[0] != self._watch_url:
                 return False
         tree = self.parser.parse(page_request.text)

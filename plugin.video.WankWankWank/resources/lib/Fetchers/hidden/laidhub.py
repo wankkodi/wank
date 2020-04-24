@@ -41,6 +41,14 @@ class BaseClass(PornFetcher):
         raise NotImplementedError
 
     @property
+    def possible_empty_pages(self):
+        """
+        Defines whether it is possible to have empty pages in the site.
+        :return:
+        """
+        return True
+
+    @property
     def object_urls(self):
         return {
             PornCategories.CATEGORY_MAIN: urljoin(self.base_url, 'porn-categories/'),
@@ -168,8 +176,10 @@ class BaseClass(PornFetcher):
         res = []
         used_ids = set()
         for sub_object in sub_objects:
-            img = sub_object.xpath('./span[@class="image"]/img')
-            assert len(img) == 1
+            image_data = sub_object.xpath('./span[@class="image"]/img')
+            assert len(image_data) == 1
+            image = urljoin(self.base_url, image_data[0].attrib['src'])
+            title = image_data[0].attrib['alt']
 
             rating = sub_object.xpath('./span[@class="item-info"]/span[@class="item-stats"]/'
                                       'span[@class="s-elem s-e-rate"]/span[@class="sub-desc"]/text()')
@@ -182,8 +192,8 @@ class BaseClass(PornFetcher):
             object_data = PornCatalogCategoryNode(catalog_manager=self.catalog_manager,
                                                   obj_id=sub_object.attrib['href'],
                                                   url=urljoin(self.base_url, sub_object.attrib['href']),
-                                                  title=img[0].attrib['alt'],
-                                                  image_link=img[0].attrib['src'],
+                                                  title=title,
+                                                  image_link=image,
                                                   rating=rating,
                                                   number_of_videos=number_of_videos,
                                                   object_type=object_type,
@@ -353,7 +363,7 @@ class BaseClass(PornFetcher):
             image_data = (data_node.xpath('./div[@class="image-wrapp"]/img') +
                           data_node.xpath('./img'))
             assert len(image_data) == 1
-            image = image_data[0].attrib['src']
+            image = urljoin(self.base_url, image_data[0].attrib['src'])
             if title is None:
                 title = image_data[0].attrib['alt'] if 'alt' in image_data[0].attrib else None
             flip_images = [re.sub(r'\d+.jpg', '{d}.jpg'.format(d=d), image)
@@ -369,7 +379,9 @@ class BaseClass(PornFetcher):
                 # We have a gallery, skip that item...
                 continue
 
-            is_hd = data_node.xpath('./span[@class="quality"]/span')
+            is_hd_data = data_node.xpath('./span[@class="quality"]/span')
+            is_hd = len(is_hd_data) == 1 and is_hd_data[0].text == 'HD'
+            is_vr = len(is_hd_data) == 1 and is_hd_data[0].text == 'VR'
 
             if title is None:
                 title = sub_node.xpath('./span[@class="item-info"]/span[@class="title"]')
@@ -378,9 +390,10 @@ class BaseClass(PornFetcher):
 
             viewers_xpath = './span[@class="item-info"]/span[@class="item-stats"]/' \
                             'span[@class="s-elem s-e-views"]/span[@class="sub-desc"]'
-            viewers = sub_node.xpath(viewers_xpath) + video_tree_data.xpath(viewers_xpath)
-            assert len(viewers) == 1
-            viewers = viewers[0].text
+            viewers_data = sub_node.xpath(viewers_xpath) + video_tree_data.xpath(viewers_xpath)
+            assert len(viewers_data) >= 1
+            viewers = viewers_data[0].text
+            is_vr = is_vr or (len(viewers_data) == 2 and 'VR' in viewers_data[1].text)
 
             rating_xpath = './span[@class="item-info"]/span[@class="item-stats"]/' \
                            'span[@class="s-elem s-e-rate"]/span[@class="sub-desc"]'
@@ -395,8 +408,8 @@ class BaseClass(PornFetcher):
                                                   image_link=image,
                                                   flip_images_link=flip_images,
                                                   preview_video_link=video_preview,
-                                                  is_hd=len(is_hd) == 1 and is_hd[0].text == 'HD',
-                                                  is_vr=len(is_hd) == 1 and is_hd[0].text == 'VR',
+                                                  is_hd=is_hd,
+                                                  is_vr=is_vr,
                                                   duration=self._format_duration(video_length),
                                                   rating=rating,
                                                   number_of_views=viewers,
@@ -1095,6 +1108,7 @@ class Nudez(BaseClass):
         res = super(Nudez, self).object_urls
         res.pop(PornCategories.CHANNEL_MAIN)
         res.pop(PornCategories.TAG_MAIN)
+        res[PornCategories.CATEGORY_MAIN] = urljoin(self.base_url, 'channels/')
         return res
 
     @property
@@ -1217,6 +1231,23 @@ class WetSins(BaseClass):
         super(WetSins, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
                                       session_id)
 
+    def _get_tag_properties(self, page_request):
+        """
+        Fetches tag links and titles.
+        :param page_request: Page request.
+        :return:
+        """
+        tree = self.parser.parse(page_request.text)
+        raw_objects = tree.xpath('.//div[@class="textpage-inner-col inner-col"]/'
+                                 'div[@style="width: 25%; min-width: 250px; float: left;"]/span/a')
+        raw_numbers = tree.xpath('.//div[@class="textpage-inner-col inner-col"]/'
+                                 'div[@style="width: 25%; min-width: 250px; float: left;"]/span/span')
+        assert len(raw_objects) == len(raw_numbers)
+        links, titles, number_of_videos = \
+            zip(*[(x.attrib['href'], x.text, int(re.findall(r'\d+', y.text)[0]))
+                  for x, y in zip(raw_objects, raw_numbers)])
+        return links, titles, number_of_videos
+
 
 class XnxxHamster(BaseClass):
     @property
@@ -1319,6 +1350,7 @@ class PornXio(BaseClass):
     def object_urls(self):
         res = super(PornXio, self).object_urls
         res[PornCategories.CATEGORY_MAIN] = urljoin(self.base_url, 'category/')
+        res[PornCategories.CHANNEL_MAIN] = urljoin(self.base_url, 'studios/')
         return res
 
     @property

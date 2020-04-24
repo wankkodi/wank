@@ -189,6 +189,14 @@ class DraftSex(PornFetcher):
         tag_data.add_sub_objects(res)
         return res
 
+    @property
+    def _make_tag_pages_by_letter(self):
+        """
+        Indicates whether we split the tags by letters.
+        :return:
+        """
+        return False
+
     def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
         Extracts Video link from the video page without taking care of the exceptions (being done on upper level).
@@ -271,6 +279,10 @@ class DraftSex(PornFetcher):
             page_request = self.get_object_request(page_object)
         if page_object.object_type == PornCategories.VIDEO:
             return page_request.ok
+        if page_object.true_object.object_type in (PornCategories.TAG_MAIN, PornCategories.PORN_STAR_MAIN):
+            tree = self.parser.parse(page_request.text)
+            is_error = tree.xpath('.//div[@class="message-error"]')
+            return len(is_error) == 0
         else:
             tree = self.parser.parse(page_request.text)
             is_show_more = tree.xpath('.//div[@class="more"]')
@@ -327,7 +339,8 @@ class DraftSex(PornFetcher):
                 title = title[0] if len(title) == 1 else ''.join(title)
             else:
                 # AD-hoc solution
-                title = 'Untitled_{s}'.format(s=re.findall(r'(?:.*/)(.*)(?:.jpg)', img[0])[0])
+                title = 'Untitled_{s}'.format(s=re.findall(r'(?:.*/)(.*)(?:.jpg)', img[0])[0]) \
+                    if len(re.findall(r'(?:.*/)(.*)(?:.jpg)', img[0])) > 0 else 'Untitled'
             labels = re.findall(r'(?:\[)(.*?)(?:\])', title)
             if len(labels) > 0:
                 labels = labels[0].split(', ')
@@ -361,35 +374,23 @@ class DraftSex(PornFetcher):
 
     def _get_page_request_logic(self, page_data, params, page_number, true_object,
                                 page_filter, fetch_base_url):
+        headers = {
+            'Accept': 'text/html, */*; q=0.01',
+            'Cache-Control': 'max-age=0',
+            'Origin': self.base_url,
+            'Referer': page_data.url,
+            # 'Host': self.host_name,
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin',
+            'Upgrade-Insecure-Requests': '1',
+            'User-Agent': self.user_agent,
+            'X-Requested-With': 'XMLHttpRequest',
+        }
         if true_object.object_type in (PornCategories.CATEGORY_MAIN, PornCategories.PORN_STAR_MAIN,
-                                       PornCategories.TAG_MAIN, PornCategories.TAG,):
-            headers = {
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                          'q=0.8,application/signed-exchange;v=b3',
-                'Cache-Control': 'max-age=0',
-                # 'Host': self.host_name,
-                'Referer': self.base_url,
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'same-origin',
-                'Sec-Fetch-User': '?1',
-                'Upgrade-Insecure-Requests': '1',
-                'User-Agent': self.user_agent
-            }
+                                       PornCategories.TAG, PornCategories.TAG_MAIN,):
             if page_number is not None:
                 params.update({'page': [page_number]})
         else:
-            headers = {
-                'Accept': 'text/html, */*; q=0.01',
-                'Cache-Control': 'max-age=0',
-                'Origin': self.base_url,
-                'Referer': page_data.url,
-                # 'Host': self.host_name,
-                'Sec-Fetch-Mode': 'cors',
-                'Sec-Fetch-Site': 'same-origin',
-                'Upgrade-Insecure-Requests': '1',
-                'User-Agent': self.user_agent,
-                'X-Requested-With': 'XMLHttpRequest',
-            }
             params.update({
                 'hd': [page_filter.quality.value],
                 'sort': [page_filter.sort_order.value],

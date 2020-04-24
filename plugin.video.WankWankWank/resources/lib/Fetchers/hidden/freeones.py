@@ -143,15 +143,15 @@ class FreeOnes(PornFetcher):
         categories = tree.xpath('.//ul[@class="cloud-tags"]/li/a')
         res = []
         for category in categories:
-            split_link = category.attrib['href'].split('/')
-            split_link[2] = split_link[2].replace('videos', 'www')
-            split_link[3] = 'html/{l}_links'.format(l=split_link[-1][0].lower())
-            split_link[-1] = split_link[-1].replace(' ', '_')
-            split_link.append('videos')
-            split_link.append('')
-
-            link = '/'.join(split_link)
-            # link = category.attrib['href']
+            # split_link = category.attrib['href'].split('/')
+            # split_link[2] = split_link[2].replace('videos', 'www')
+            # split_link[3] = 'html/{l}_links'.format(l=split_link[-1][0].lower())
+            # split_link[-1] = split_link[-1].replace(' ', '_')
+            # split_link.append('videos')
+            # split_link.append('')
+            #
+            # link = '/'.join(split_link)
+            link = category.attrib['href']
             title = self._clear_text(category.text)
             number_of_videos = int(re.findall(r'(?:\()(\d+)(?:\)$)', title)[0])
             title = re.findall(r'(.*)(?: *\(\d+\)$)', title)[0]
@@ -189,7 +189,7 @@ class FreeOnes(PornFetcher):
 
             image = category.xpath('./a[2]/img')
             assert len(image) == 1
-            image = image[0].attrib['src']
+            image = urljoin(self.base_url, image[0].attrib['src'])
 
             res.append(PornCatalogCategoryNode(catalog_manager=self.catalog_manager,
                                                obj_id=link,
@@ -370,7 +370,7 @@ class FreeOnes(PornFetcher):
             'User-Agent': self.user_agent
         }
         if true_object.object_type in (PornCategories.CATEGORY, PornCategories.TAG):
-            if page_filter.sort_order.value != '':
+            if page_filter.sort_order.value is not None:
                 fetch_base_url += page_filter.sort_order.value + '/'
         elif true_object.object_type in (PornCategories.PORN_STAR_MAIN,):
             params['t'] = page_filter.period.value
@@ -379,9 +379,18 @@ class FreeOnes(PornFetcher):
             params['filter'] = [page_filter.sort_order.value]
 
         if page_number is not None and page_number != 1:
-            if page_data.super_object.object_type in (PornCategories.PORN_STAR, PornCategories.TAG):
+            if page_data.super_object.object_type == PornCategories.PORN_STAR:
                 params['pagesize'] = [len(page_data.super_object.sub_objects)]
                 params['page'] = [page_number]
+            elif page_data.super_object.object_type == PornCategories.TAG:
+                tmp_request = self.session.get(fetch_base_url, headers=headers, params=params)
+                if len(tmp_request.history) > 0:
+                    # We have redirection, thus, a porn-star alike object
+                    fetch_base_url = tmp_request.url
+                    params['pagesize'] = [len(page_data.super_object.sub_objects)]
+                    params['page'] = [page_number]
+                else:
+                    fetch_base_url += '/{d}.html'.format(d=page_number)
             elif page_data.super_object.object_type in (PornCategories.SEARCH_MAIN,):
                 params['page'] = [page_number]
             else:

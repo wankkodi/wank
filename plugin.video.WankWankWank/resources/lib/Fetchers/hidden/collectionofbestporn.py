@@ -30,7 +30,7 @@ class CollectionOfBestPorn(PornFetcher):
     def object_urls(self):
         return {
             PornCategories.CATEGORY_MAIN: 'https://collectionofbestporn.com/channels/',
-            PornCategories.TAG_MAIN: 'https://collectionofbestporn.com/tags/',
+            PornCategories.TAG_MAIN: 'https://collectionofbestporn.com/tags',
             PornCategories.PORN_STAR_MAIN: 'https://collectionofbestporn.com/pornstars/',
             PornCategories.LATEST_VIDEO: 'https://collectionofbestporn.com/most-recent',
             PornCategories.MOST_VIEWED_VIDEO: 'https://collectionofbestporn.com/most-viewed',

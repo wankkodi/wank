@@ -26,7 +26,7 @@ class ThreeMovs(PornFetcher):
             PornCategories.CATEGORY_MAIN: 'https://www.3movs.com/categories/',
             PornCategories.TAG_MAIN: 'https://www.3movs.com/tags/',
             PornCategories.PORN_STAR_MAIN: 'https://www.3movs.com/pornstars/',
-            PornCategories.RECOMMENDED_VIDEO: 'https://www.3movs.com/',
+            PornCategories.RECOMMENDED_VIDEO: 'https://www.3movs.com/videos/',
             PornCategories.LATEST_VIDEO: 'https://www.3movs.com/latest-updates/',
             PornCategories.MOST_VIEWED_VIDEO: 'https://www.3movs.com/most-viewed/',
             PornCategories.TOP_RATED_VIDEO: 'https://www.3movs.com/top-rated/',
@@ -51,6 +51,14 @@ class ThreeMovs(PornFetcher):
         :return:
         """
         return 'https://www.3movs.com'
+
+    @property
+    def possible_empty_pages(self):
+        """
+        Defines whether it is possible to have empty pages in the site.
+        :return:
+        """
+        return True
 
     def _set_video_filter(self):
         """
@@ -139,8 +147,10 @@ class ThreeMovs(PornFetcher):
         res = []
         for category in categories:
 
-            image = category.xpath('./span[@class="image-holder"]/img/@src')
-            assert len(image) == 1
+            image_data = category.xpath('./span[@class="image-holder"]/img')
+            assert len(image_data) == 1
+            image = image_data[0].attrib['src'] if 'data:image' not in image_data[0].attrib['src'] \
+                else image_data[0].attrib['data-src']
 
             title_data = (category.xpath('./span[@class="info"]/strong/text()') +
                           category.xpath('./div[@class="info"]/h2/text()'))
@@ -170,7 +180,7 @@ class ThreeMovs(PornFetcher):
                                                   obj_id=category.attrib['href'],
                                                   url=urljoin(base_object.url, category.attrib['href']),
                                                   title=title,
-                                                  image_link=image[0],
+                                                  image_link=image,
                                                   rating=rating,
                                                   number_of_videos=number_of_videos,
                                                   object_type=object_type,

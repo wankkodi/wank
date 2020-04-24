@@ -20,6 +20,8 @@ from ..id_generator import IdGenerator
 
 
 class AhMe(PornFetcher):
+    video_preview_prefix = 'https://ahmestatic.fuckandcdn.com/thumbs/previews/'
+
     # todo: add live cams...
     @property
     def object_urls(self):
@@ -185,13 +187,16 @@ class AhMe(PornFetcher):
         """
         page_request = self.get_object_request(page_data)
         tree = self.parser.parse(page_request.text)
-        videos = tree.xpath('.//div[@class="thumbs-container"]/div[@data-type="movie"]/div[@class="thumb-wrap"]')
+        videos = [x.xpath('./div[@class="thumb-wrap"]')[0] for x in tree.xpath('.//div[@class="thumbs-container"]/div')
+                  if 'class' in x.attrib and 'moviec' in x.attrib['class'] and
+                  len(x.xpath('./div[@class="thumb-wrap"]')) > 0]
         res = []
         for video_tree_data in videos:
             link_data = video_tree_data.xpath('./a')
             assert len(link_data) > 0
             link = link_data[0].attrib['href']
-            video_preview = link_data[0].attrib['data-preview'] if 'data-preview' in link_data[0].attrib else None
+            video_preview = urljoin(self.video_preview_prefix, link_data[0].attrib['data-preview']) \
+                if 'data-preview' in link_data[0].attrib else None
 
             image_data = video_tree_data.xpath('./a/img')
             assert len(image_data) == 1
@@ -319,6 +324,8 @@ class AhMe(PornFetcher):
 
 
 class SunPorno(AhMe):
+    video_preview_prefix = 'https://sunstatic.fuckandcdn.com/thumbs/previews/'
+
     @property
     def object_urls(self):
         return {
@@ -500,13 +507,15 @@ class SunPorno(AhMe):
         """
         page_request = self.get_object_request(page_data)
         tree = self.parser.parse(page_request.text)
-        videos = tree.xpath('.//div[@class="thumbs-container"]/div[@data-type="movie"]/div')
+        videos = [x.xpath('./div')[0] for x in tree.xpath('.//div[@class="thumbs-container"]/div')
+                  if 'class' in x.attrib and 'moviec' in x.attrib['class'] and
+                  len(x.xpath('./div')) > 0]
         res = []
         for video_tree_data in videos:
             link_data = video_tree_data.xpath('./a')
             assert len(link_data) > 0
             link = link_data[0].attrib['href']
-            video_preview = urljoin(page_data.url, link_data[0].attrib['data-preview']) \
+            video_preview = urljoin(self.video_preview_prefix, link_data[0].attrib['data-preview']) \
                 if 'data-preview' in link_data[0].attrib else None
 
             image_data = video_tree_data.xpath('./a/img')

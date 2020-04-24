@@ -22,6 +22,7 @@ class PornGo(PornFetcher):
     @property
     def object_urls(self):
         return {
+            PornCategories.CATEGORY_MAIN: urljoin(self.base_url, '/categories/'),
             PornCategories.PORN_STAR_MAIN: urljoin(self.base_url, '/models/'),
             PornCategories.CHANNEL_MAIN: urljoin(self.base_url, '/sites/'),
             PornCategories.TAG_MAIN: urljoin(self.base_url, '/categories/'),
@@ -38,6 +39,14 @@ class PornGo(PornFetcher):
             PornCategories.TOP_RATED_VIDEO: PornFilterTypes.RatingOrder,
             PornCategories.MOST_VIEWED_VIDEO: PornFilterTypes.ViewsOrder,
         }
+
+    @property
+    def possible_empty_pages(self):
+        """
+        Defines whether it is possible to have empty pages in the site.
+        :return:
+        """
+        return True
 
     @property
     def base_url(self):
@@ -91,6 +100,31 @@ class PornGo(PornFetcher):
         """
         super(PornGo, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
                                      session_id)
+
+    def _update_available_categories(self, category_data):
+        """
+        Fetches all the available shows.
+        :return: Object of all available shows (JSON).
+        """
+        page_request = self.get_object_request(category_data)
+        tree = self.parser.parse(page_request.text)
+        raw_objects = tree.xpath('.//div[@class="letter-section"]/div[@class="letter-block"]')
+        raw_objects = raw_objects[0].xpath('./div[@class="letter-items"]/div[@class="letter-block__item"]/a')
+        res = []
+        for category in raw_objects:
+            link = category.attrib['href']
+            title = category.xpath('./span')[0].text
+            if not title:
+                continue
+            res.append(PornCatalogCategoryNode(catalog_manager=self.catalog_manager,
+                                               obj_id=link,
+                                               url=urljoin(category_data.url, link),
+                                               title=title,
+                                               object_type=PornCategories.CATEGORY,
+                                               super_object=category_data,
+                                               ))
+        category_data.add_sub_objects(res)
+        return res
 
     def _update_available_porn_stars(self, porn_star_data):
         """
@@ -202,6 +236,8 @@ class PornGo(PornFetcher):
         :param category_data: Category data (dict).
         :return:
         """
+        if category_data.object_type in (PornCategories.CATEGORY_MAIN, PornCategories.TAG_MAIN, ):
+            return 1
         page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
         if not self._check_is_available_page(category_data, page_request):
             return 1
@@ -215,9 +251,9 @@ class PornGo(PornFetcher):
         :param tree: Current page tree.
         :return: List of available trees
         """
-        return [int(re.findall(r'(\d+)(?:/\?*)', x.attrib['href'])[0])
+        return [int(re.findall(r'(\d+)(?:/\?.*|/$)', x.attrib['href'])[0])
                 for x in tree.xpath('.//div[@class="pagination"]/div/a')
-                if 'href' in x.attrib and len(re.findall(r'(\d+)(?:/\?*)', x.attrib['href'])) > 0]
+                if 'href' in x.attrib and len(re.findall(r'(\d+)(?:/\?.*|/$)', x.attrib['href'])) > 0]
 
     def get_videos_data(self, page_data):
         """

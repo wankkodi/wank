@@ -3,6 +3,7 @@ from ..fetchers.porn_fetcher import PornFetcher, PornFetchUrlError, PornValueErr
 
 # Internet tools
 from .. import urljoin, urlparse, quote, quote_plus, parse_qs
+from requests import exceptions
 
 # Regex
 import re
@@ -89,6 +90,14 @@ class PornDotCom(PornFetcher):
         return 20000
 
     @property
+    def possible_empty_pages(self):
+        """
+        Defines whether it is possible to have empty pages in the site.
+        :return:
+        """
+        return True
+
+    @property
     def base_url(self):
         """
         Base site url.
@@ -110,11 +119,46 @@ class PornDotCom(PornFetcher):
         Fetches all the available shows.
         :return: Object of all available shows (JSON).
         """
-        return self._update_available_base_object(category_data,
-                                                  './/div[@class="list-global list-global--small"]/'
-                                                  'div[@class="list-global__item"]/'
-                                                  'div[@class="list-global__thumb"]/..',
-                                                  PornCategories.CATEGORY)
+        page_request = self.get_object_request(category_data)
+        tree = self.parser.parse(page_request.text)
+        categories = tree.xpath( './/div[@class="list-global__item"]/a/'
+                                 'div[@class="list-global__thumb"]/..')
+        res = []
+        for category in categories:
+            link = category.attrib['href']
+            title = category.attrib['title'] if 'title' in category.attrib else None
+
+            image_data = category.xpath('./div/picture/img')
+            assert len(image_data) == 1
+            image = image_data[0].attrib['src']
+
+            if title is None:
+                title_data = category.xpath('./div[@class="list-global__meta flex"]/p')
+                assert len(title_data) == 1
+                title = self._clear_text(title_data[0].text)
+
+            number_of_videos_data = category.xpath('./div[@class="list-global__meta flex"]/div/span')
+            assert len(number_of_videos_data) == 1
+            number_of_videos_data = re.findall(r'([\d.]+)(\w*)', number_of_videos_data[0].text)
+            number_of_videos = float(number_of_videos_data[0][0])
+            if len(number_of_videos_data[0]) > 1:
+                if number_of_videos_data[0][1] == 'M':
+                    number_of_videos *= 1e6
+                elif number_of_videos_data[0][1] == 'K':
+                    number_of_videos *= 1e3
+            number_of_videos = int(number_of_videos)
+
+            res.append(PornCatalogCategoryNode(catalog_manager=self.catalog_manager,
+                                               obj_id=link,
+                                               url=urljoin(category_data.url, link),
+                                               title=title,
+                                               image_link=image,
+                                               number_of_videos=number_of_videos,
+                                               object_type=PornCategories.CATEGORY,
+                                               super_object=category_data,
+                                               ))
+        category_data.add_sub_objects(res)
+        return res
 
     def _update_available_porn_stars(self, porn_star_data):
         """
@@ -122,9 +166,7 @@ class PornDotCom(PornFetcher):
         :return: Object of all available shows (JSON).
         """
         return self._update_available_base_object(porn_star_data,
-                                                  './/div[@class="list-global list-global--small"]/'
-                                                  'div[@class="list-global__item"]/'
-                                                  'div[@class="list-global__thumb"]/..',
+                                                  './/div[@class="list-global__item"]',
                                                   PornCategories.PORN_STAR)
 
     def _update_available_channels(self, channel_data):
@@ -132,10 +174,9 @@ class PornDotCom(PornFetcher):
         Fetches all the available shows.
         :return: Object of all available shows (JSON).
         """
+
         return self._update_available_base_object(channel_data,
-                                                  './/div[@class="list-global"]/'
-                                                  'div[@class="list-global__item"]/'
-                                                  'div[@class="list-global__thumb list-global__thumb--channel"]/..',
+                                                  './/div[@class="list-global__item"]',
                                                   PornCategories.CHANNEL)
 
     def _update_available_base_object(self, object_data, xpath, object_type):
@@ -148,17 +189,19 @@ class PornDotCom(PornFetcher):
         categories = tree.xpath(xpath)
         res = []
         for category in categories:
-            link_data = category.xpath('./div[1]/a')
-            assert len(link_data) == 2
+            link_data = category.xpath('./div/a/picture/..')
+            assert len(link_data) == 1
             link = link_data[0].attrib['href']
+            title = category.attrib['title'] if 'title' in category.attrib else None
 
             image_data = link_data[0].xpath('./picture/img')
             assert len(image_data) == 1
             image = image_data[0].attrib['src']
 
-            title_data = category.xpath('./div[@class="list-global__meta flex"]/p/a')
-            assert len(title_data) == 1
-            title = title_data[0].text
+            if title is None:
+                title_data = category.xpath('./div[@class="list-global__meta flex"]/p/a')
+                assert len(title_data) == 1
+                title = self._clear_text(title_data[0].text)
 
             number_of_videos_data = category.xpath('./div[@class="list-global__meta flex"]/div/span')
             assert len(number_of_videos_data) == 1
@@ -190,7 +233,7 @@ class PornDotCom(PornFetcher):
         :return:
         """
         tree = self.parser.parse(page_request.text)
-        raw_data = tree.xpath('.//ul[@class="category-list__group"]/li/a')
+        raw_data = tree.xpath('.//div[@class="category-list__group"]/a')
         links, titles, number_of_videos = zip(*[(x.attrib['href'], x.text, None)
                                                 for x in raw_data])
         return links, titles, number_of_videos
@@ -205,7 +248,7 @@ class PornDotCom(PornFetcher):
         tmp_tree = self.parser.parse(tmp_request.text)
         if urlparse(tmp_request.url).hostname == urlparse(self.embed_video_json_url).hostname:
             # We need to request the videos
-            video_id = tmp_request.url.split('/')[-1]
+            video_id = tmp_request.url.split('?')[0].split('/')[-1]
             params = {'scene_id': video_id, 'hls': 'no'}
             headers = {
                 'Accept': '*/*',
@@ -243,7 +286,7 @@ class PornDotCom(PornFetcher):
         :param category_data: Category data (dict).
         :return:
         """
-        if category_data.object_type == PornCategories.CATEGORY_MAINa:
+        if category_data.object_type == PornCategories.CATEGORY_MAIN:
             return 1
 
         if fetched_request is None:
@@ -273,7 +316,7 @@ class PornDotCom(PornFetcher):
         """
         Available pages threshold. 1 by default.
         """
-        return 4
+        return 1
 
     def get_videos_data(self, page_data):
         """
@@ -290,18 +333,21 @@ class PornDotCom(PornFetcher):
                   )
         res = []
         for video_tree_data in videos:
-            link_data = video_tree_data.xpath('./div[@class="list-global__thumb"]/a')
-            assert len(link_data) == 2
-            link = link_data[0].attrib['href']
-            title = link_data[0].attrib['title']
+            raw_data = json.loads(video_tree_data.attrib['data-sobj'])
+            link = raw_data['embed']
+            title_data = video_tree_data.xpath('./div[@class="list-global__thumb"]/a')
+            assert len(title_data) == 2
+            title = title_data[0].attrib['title']
 
             video_length = video_tree_data.xpath('./div[@class="list-global__thumb"]/span')
             assert len(video_length) == 1
             video_length = video_length[0].text
 
-            image_data = video_tree_data.xpath('./div[@class="list-global__thumb"]/a/picture/img')
+            image_data = title_data[0].xpath('./picture/img')
             assert len(image_data) == 1
             image = image_data[0].attrib['src']
+            if 'image:data' in image:
+                image = image_data[0].attrib['data-src']
 
             # todo: Manually made.
             preview_video = re.sub('promo.*$', 'roll.webm', image)
@@ -381,8 +427,10 @@ class PornDotCom(PornFetcher):
             params.update(parse_qs(page_filter.length.value))
         if page_filter.quality.value is not None:
             params.update(parse_qs(page_filter.quality.value))
-
-        page_request = self.session.get(fetch_base_url, headers=headers, params=params)
+        try:
+            page_request = self.session.get(fetch_base_url, headers=headers, params=params)
+        except exceptions.RetryError:
+            page_request = self.session.head(fetch_base_url, headers=headers, params=params)
         return page_request
 
     def _prepare_new_search_query(self, query):
@@ -421,6 +469,22 @@ class PornHub(PornFetcher):
             PornCategories.HOTTEST_VIDEO: PornFilterTypes.HottestOrder,
             PornCategories.RANDOM_VIDEO: PornFilterTypes.RandomOrder,
         }
+
+    @property
+    def possible_empty_pages(self):
+        """
+        Defines whether it is possible to have empty pages in the site.
+        :return:
+        """
+        return True
+
+    @property
+    def max_pages(self):
+        """
+        Most viewed videos page url.
+        :return:
+        """
+        return 10000
 
     @property
     def base_url(self):
@@ -533,8 +597,6 @@ class PornHub(PornFetcher):
             image = image_data[0].attrib['src'] if 'src' in image_data else image_data[0].attrib['data-thumb_url']
             if 'data:image' in image:
                 image = image_data[0].attrib['data-thumb_url']
-
-            assert len(image) == 1
 
             title = sub_node.xpath('./h5/a/strong/text()')
             assert len(title) == 1
@@ -704,24 +766,37 @@ class PornHub(PornFetcher):
         """
         if category_data.object_type == PornCategories.CATEGORY_MAIN:
             return 1
-        max_page = 1
-        while 1:
-            page_request = self.get_object_request(category_data, override_page_number=max_page)
-            if self._check_is_available_page(category_data, page_request):
-                tree = self.parser.parse(page_request.text)
-                available_pages = self._get_available_pages_from_tree(tree)
-                if len(available_pages) > 0 and max(available_pages) > max_page:
-                    max_page = max(available_pages)
-                else:
-                    return max_page
-            else:
-                max_page -= 1
-                if max_page == 0:
-                    # We reached the illegal page
-                    error_module = self._prepare_porn_error_module(category_data, 0, page_request.url,
-                                                                   'Reached page 0 for object {obj}'
-                                                                   ''.format(obj=category_data.title))
-                    raise PornFetchUrlError(page_request, error_module)
+        # max_page = 1
+        # while 1:
+        #     page_request = self.get_object_request(category_data, override_page_number=max_page)
+        #     if self._check_is_available_page(category_data, page_request):
+        #         tree = self.parser.parse(page_request.text)
+        #         available_pages = self._get_available_pages_from_tree(tree)
+        #         if len(available_pages) > 0 and max(available_pages) > max_page:
+        #             max_page = max(available_pages)
+        #         else:
+        #             return max_page
+        #     else:
+        #         max_page -= 1
+        #         if max_page == 0:
+        #             # We reached the illegal page
+        #             error_module = self._prepare_porn_error_module(category_data, 0, page_request.url,
+        #                                                            'Reached page 0 for object {obj}'
+        #                                                            ''.format(obj=category_data.title))
+        #             raise PornFetchUrlError(page_request, error_module)
+        page_request = self.get_object_request(category_data)
+        tree = self.parser.parse(page_request.text)
+        available_pages = self._get_available_pages_from_tree(tree)
+        if len(available_pages) == 0:
+            return 1
+        return self._binary_search_max_number_of_pages_with_broken_pages(category_data, last_available_number_of_pages)
+
+    @property
+    def _binary_search_page_threshold(self):
+        """
+        Available pages threshold. 1 by default.
+        """
+        return 1
 
     def _get_available_pages_from_tree(self, tree):
         """
@@ -907,6 +982,14 @@ class YouPorn(PornFetcher):
         :return:
         """
         return 'https://www.youporn.com/'
+
+    @property
+    def possible_empty_pages(self):
+        """
+        Defines whether it is possible to have empty pages in the site.
+        :return:
+        """
+        return True
 
     def _set_video_filter(self):
         """
@@ -1144,20 +1227,21 @@ class YouPorn(PornFetcher):
 
             image_data = video_tree_data.xpath('./a//img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src']
-            if 'data:image' in image:
-                image = image_data[0].attrib['data-original']
+            image = image_data[0].attrib['src'] if 'data:image' not in image_data[0].attrib['src'] \
+                else image_data[0].attrib['data-original']
+            image = urljoin(self.base_url, image)
 
             flip_data = image_data[0].attrib['data-flipbook']
             number_of_flips = int(re.findall(r'(?:setLength: )(\d+)', flip_data)[0])
             first_i = int(re.findall(r'(?:firstThumbnail: )(\d+)', flip_data)[0])
             incrementer = int(re.findall(r'(?:incrementer: )(\d+)', flip_data)[0])
-            flip_prefix = re.findall(r'(?:digitsPreffix: )(\'.*\')(?:,)', flip_data)[0]
-            flip_suffix = re.findall(r'(?:digitsSuffix: )(\'.*\')(?:,)', flip_data)[0]
+            flip_prefix = re.findall(r'(?:digitsPreffix: \')(.*?)(?:\',)', flip_data)[0]
+            flip_suffix = re.findall(r'(?:digitsSuffix: \')(.*?)(?:\',)', flip_data)[0]
             flip_images = [flip_prefix + str(i) + flip_suffix
                            for i in range(first_i, number_of_flips+1, incrementer)]
 
-            video_preview = image_data[0].attrib['data-mediabook'] if 'data-mediabook' in image_data[0].attrib else None
+            video_preview = urljoin(self.base_url, image_data[0].attrib['data-mediabook']) \
+                if 'data-mediabook' in image_data[0].attrib else None
 
             title = video_tree_data.xpath('.//div[@class="video-box-title"]/text()')
             assert len(title) == 1
@@ -1168,6 +1252,7 @@ class YouPorn(PornFetcher):
 
             video_length = video_tree_data.xpath('.//div[@class="video-duration-wrapper"]/div[@class="video-duration"]')
             assert len(video_length) == 1
+            video_length = self._format_duration(video_length[0].text)
 
             number_of_viewers = video_tree_data.xpath('.//div[@class="video-box-infos"]/'
                                                       'div[@class="video-box-rating"]/span[@class="video-box-views"]')
@@ -1185,11 +1270,11 @@ class YouPorn(PornFetcher):
                                                 obj_id=video_tree_data.attrib['data-video-id'],
                                                 url=urljoin(self.base_url, link[0].attrib['href']),
                                                 title=title,
-                                                image_link=image[0],
+                                                image_link=image,
                                                 flip_images_link=flip_images,
                                                 preview_video_link=video_preview,
                                                 is_hd=is_hd,
-                                                duration=self._format_duration(video_length[0].text),
+                                                duration=video_length,
                                                 number_of_views=number_of_viewers,
                                                 rating=rating,
                                                 object_type=PornCategories.VIDEO,

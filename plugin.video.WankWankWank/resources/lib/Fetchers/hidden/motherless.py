@@ -51,9 +51,9 @@ class MotherLess(PornFetcher):
         Sets the video filters and the default values of the current filters
         :return:
         """
-        categories_filters = {'general_filters': ((PornFilterTypes.AllType, 'All types', None),
-                                                  (PornFilterTypes.StraightType, 'Straight', 'straight'),
+        categories_filters = {'general_filters': ((PornFilterTypes.StraightType, 'Straight', 'straight'),
                                                   (PornFilterTypes.GayType, 'Gay', 'gay'),
+                                                  (PornFilterTypes.ShemaleType, 'Shemale', 'shemale'),
                                                   (PornFilterTypes.FunnyType, 'Funny', 'funny'),
                                                   (PornFilterTypes.ExtremeType, 'Extreme', 'extreme'),
                                                   ),
@@ -102,7 +102,7 @@ class MotherLess(PornFetcher):
                              if 'data-orientation' in x.attrib and x.attrib['data-orientation'] == filter_value]
         categories = []
         for x in main_category:
-            categories.extend(x.xpath('./ul/li/a'))
+            categories.extend(x.xpath('.//ul[@class="list-unstyled list-inline"]/li/a'))
         res = []
         for category in categories:
             object_data = PornCatalogCategoryNode(catalog_manager=self.catalog_manager,
@@ -159,37 +159,50 @@ class MotherLess(PornFetcher):
         """
         page_request = self.get_object_request(page_data)
         tree = self.parser.parse(page_request.text)
-        videos = tree.xpath('.//div[@class="content-inner"]//div[@class="thumb video medium"]')
+        videos = tree.xpath('.//div[@class="content-inner"]//div[@class="thumb-container video"]/div')
         res = []
         for video_tree_data in videos:
-            link = video_tree_data.xpath('./a')
-            assert len(link) == 1
+            link_data = video_tree_data.xpath('./a')
+            assert len(link_data) == 1
+            link = link_data[0].attrib['href']
 
             img = video_tree_data.xpath('./a/img[@class="static"]/@src')
             assert len(img) == 1
+            img = urljoin(page_data.url, img[0])
 
-            title = video_tree_data.xpath('./div[@class="captions"]/h2[@class="caption title"]')
+            title = (video_tree_data.xpath('./div[@class="captions"]/h2[@class="caption title"]') +
+                     video_tree_data.xpath('./div[@class="captions"]/a[@class="caption title pop plain"]'))
             assert len(title) >= 1
+            title = title[0].text
 
-            video_length = video_tree_data.xpath('./div[@class="captions"]/div[@class="caption left"]')
+            video_length = (video_tree_data.xpath('./div[@class="captions"]/div[@class="caption left"]') +
+                            link_data[0].xpath('./span[@class="size"]'))
             assert len(video_length) == 1
+            video_length = self._format_duration(video_length[0].text)
 
             number_of_views = video_tree_data.xpath('./div[@class="captions"]/div[@class="caption right"]')
-            assert len(number_of_views) == 2
+            if len(number_of_views) >= 1:
+                number_of_views = None
+            else:
+                number_of_views = video_tree_data.xpath('./div[@class="captions"]/div[@class="caption left misc"]/'
+                                                        'span[@class="hits"]/i')
+                assert len(number_of_views) >= 1
+                number_of_views = self._clear_text(number_of_views[0].tail)
 
-            uploader = video_tree_data.xpath('./div[@class="captions"]/a[@class="caption left"]')
-            assert len(uploader) == 1
+            uploader = (video_tree_data.xpath('./div[@class="captions"]/a[@class="caption left"]') +
+                        video_tree_data.xpath('./div[@class="captions"]/div[@class="caption left misc"]/a'))
+            assert len(uploader) >= 1
             additional_data = {'uploader': {'url': urljoin(self.base_url, uploader[0].attrib['href']),
-                                            'name': uploader[0].text}}
+                                            'name': self._clear_text(uploader[0].text)}}
 
             video_data = PornCatalogVideoPageNode(catalog_manager=self.catalog_manager,
-                                                  obj_id=link[0].attrib['href'],
-                                                  url=urljoin(self.base_url, link[0].attrib['href']),
-                                                  title=title[0].text,
-                                                  image_link=urljoin(page_data.url, img[0]),
-                                                  duration=self._format_duration(video_length[0].text),
-                                                  number_of_views=number_of_views[0].text,
-                                                  added_before=number_of_views[1].text,
+                                                  obj_id=link,
+                                                  url=urljoin(self.base_url, link),
+                                                  title=title,
+                                                  image_link=img,
+                                                  duration=video_length,
+                                                  number_of_views=number_of_views,
+                                                  added_before=number_of_views,
                                                   additional_data=additional_data,
                                                   object_type=PornCategories.VIDEO,
                                                   super_object=page_data,

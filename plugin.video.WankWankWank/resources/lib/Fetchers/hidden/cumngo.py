@@ -144,7 +144,7 @@ class CumNGo(PornFetcher):
 
             image_data = category.xpath('./div[@class="cover"]/img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src']
+            image = urljoin(self.base_url, image_data[0].attrib['src'])
             title = (image_data[0].attrib['alt']
                      if 'alt' in image_data[0].attrib['alt'] else
                      category.xpath('./div[@class="overlay"]/div[@class="name"]/strong')[0].text)
@@ -270,7 +270,7 @@ class CumNGo(PornFetcher):
             info_data = video_tree_data.xpath('./div[@class="overlay"]')
             assert len(image_data) == 1
             assert len(info_data) == 1
-            image = image_data[0].attrib['src']
+            image = urljoin(self.base_url, image_data[0].attrib['src'])
             title = (image_data[0].attrib['alt']
                      if 'alt' in image_data[0].attrib['alt'] else
                      info_data[0].xpath('./div[@class="title"]/strong')[0].text)

@@ -176,7 +176,9 @@ class TubeV(PornFetcher):
         if (max_page - start_page) < self._binary_search_page_threshold:
             return max_page
         else:
-            return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
+            # return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
+            return self._binary_search_max_number_of_pages_with_broken_pages(category_data,
+                                                                             last_available_number_of_pages)
 
     def _binary_search_max_number_of_pages(self, category_data, last_available_number_of_pages):
         """
@@ -231,6 +233,8 @@ class TubeV(PornFetcher):
         """
         Available pages threshold. 1 by default.
         """
+        # return 5
+        # Some of the pages are broken, so we take extra precauison
         return 5
 
     def get_videos_data(self, page_data):

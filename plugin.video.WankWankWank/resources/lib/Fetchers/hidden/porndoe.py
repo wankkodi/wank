@@ -12,11 +12,15 @@ from ..catalogs.porn_catalog import PornCatalogCategoryNode, PornCatalogVideoPag
     VideoSource, VideoNode
 from ..catalogs.porn_catalog import PornCategories, PornFilter, PornFilterTypes
 
+# JSON
+from ..tools.text_json_manioulations import prepare_json_from_not_formatted_text
+
 # Generator id
 from ..id_generator import IdGenerator
 
 
 class PornDoe(PornFetcher):
+    video_data_request_template = 'https://porndoe.com/service/index?device=desktop&page=video&id={vid}'
     max_flix_image = 29
 
     @property
@@ -132,9 +136,11 @@ class PornDoe(PornFetcher):
 
             image_data = link_data[0].xpath('./img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src'] if 'src' in image_data[0].attrib else None
-            if image is None or 'data:image' in image:
-                image = image_data[0].attrib['data-src']
+            image = image_data[0].attrib['src'] \
+                if 'src' in image_data[0].attrib and 'data:image' not in image_data[0].attrib['src'] \
+                else (image_data[0].attrib['data-src'] if 'data-src' in image_data[0].attrib else None)
+            if image is not None:
+                image = urljoin(self.base_url, image)
 
             title = category.xpath('./span[@class="flex-row"]/span/h2/a/span[@class="txt"]/text()')
             assert len(title) > 0
@@ -175,9 +181,11 @@ class PornDoe(PornFetcher):
 
             image_data = link_data[0].xpath('./span[@class="thumb"]/img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src'] if 'src' in image_data[0].attrib else None
-            if image is None or 'data:image' in image:
-                image = image_data[0].attrib['data-src']
+            image = image_data[0].attrib['src'] \
+                if 'src' in image_data[0].attrib and 'data:image' not in image_data[0].attrib['src'] \
+                else (image_data[0].attrib['data-src'] if 'data-src' in image_data[0].attrib else None)
+            if image is not None:
+                image = urljoin(self.base_url, image)
             title = image_data[0].attrib['alt']
 
             num_of_viewers = category.xpath('./span[@class="footer"]/span[@class="item-text left"]/span[@class="txt"]/'
@@ -219,9 +227,11 @@ class PornDoe(PornFetcher):
 
             image_data = link_data[0].xpath('./span[@class="thumb"]/img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src'] if 'src' in image_data[0].attrib else None
-            if image is None or 'data:image' in image:
-                image = image_data[0].attrib['data-src']
+            image = image_data[0].attrib['src'] \
+                if 'src' in image_data[0].attrib and 'data:image' not in image_data[0].attrib['src'] \
+                else (image_data[0].attrib['data-src'] if 'data-src' in image_data[0].attrib else None)
+            if image is not None:
+                image = urljoin(self.base_url, image)
             title = self._clear_text(image_data[0].attrib['alt'])
 
             info = category.xpath('./div[@class="footer"]//div[@class="channel-footer-block"]/span[@class="rank"]/'
@@ -275,12 +285,10 @@ class PornDoe(PornFetcher):
         :return:
         """
         tmp_request = self.get_object_request(video_data)
-        tmp_tree = self.parser.parse(tmp_request.text)
-        request_data = tmp_tree.xpath('.//video[@id="pdvideo"]/source')
-        video_data = [dict(x.attrib) for x in request_data]
-
-        # todo: add support for dash
-        res = sorted((VideoSource(resolution=x['data-height'], link=x['src']) for x in video_data),
+        raw_data = tmp_request.json()
+        res = sorted((VideoSource(link=v['url'], resolution=int(k))
+                      for k, v in raw_data['video']['player']['sources'].items()
+                      if len(re.findall(r'\.mp4', v['url'])) > 0),
                      key=lambda x: x.resolution, reverse=True)
         return VideoNode(video_sources=res)
 
@@ -321,24 +329,28 @@ class PornDoe(PornFetcher):
         videos = [x for y in videos for x in y.xpath('./div') if 'data-id' in x.attrib]
         res = []
         for video_tree_data in videos:
-            additional_data = {'channel': video_tree_data.attrib['data-channel']}
-            
-            link = video_tree_data.xpath('./div/a[@class="video-item-thumb"]')
-            assert len(link) == 1
-            url = urljoin(self.base_url, link[0].attrib['href'])
 
-            image_data = link[0].xpath('./picture/source')
+            link_data = video_tree_data.xpath('./div/a[@class="video-item-thumb"]')
+            assert len(link_data) == 1
+            additional_data = {'channel': video_tree_data.attrib['data-channel']}
+            if 'data-ng-under' in link_data[0].attrib:
+                additional_data['video_request_id'] = link_data[0].attrib['data-ng-under']
+            url = urljoin(self.base_url, link_data[0].attrib['href'])
+
+            image_data = link_data[0].xpath('./picture/source')
             assert len(image_data) == 2
             image = image_data[0].attrib['src'] if 'src' in image_data[1].attrib else None
             if image is None or 'data:image' in image:
                 image = image_data[0].attrib['data-srcset']
 
-            video_preview = link[0].attrib['ng-preview'] if 'ng-preview' in link[0].attrib else None
+            video_preview = link_data[0].attrib['ng-preview'] if 'ng-preview' in link_data[0].attrib else None
+            if len(video_preview) == 0:
+                video_preview = None
             flip_images = [re.sub(r'_\d+.jpg', '_{i}.jpg'.format(i=i), image)
                            for i in range(0, self.max_flix_image + 1)]
 
-            video_length = link[0].xpath('./span/span[@class="txt"]')
-            is_hd = link[0].xpath('./span/span[@class="-mm-icon mm_icon-hd"]')
+            video_length = link_data[0].xpath('./span/span[@class="txt"]')
+            is_hd = link_data[0].xpath('./span/span[@class="-mm-icon mm_icon-hd"]')
 
             assert len(video_length) == 1
             video_length = self._clear_text(video_length[0].text)
@@ -378,28 +390,60 @@ class PornDoe(PornFetcher):
         :param page_data: Page data.
         :return: Page request
         """
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                      'q=0.8,application/signed-exchange;v=b3',
-            'Cache-Control': 'max-age=0',
-            'Referer': self.base_url,
-            'Host': self.host_name,
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': self.user_agent
-        }
-        if page_number is not None and page_number > 1:
-            params['page'] = page_data.page_number
-        if page_filter.sort_order.value is not None and true_object.object_type not in self._default_sort_by:
-            params.update(parse_qsl(page_filter.sort_order.value))
-        if page_filter.length.value is not None:
-            params.update(parse_qsl(page_filter.length.value))
-        if page_filter.general.value is not None:
-            params.update(parse_qsl(page_filter.general.value))
+        if true_object.object_type == PornCategories.VIDEO:
+            if 'video_request_id' in page_data.additional_data:
+                video_id = page_data.additional_data['video_request_id']
+            else:
+                headers = {
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
+                              'q=0.8,application/signed-exchange;v=b3',
+                    'Cache-Control': 'max-age=0',
+                    'Host': self.host_name,
+                    'Sec-Fetch-Mode': 'navigate',
+                    'Sec-Fetch-Site': 'same-origin',
+                    'Sec-Fetch-User': '?1',
+                    'Upgrade-Insecure-Requests': '1',
+                    'User-Agent': self.user_agent
+                }
+                tmp_request = self.session.get(fetch_base_url, headers=headers)
+                raw_data = re.findall(r'(?:window.variables *= *)({.*}?)(?:;)', tmp_request.text, re.DOTALL)
+                raw_data = prepare_json_from_not_formatted_text(raw_data[0])
+                video_id = raw_data['banners']['id']
+            new_url = self.video_data_request_template.format(vid=video_id)
+            headers = {
+                'Accept': 'application/json, text/plain, */*',
+                'Cache-Control': 'max-age=0',
+                'Referer': fetch_base_url,
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-origin',
+                'User-Agent': self.user_agent
+            }
+            page_request = self.session.get(new_url, headers=headers)
+        else:
+            headers = {
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
+                          'q=0.8,application/signed-exchange;v=b3',
+                'Cache-Control': 'max-age=0',
+                'Referer': self.base_url,
+                'Host': self.host_name,
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'same-origin',
+                'Sec-Fetch-User': '?1',
+                'Upgrade-Insecure-Requests': '1',
+                'User-Agent': self.user_agent
+            }
+            if page_number is not None and page_number > 1:
+                params['page'] = page_data.page_number
+            if page_filter.sort_order.value is not None and true_object.object_type not in self._default_sort_by:
+                params.update(parse_qsl(page_filter.sort_order.value))
+            if page_filter.length.value is not None:
+                params.update(parse_qsl(page_filter.length.value))
+            if page_filter.general.value is not None:
+                params.update(parse_qsl(page_filter.general.value))
 
-        page_request = self.session.get(fetch_base_url, headers=headers, params=params)
+            page_request = self.session.get(fetch_base_url, headers=headers, params=params)
+
         return page_request
 
     def _prepare_new_search_query(self, query):

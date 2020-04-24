@@ -433,6 +433,20 @@ class BaseFetcher(object):
         :param override_url: Override url.
         :return: Page request
         """
+        # By default we make no exception check, so each inherit class should reimplify the method...
+        return self._get_object_request_no_exception_check(object_data, override_page_number, override_params,
+                                                           override_url)
+
+    def _get_object_request_no_exception_check(self, object_data, override_page_number=None, override_params=None,
+                                               override_url=None):
+        """
+        Fetches the page number with respect to base url.
+        :param object_data: Page data.
+        :param override_page_number: Override page number.
+        :param override_params: Override params.
+        :param override_url: Override url.
+        :return: Page request
+        """
         # todo: add filter condition check!
         true_object = object_data.true_object
 
@@ -441,7 +455,7 @@ class BaseFetcher(object):
         program_fetch_url = object_data.url.split('?')[0]
         if len(object_data.url.split('?')) > 1:
             params = object_data.url.split('?')[1]
-            params = parse_qs(params)
+            params = parse_qs(params, keep_blank_values=True)
         else:
             params = {}
         page_number = object_data.page_number if override_page_number is None else override_page_number

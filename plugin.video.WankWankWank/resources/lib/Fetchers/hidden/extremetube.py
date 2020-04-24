@@ -32,7 +32,7 @@ from ..catalogs.porn_catalog import PornCategories, PornFilterTypes, PornFilter
 class ExtremeTube(PornFetcher):
     category_json_url = 'www.extremetube.com/category/{cat}'
     tag_list_json_url = 'https://www.extremetube.com/tag/{letter}/json'
-    video_list_json_url = 'https://www.extremetube.com/videos/keyword/{key}'
+    # video_list_json_url = 'https://www.extremetube.com/videos/keyword/{key}'
     json_params = {
         'format': ['json'],
         'number_pages': [1],
@@ -44,7 +44,7 @@ class ExtremeTube(PornFetcher):
         return {
             PornCategories.CATEGORY_MAIN: urljoin(self.base_url, '/video-categories'),
             PornCategories.TAG_MAIN: urljoin(self.base_url, '/tags'),
-            PornCategories.HOTTEST_VIDEO: urljoin(self.base_url, '/'),
+            # PornCategories.HOTTEST_VIDEO: urljoin(self.base_url, '/'),
             PornCategories.LATEST_VIDEO: urljoin(self.base_url, '/videos?o=mr'),
             PornCategories.BEING_WATCHED_VIDEO: urljoin(self.base_url, '/videos?o=bw'),
             PornCategories.MOST_VIEWED_VIDEO: urljoin(self.base_url, '/videos?o=mv'),
@@ -56,7 +56,7 @@ class ExtremeTube(PornFetcher):
     @property
     def _default_sort_by(self):
         return {
-            PornCategories.HOTTEST_VIDEO: PornFilterTypes.HottestOrder,
+            # PornCategories.HOTTEST_VIDEO: PornFilterTypes.HottestOrder,
             PornCategories.LATEST_VIDEO: PornFilterTypes.DateOrder,
             PornCategories.BEING_WATCHED_VIDEO: PornFilterTypes.BeingWatchedOrder,
             PornCategories.MOST_VIEWED_VIDEO: PornFilterTypes.ViewsOrder,
@@ -523,15 +523,6 @@ class ExtremeTube(PornFetcher):
             else:
                 raise err
 
-        if not self._check_is_available_page(page_data, page_request):
-            if send_error is True:
-                error_module = self._prepare_porn_error_module(page_data, 0, page_request.url,
-                                                               'Could not fetch {url} in object {obj}'
-                                                               ''.format(url=page_request.url, obj=page_data.title))
-            else:
-                error_module = None
-            raise PornFetchUrlError(page_request, error_module)
-
         return page_request
 
     def _prepare_new_search_query(self, query):
@@ -905,6 +896,14 @@ class SpankWire(PornFetcher):
     search_request_format = 'https://www.spankwire.com/api/search'
 
     @property
+    def possible_empty_pages(self):
+        """
+        Defines whether it is possible to have empty pages in the site.
+        :return:
+        """
+        return True
+
+    @property
     def category_json_params(self):
         if self.general_filter.current_filters.general.filter_id == \
                 PornFilterTypes.StraightType:
@@ -1154,7 +1153,7 @@ class SpankWire(PornFetcher):
                                        obj_id=x['id'],
                                        url=urljoin(self.base_url, x['url']),
                                        title=x['name'],
-                                       image_link=x['image'],
+                                       image_link=x['image'] if len(x['image']) > 0 else None,
                                        number_of_videos=x['videosNumber'],
                                        raw_data=x,
                                        object_type=PornCategories.CATEGORY,
@@ -1176,7 +1175,7 @@ class SpankWire(PornFetcher):
                                        obj_id=x['id'],
                                        url=urljoin(self.base_url, x['url']),
                                        title=x['name'],
-                                       image_link=x['thumb'],
+                                       image_link=x['thumb'] if len(x['thumb']) > 0 else None,
                                        number_of_videos=x['videos'],
                                        raw_data=x,
                                        object_type=PornCategories.PORN_STAR,
@@ -1260,7 +1259,8 @@ class SpankWire(PornFetcher):
                                            image_link=x['flipBookPath'].format(index=1),
                                            flip_images_link=[x['flipBookPath'].format(index=i)
                                                              for i in range(1, self.max_flip_images)],
-                                           preview_video_link=x['videoPreview'],
+                                           preview_video_link=x['videoPreview'] if x['videoPreview'] is not False
+                                           else None,
                                            is_hd=x['isHD'],
                                            duration=x['duration'],
                                            added_before=x['time_approved_on'],

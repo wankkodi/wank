@@ -250,7 +250,7 @@ class Porn300(PornFetcher):
                                          obj_id=(IdGenerator.id_to_original_str(tag_data.id), i),
                                          title='{c} | Letter {p}'.format(c=tag_data.title, p=x.text),
                                          url=urljoin(tag_data.url, x.attrib['href']),
-                                         page_number=i,
+                                         page_number=None,
                                          raw_data=tag_data.raw_data,
                                          additional_data=tag_data.additional_data,
                                          object_type=sub_object_type,
@@ -385,7 +385,7 @@ class Porn300(PornFetcher):
                 params['elements'] = 200
             fetch_base_url = self.object_urls[PornCategories.TAG_MAIN]
             split_url = fetch_base_url.split('/')
-        elif page_data.object_type in (PornCategories.CATEGORY_MAIN, PornCategories.PORN_STAR_MAIN):
+        elif true_object.object_type in (PornCategories.PORN_STAR_MAIN, PornCategories.CATEGORY_MAIN,):
             # Special threat for categories and porn stars
             params['elements'] = 50
 

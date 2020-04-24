@@ -212,7 +212,9 @@ class Faapy(PornFetcher):
 
             image_data = video_tree_data.xpath('./a/div[@class="thumb-img"]/img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src']
+            image = urljoin(self.base_url,
+                            (image_data[0].attrib['src'] if 'data:image' not in image_data[0].attrib['src'] else
+                             image_data[0].attrib['data-src']))
 
             video_preview_data = video_tree_data.xpath('./a/div[@class="thumb-img"]/video')
             assert len(video_preview_data) == 1

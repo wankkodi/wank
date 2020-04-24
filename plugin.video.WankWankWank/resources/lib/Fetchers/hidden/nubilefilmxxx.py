@@ -302,6 +302,7 @@ class PlusOne8(NubileFilmXXX):
     @property
     def object_urls(self):
         res = super(PlusOne8, self).object_urls
+        res.pop(PornCategories.CHANNEL_MAIN)
         res[PornCategories.CATEGORY_MAIN] = urljoin(self.base_url, '/porn-categories/')
         res[PornCategories.TAG_MAIN] = urljoin(self.base_url, '/porn-tags/')
         res[PornCategories.PORN_STAR_MAIN] = urljoin(self.base_url, '/pornstars/')
@@ -388,13 +389,6 @@ class PlusOne8(NubileFilmXXX):
         porn_star_data.add_sub_objects(res)
         return res
 
-    def _update_available_tags(self, tag_data):
-        """
-        Fetches all the available shows.
-        :return: Object of all available shows (JSON).
-        """
-        return NotImplemented
-
     def _get_tag_properties(self, page_request):
         """
         Fetches tag links and titles.
@@ -402,7 +396,7 @@ class PlusOne8(NubileFilmXXX):
         :return:
         """
         tree = self.parser.parse(page_request.text)
-        raw_objects = tree.xpath('.//div[@class="tag-item"]/a')
+        raw_objects = tree.xpath('.//main/a')
         links, titles, number_of_videos = zip(*[(x.attrib['href'], x.text, None) for x in raw_objects])
         assert len(titles) == len(links)
         assert len(titles) == len(number_of_videos)
@@ -448,11 +442,18 @@ class PlusOne8(NubileFilmXXX):
         videos = tree.xpath('.//div/article/a')
         res = []
         for video_tree_data in videos:
-            flix_image = video_tree_data.xpath('./div[@class="post-thumbnail thumbs-rotation"]')
-            assert len(flix_image) == 1
+            title = video_tree_data.attrib['title']
+            flip_image = video_tree_data.xpath('./div[@class="post-thumbnail thumbs-rotation"]')
+            assert len(flip_image) == 1
+            flip_image = flip_image[0].attrib['data-thumbs'].split(',')
 
-            image = video_tree_data.xpath('./div[@class="post-thumbnail thumbs-rotation"]/img')
-            assert len(image) == 1
+            image_data = video_tree_data.xpath('./div[@class="post-thumbnail thumbs-rotation"]/img')
+            if len(image_data) == 0:
+                # Empty link, skip it...
+                continue
+            image = image_data[0].attrib['data-src'] if 'data-src' in image_data[0].attrib \
+                else image_data[0].attrib['src']
+            image = urljoin(self.base_url, image)
 
             video_length = video_tree_data.xpath('./div[@class="post-thumbnail thumbs-rotation"]/'
                                                  'span[@class="duration"]/i')
@@ -460,18 +461,17 @@ class PlusOne8(NubileFilmXXX):
                 self._format_duration(self._clear_text(video_length[0].tail)) if len(video_length) == 1 else None
 
             rating = video_tree_data.xpath('./div[@class="rating-bar"]/span')
-            # assert len(rating) == 1
+            rating = self._clear_text(rating[0].text) if len(rating) > 0 else None
 
             video_data = PornCatalogVideoPageNode(
                 catalog_manager=self.catalog_manager,
                 obj_id=video_tree_data.attrib['href'],
                 url=urljoin(self.base_url, video_tree_data.attrib['href']),
-                title=video_tree_data.attrib['title'],
-                image_link=image[0].attrib['data-src']
-                if 'data-src' in image[0].attrib else image[0].attrib['src'],
-                flip_images_link=flix_image[0].attrib['data-thumbs'].split(','),
+                title=title,
+                image_link=image,
+                flip_images_link=flip_image,
                 duration=video_length,
-                rating=self._clear_text(rating[0].text) if len(rating) > 0 else None,
+                rating=rating,
                 object_type=PornCategories.VIDEO,
                 super_object=page_data,
             )

@@ -17,10 +17,20 @@ from ..tools.text_json_manioulations import prepare_json_from_not_formatted_text
 class KatesTube(PornFetcher):
     _pagination_class = 'holder'
     _video_page_videos_xpath = './/div[@class="thumbs-list"]/div/a'
+    _first_not_mandatory_category_field_index = 5
+    _first_not_mandatory_general_video_field_index = 4
 
     @property
     def max_pages(self):
         return 8000
+
+    @property
+    def possible_empty_pages(self):
+        """
+        Defines whether it is possible to have empty pages in the site.
+        :return:
+        """
+        return True
 
     @property
     def object_urls(self):
@@ -95,6 +105,9 @@ class KatesTube(PornFetcher):
         single_tag_filters = {'sort_order': single_category_filters['sort_order'],
                               'quality_filters': single_category_filters['quality_filters'],
                               }
+        search_filters = {'sort_order': single_category_filters['sort_order'],
+                          'quality_filters': single_category_filters['quality_filters'],
+                          }
         return {'data_dir': self.fetcher_data_dir,
                 'general_args': None,
                 'categories_args': categories_filters,
@@ -106,7 +119,7 @@ class KatesTube(PornFetcher):
                 'single_porn_star_args': None,
                 'single_channel_args': None,
                 'video_args': video_filters,
-                'search_args': single_tag_filters,
+                'search_args': search_filters,
                 }
 
     def __init__(self, source_name='KatesTube', source_id=0, store_dir='.', data_dir='../Data',
@@ -252,17 +265,25 @@ class KatesTube(PornFetcher):
 
         split_url = page_request.url.split('/')
         tree = self.parser.parse(page_request.text)
-        true_page_number = tree.xpath('.//div[@class="{pg}"]/ul/li/span'.format(pg=self._pagination_class))
-        true_page_number = int(true_page_number[0].text) if len(true_page_number) else 1
-        if len(split_url) >= 4:
-            fetch_page_number = int(split_url[len(split_url)-2]) if split_url[len(split_url)-2].isdigit() else 1
-        else:
-            fetch_page_number = 1
-        if split_url[3] == 'search':
+        if page_object.true_object.object_type == PornCategories.SEARCH_MAIN:
             videos = tree.xpath(self._video_page_videos_xpath)
             return len(videos) > 0
+
+        true_page_number = tree.xpath('.//div[@class="{pg}"]/ul/li/span'.format(pg=self._pagination_class))
+        true_page_number = int(true_page_number[0].text) if len(true_page_number) else 1
+        if page_object.true_object.object_type in (PornCategories.CATEGORY_MAIN, PornCategories.PORN_STAR_MAIN,
+                                                   PornCategories.CHANNEL_MAIN, PornCategories.CATEGORY,
+                                                   PornCategories.PORN_STAR, PornCategories.CHANNEL):
+            first_not_mandatory_field = self._first_not_mandatory_category_field_index
         else:
-            return true_page_number == fetch_page_number
+            first_not_mandatory_field = self._first_not_mandatory_general_video_field_index
+        if len(split_url) > first_not_mandatory_field:
+            not_mandatory_fields = split_url[first_not_mandatory_field:]
+            fetch_page_number = int(not_mandatory_fields[-2]) \
+                if len(not_mandatory_fields) >= 2 and not_mandatory_fields[-2].isdigit() else 1
+        else:
+            fetch_page_number = 1
+        return true_page_number == fetch_page_number
 
     @property
     def _binary_search_page_threshold(self):
@@ -588,6 +609,11 @@ class PornWhite(KatesTube):
 
     def _prepare_filters(self):
         filters = super(PornWhite, self)._prepare_filters()
+        filters['single_tag_args']['sort_order'] = [(PornFilterTypes.DateOrder, 'Recent', None),
+                                                    (PornFilterTypes.RatingOrder, 'Top Rated', 'top-rated'),
+                                                    (PornFilterTypes.ViewsOrder, 'Most Viewed', 'most-viewed'),
+                                                    (PornFilterTypes.LengthOrder, 'Longest', 'longest'),
+                                                    ]
         filters['single_category_args']['sort_order'].append((PornFilterTypes.CommentsOrder, 'Commented', 'commented'))
         filters['channels_args'] = None
         filters['categories_args'] = \
@@ -1162,7 +1188,7 @@ class WankOz(PornWhite):
 
 class PorniCom(PornWhite):
     _pagination_class = 'pagination'
-    _video_page_videos_xpath = './/div[@class="items-list"]/div/div'
+    _video_page_videos_xpath = './/div[@class="thumbs-holder"]/div/div/div'
     max_flip_images = 5
 
     @property

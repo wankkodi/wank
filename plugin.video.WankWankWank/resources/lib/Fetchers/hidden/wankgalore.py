@@ -168,7 +168,8 @@ class WankGalore(PornFetcher):
             image_data = link_data[0].xpath('./img')
             assert len(image_data) == 1
             image = image_data[0].attrib['src'] \
-                if 'src' in image_data[0].attrib else image_data[0].attrib['data-original']
+                if 'src' in image_data[0].attrib and 'data:image' not in image_data[0].attrib['src'] \
+                else image_data[0].attrib['data-original']
 
             video_length = video_tree_data.xpath('./figcaption/ul[@class="properties"]/li[@class="dur"]/time')
             assert len(video_length) == 1

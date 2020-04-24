@@ -160,25 +160,22 @@ class ClipHunter(PornFetcher):
         """
         page_request = self.get_object_request(channel_data)
         tree = self.parser.parse(page_request.text)
-        categories = tree.xpath('.//div[@class="paper paperSpacings xs-fullscreen"]')
+        categories = tree.xpath('.//div[@class="paper paperSpacings xs-fullscreen"]/ul/li')
         res = []
         for category in categories:
-            link_data = category.xpath('./a')
+            link_data = category.xpath('./a[@class="chtl pop-execute"]')
             assert len(link_data) == 1
             link = link_data[0].attrib['href']
+            title = link_data[0].text
 
-            image_data = category.xpath('./ul/li/a[@class="t pop-execute"]/img')
+            image_data = category.xpath('./a[@class="t pop-execute"]/img')
             assert len(image_data) == 1
             image = urljoin(self.base_url, image_data[0].attrib['src'])
 
-            channel_data = category.xpath('./ul/li/a/b')
-            assert len(channel_data) == 3
-            number_of_videos = int(re.findall(r'\d+', channel_data[0])[0])
-            number_of_views = channel_data[1]
-
-            title = category.xpath('./ul/li/a[@class="chtl pop-execute"]')
-            assert len(title) == 1
-            title = title[0].text
+            channel_info = category.xpath('./a/b')
+            assert len(channel_info) == 3
+            number_of_videos = int(re.findall(r'\d+', channel_info[0].text)[0])
+            number_of_views = channel_info[1]
 
             sub_object_data = \
                 PornCatalogCategoryNode(catalog_manager=self.catalog_manager,

@@ -19,6 +19,8 @@ from ..id_generator import IdGenerator
 
 
 class HotGirlClub(PornFetcher):
+    manual_video_url_template = '/videos/{vid}/{suffix}/'
+
     @property
     def object_urls(self):
         return {
@@ -211,8 +213,8 @@ class HotGirlClub(PornFetcher):
         videos = tree.xpath('.//ul[@class="thumbs-items"]/li[@class="thumb thumb-video"]/a')
         res = []
         for video_tree_data in videos:
-            link = urljoin(self.base_url, video_tree_data.attrib['href']) if 'rel' not in video_tree_data.attrib \
-                else urljoin(self.base_url, parse_qs(video_tree_data.attrib['href'].split('?')[1])['bu'][0])
+            title = video_tree_data.attrib['title']
+
             image_data = video_tree_data.xpath('./span[@class="thumb-image"]/img')
             assert len(image_data) == 1
             if 'src' in image_data[0].attrib:
@@ -224,8 +226,25 @@ class HotGirlClub(PornFetcher):
             flip_images = [re.sub(r'\d+.jpg', '{i}.jpg'.format(i=i), image)
                            for i in range(1, number_of_flip_images + 1)]
 
+            if 'rel' not in video_tree_data.attrib:
+                link = urljoin(self.base_url, video_tree_data.attrib['href'])
+            else:
+                new_link = parse_qs(video_tree_data.attrib['href'].split('?')[1])
+                if 'bu' not in new_link:
+                    # We try to conduct the link ourselves, from the image data (which has the information about
+                    # the video id), and the known pattern)
+                    video_id = image.split('/')[-3]
+                    new_suffix = re.sub(r'[~!@#$&*()=:/,;?+]', '', title)
+                    new_suffix = new_suffix.lower()
+                    new_suffix = re.sub(r' ', '-', new_suffix)
+                    link = urljoin(self.base_url, self.manual_video_url_template.format(vid=video_id,
+                                                                                        suffix=new_suffix))
+                else:
+                    link = urljoin(self.base_url, new_link['bu'][0])
+
             rating = video_tree_data.xpath('./span[@class="thumb-image"]/span[@class="percent"]')
             assert len(rating) == 1
+            rating = rating[0].text
 
             video_length = video_tree_data.xpath('./span[@class="thumb-image"]/span[@class="duration"]')
             assert len(video_length) == 1
@@ -233,16 +252,16 @@ class HotGirlClub(PornFetcher):
             added_before = video_tree_data.xpath('./span[@class="thumb-info"]/span[@class="info"]/'
                                                  'span[@class="added"]')
             assert len(added_before) == 1
+            added_before = added_before[0].text
 
             video_data = PornCatalogVideoPageNode(catalog_manager=self.catalog_manager,
                                                   obj_id=link,
                                                   url=link,
-                                                  title=video_tree_data.attrib['title'],
+                                                  title=title,
                                                   image_link=image,
                                                   flip_images_link=flip_images,
-                                                  rating=rating[0].text,
-                                                  number_of_views=video_length[0].text,
-                                                  added_before=added_before[0].text,
+                                                  rating=rating,
+                                                  added_before=added_before,
                                                   duration=self._format_duration(video_length[0].text),
                                                   object_type=PornCategories.VIDEO,
                                                   super_object=page_data,

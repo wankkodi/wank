@@ -10,6 +10,9 @@ from ..fetchers.porn_fetcher import PornFetchUrlError
 # Random
 import random
 
+# Url Tools
+from .. import urlparse
+
 
 class PornTest(BaseTest):
     # _incomparable_object_types = (PornCategories.VIDEO, PornCategories.SEARCH_PAGE, PornCategories.VIDEO_PAGE)
@@ -22,8 +25,9 @@ class PornTest(BaseTest):
         :return:
         """
         return (
-            ('Sub pages difference test', self.pages_difference_test),
-            ('All object filters test', self.all_original_filter_test),
+            # ('Sub pages difference test', self.pages_difference_test),
+            # ('All object filters test', self.all_original_filter_test),
+            ('URL structure filters test', self.url_structure_test),
             # ('Single object filters test', self.sort_order_original_filter_test, ),
         )
 
@@ -39,6 +43,14 @@ class PornTest(BaseTest):
         :return: True if the random object differs from the first one and is not empty. False otherwise.
         """
         return self._run_over_filter_subclasses(self._all_original_filter_test, search_query='anal')
+
+    def url_structure_test(self):
+        """
+        Tests whether all the image links and video links has the right structure. Runs at first pages only.
+        :return: True if the random object differs from the first one and is not empty. False otherwise.
+        """
+        # todo: to implement
+        return self._run_over_subclasses(self._url_structure_test, search_query='anal')
 
     def sort_order_original_filter_test(self):
         """
@@ -289,6 +301,34 @@ class PornTest(BaseTest):
     #     # Return the previous filters
     #     return_original_filters()
     #     return TestResult(status=TestStatus.TRUE_STATUS)
+
+    def _check_sub_object_url_structures(self, test_object):
+        """
+        Checks whether the all the sub object's links (url/images/videos) has the right structures.
+        :param test_object: Test object.
+        :return:
+        """
+        for k, v in self._url_structure_fields(test_object).items():
+            for x in v:
+                parsed_url = urlparse(x)
+                if parsed_url.scheme not in ('http', 'https',) or len(parsed_url.netloc.split('.')) < 2:
+                    return False, 'The value {v} in the field {k} of object type {ot} of object {o} ' \
+                                  'has incorrect url structure' \
+                                  ''.format(v=x, k=k, ot=test_object.true_object.object_type, o=test_object.title)
+        return True, None
+
+    def _url_structure_fields(self, test_object):
+        """
+        Returns tuple with the fields that has url structures.
+        :param test_object: Test object.
+        :return:
+        """
+        super_url_objects = {k: [v] for k, v in super(PornTest, self)._url_structure_fields(test_object).items()}
+        super_url_objects.update({x: [test_object.__dict__[x]] for x in ('preview_video_link', )
+                                  if x in test_object.__dict__ and test_object.__dict__[x] is not None})
+        super_url_objects.update({x: test_object.__dict__[x] for x in ('flip_images_link', )
+                                  if x in test_object.__dict__ and test_object.__dict__[x] is not None})
+        return super_url_objects
 
     def main_test(self):
         for test_name, test_method in self._available_tests:

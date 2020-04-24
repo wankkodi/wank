@@ -60,6 +60,14 @@ class Txxx(PornFetcher):
         }
 
     @property
+    def possible_empty_pages(self):
+        """
+        Defines whether it is possible to have empty pages in the site.
+        :return:
+        """
+        return True
+
+    @property
     def base_url(self):
         """
         Base site url.

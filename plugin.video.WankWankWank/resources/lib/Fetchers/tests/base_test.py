@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 # random
 import random
 
@@ -5,6 +6,9 @@ import random
 from abc import ABCMeta, abstractmethod
 
 from .. import Enum
+
+# Url Tools
+from .. import urlparse
 
 
 class TestStatus(Enum):
@@ -44,6 +48,34 @@ class BaseTest(object):
         """
         super(BaseTest, self).__init__()
         self.test_module = test_module
+
+    def _url_structure_test(self, test_obj, number_of_test_pages=3):
+        """
+        Checks whether all the urls of the sub elements has the right structure.
+        :param test_obj: Test object.
+        :return: True if the random object differs from the first one and is not empty. False otherwise.
+        """
+        if test_obj.sub_objects is None:
+            self.test_module.fetch_sub_objects(test_obj)
+            if self.test_module.possible_empty_pages is False and test_obj.sub_objects is None:
+                self.test_module.fetch_sub_objects(test_obj)
+        if self.test_module.possible_empty_pages is False and test_obj.sub_objects is None:
+            return TestResult(status=TestStatus.FALSE_STATUS,
+                              message='Empty page for title {t}'.format(t=test_obj.title))
+        if test_obj.sub_objects is not None:
+            if number_of_test_pages is not None:
+                first_object = test_obj.sub_objects[0]
+                additional_objects = random.sample(test_obj.sub_objects[1:], min(number_of_test_pages,
+                                                                                 len(test_obj.sub_objects[1:])))
+                sub_objects = [first_object] + additional_objects
+            else:
+                sub_objects = test_obj.sub_objects
+            for sub_module in sub_objects:
+                res, err_message = self._check_sub_object_url_structures(sub_module)
+                if not res:
+                    return TestResult(status=TestStatus.FALSE_STATUS, message=err_message)
+            # If we are here, everything went smoothly...
+        return TestResult(status=TestStatus.TRUE_STATUS)
 
     def _sub_pages_difference_test(self, test_obj, number_of_test_pages=3):
         """
@@ -131,8 +163,7 @@ class BaseTest(object):
     def main_test(self):
         return NotImplemented
 
-    @staticmethod
-    def print_test_results(test_name, test_results):
+    def print_test_results(self, test_name, test_results):
         """
         Prints the test results. Only those which wasn't successful are being printed explicitly.
         :param test_name: Test Name
@@ -145,9 +176,10 @@ class BaseTest(object):
         number_successful_tests = number_all_tests - len(unsuccessful_tests) - len(suspicious_tests)
         status_sign = '✓' if number_all_tests == number_successful_tests else \
             ('✗' if len(unsuccessful_tests) > 0 else '?')
-        print('{s} Test {tn}: {st}/{tt} successful results.'.format(s=status_sign,
-                                                                    tn=test_name, st=number_successful_tests,
-                                                                    tt=number_all_tests))
+        print('{sn}: {s} Test {tn}: {st}/{tt} successful results.'.format(sn=self.test_module.source_name,
+                                                                          s=status_sign,
+                                                                          tn=test_name, st=number_successful_tests,
+                                                                          tt=number_all_tests))
         if len(unsuccessful_tests) > 0:
             print('The following errors were found:')
             for x in unsuccessful_tests:
@@ -156,6 +188,29 @@ class BaseTest(object):
             print('The following suspicious results were found:')
             for x in suspicious_tests:
                 print('\t{e}'.format(e=x.message))
+
+    def _check_sub_object_url_structures(self, test_object):
+        """
+        Checks whether the all the sub object's links (url/images/videos) has the right structures.
+        :param test_object: Test object.
+        :return:
+        """
+        for k, v in self._url_structure_fields(test_object).items():
+            parsed_url = urlparse(v)
+            if parsed_url.scheme not in ('http', 'https', ) or len(parsed_url.netloc.split('.')) < 2:
+                return False, 'The value {v} in the field {k} of object type {ot} of object {o} ' \
+                              'has incorrect url structure' \
+                              ''.format(v=v, k=k, ot=test_object.true_object.object_type, o=test_object.title)
+        return True, None
+
+    def _url_structure_fields(self, test_object):
+        """
+        Returns tuple with the fields that has url structures.
+        :param test_object: Test object.
+        :return:
+        """
+        return {x: test_object.__dict__[x] for x in ('url', 'image_link', 'poster_link')
+                if test_object.__dict__[x] is not None}
 
 
 class TestResult(object):

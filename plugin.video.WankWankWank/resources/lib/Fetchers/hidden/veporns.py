@@ -47,6 +47,14 @@ class VePorns(PornFetcher):
         return {}
 
     @property
+    def possible_empty_pages(self):
+        """
+        Defines whether it is possible to have empty pages in the site.
+        :return:
+        """
+        return True
+
+    @property
     def base_url(self):
         """
         Base site url.
@@ -101,7 +109,7 @@ class VePorns(PornFetcher):
             link_data = porn_star.xpath('./a')
             assert len(link_data) == 1
 
-            image = re.findall(r'(?:url\()(.*?)(\))', link_data[0].attrib['style'])[0]
+            image = re.findall(r'(?:url\()(.*?)(?:\))', link_data[0].attrib['style'])[0]
 
             rating = porn_star.xpath('./span[@class="rating"]/span')
             assert len(rating) == 1

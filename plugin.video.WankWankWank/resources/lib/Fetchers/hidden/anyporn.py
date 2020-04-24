@@ -18,6 +18,9 @@ from ..catalogs.porn_catalog import PornCategories, PornFilterTypes, PornFilter
 # Math
 import math
 
+# Time
+import time
+
 # External Fetchers
 from ..tools.external_fetchers import KTMoviesFetcher, NoVideosException
 
@@ -27,6 +30,7 @@ from ..id_generator import IdGenerator
 
 class AnyPorn(PornFetcher):
     video_quality_index = {'UHD': 2160, 'HQ': 720, 'LQ': 360}
+    max_search_pages = 250
 
     @property
     def object_urls(self):
@@ -94,6 +98,7 @@ class AnyPorn(PornFetcher):
                                          channels_args=category_params,
                                          single_category_args=video_params,
                                          single_channel_args=video_params,
+                                         single_tag_args=search_params,
                                          search_args=search_params,
                                          video_args=video_params,
                                          )
@@ -143,12 +148,30 @@ class AnyPorn(PornFetcher):
                                        url=urljoin(tag_data.url, link),
                                        title=title,
                                        number_of_videos=number_of_videos,
-                                       object_type=PornCategories.TAG,
+                                       object_type=self._get_tag_true_object_type(link.split('/')[1]),
                                        super_object=tag_data,
                                        )
                for link, title, number_of_videos in zip(*tag_properties)]
         tag_data.add_sub_objects(res)
         return res
+
+    @staticmethod
+    def _get_tag_true_object_type(url_section):
+        """
+        Rerurns tag's true object type according to it's url section
+        :param url_section: Url substring responsible for recognizing the object type.
+        :return: PornCategories enumeration object.
+        """
+        if url_section == 'search':
+            return PornCategories.TAG
+        elif url_section == 'channel':
+            return PornCategories.CHANNEL
+        elif url_section == 'models':
+            return PornCategories.PORN_STAR
+        elif url_section == 'categories':
+            return PornCategories.CATEGORY
+        else:
+            raise ValueError('Unknown url substring responsible for object type, {s}'.format(s=url_section))
 
     def _update_available_base_object(self, object_data, xpath, object_type, is_sort=False):
         """
@@ -163,7 +186,9 @@ class AnyPorn(PornFetcher):
             link = category.attrib['href']
 
             image_data = category.xpath('./div[@class="img"]/img')
-            image = image_data[0].attrib['src'] if len(image_data) == 1 else None
+            image = urljoin(self.base_url,
+                            image_data[0].attrib['src'] if 'data:image' not in image_data[0].attrib['src']
+                            else image_data[0].attrib['data-original']) if len(image_data) == 1 else None
             title = category.attrib['title'] if 'title' in category.attrib else image_data[0].attrib['alt']
 
             number_of_videos = category.xpath('./div[@class="wrap"]/div[@class="videos"]')
@@ -201,6 +226,59 @@ class AnyPorn(PornFetcher):
         links, titles, number_of_videos = zip(*[(x.attrib['href'], x.attrib['title'], None)
                                                 for x in raw_data])
         return links, titles, number_of_videos
+
+    def _add_tag_sub_pages(self, tag_data, sub_object_type):
+        """
+        Adds sub pages to the tags according to the first letter of the title. Stores all the tags to the proper pages.
+        Notice that the current method contradicts with the _get_tag_properties method, thus you must use either of
+        them, according to the way you want to implement the parsing (Use the _make_tag_pages_by_letter property to
+        indicate which of the methods you are about to use...)
+        :param tag_data: Tag data.
+        :param sub_object_type: Object types of the sub pages (either Page or VideoPage).
+        :return:
+        """
+        # todo: to re-implement this section by implementing _get_tag_true_object_type_from_url instead
+        page_request = self.get_object_request(tag_data)
+        number_of_pages = self._get_number_of_sub_pages(tag_data, page_request)
+        links, titles, numbers_of_videos = self._get_tag_properties(page_request)
+        for i in range(2, number_of_pages + 1):
+            page_request = self.get_object_request(tag_data, override_page_number=i)
+            loc_links, loc_titles, loc_numbers_of_videos = self._get_tag_properties(page_request)
+            links += loc_links
+            titles += loc_titles
+            numbers_of_videos += loc_numbers_of_videos
+        partitioned_data = {
+            chr(x): [(link, title, number_of_videos)
+                     for link, title, number_of_videos in zip(links, titles, numbers_of_videos)
+                     if title[0].upper() == chr(x)]
+            for x in range(ord('A'), ord('Z')+1)
+        }
+        partitioned_data['#'] = [(link, title, number_of_videos)
+                                 for link, title, number_of_videos in zip(links, titles, numbers_of_videos)
+                                 if title[0].isdigit()]
+        new_pages = [PornCatalogPageNode(catalog_manager=self.catalog_manager,
+                                         obj_id=(IdGenerator.id_to_original_str(tag_data.id), k),
+                                         title='{c} | Letter {p}'.format(c=tag_data.title, p=k),
+                                         url=tag_data.url,
+                                         raw_data=tag_data.raw_data,
+                                         additional_data={'letter': k},
+                                         object_type=sub_object_type,
+                                         super_object=tag_data,
+                                         )
+                     for k in sorted(partitioned_data.keys()) if len(partitioned_data[k]) > 0]
+        for new_page in new_pages:
+            sub_tags = [PornCatalogCategoryNode(catalog_manager=self.catalog_manager,
+                                                obj_id=link,
+                                                url=urljoin(tag_data.url, link),
+                                                title=title,
+                                                number_of_videos=number_of_videos,
+                                                object_type=self._get_tag_true_object_type(link.split('/')[1]),
+                                                super_object=new_page,
+                                                )
+                        for link, title, number_of_videos in partitioned_data[new_page.additional_data['letter']]]
+            new_page.add_sub_objects(sub_tags)
+
+        tag_data.add_sub_objects(new_pages)
 
     def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
@@ -307,7 +385,9 @@ class AnyPorn(PornFetcher):
             return 1
         tree = self.parser.parse(page_request.text)
         available_pages = self._get_available_pages_from_tree(tree)
-        return max(available_pages) if len(available_pages) > 0 else 1
+        return (max(available_pages)
+                if category_data.object_type not in (PornCategories.TAG, PornCategories.SEARCH_MAIN)
+                else min(self.max_search_pages, max(available_pages))) if len(available_pages) > 0 else 1
 
     def _get_available_pages_from_tree(self, tree):
         """
@@ -396,20 +476,22 @@ class AnyPorn(PornFetcher):
             page_request = self.session.get(page_data.url, headers=headers)
             return page_request
 
-        elif true_object.object_type == PornCategories.SEARCH_MAIN:
+        elif true_object.object_type in (PornCategories.SEARCH_MAIN, PornCategories.TAG):
             params['block_id'] = 'list_videos_v2_videos_list_search_result'
-            params['q'] = self._search_query
             params['category_ids'] = ''
             params['sort_by'] = page_filter.sort_order.value
             if 'from' in params:
                 params.pop('from')
             params['from_videos'] = str(page_number).zfill(2)
             params['from_albums'] = str(page_number).zfill(2)
+            params['q'] = self._search_query if true_object.object_type == PornCategories.SEARCH_MAIN \
+                else fetch_base_url.split('/')[-2]
+
         elif true_object.object_type in (PornCategories.CATEGORY, PornCategories.CHANNEL,
-                                         PornCategories.TAG, PornCategories.PORN_STAR, PornCategories.ACTRESS):
+                                         PornCategories.PORN_STAR, PornCategories.ACTRESS):
             params['block_id'] = 'list_videos_common_videos_list'
             params['sort_by'] = page_filter.sort_order.value
-        elif true_object.object_type == PornCategories.MOST_VIEWED_VIDEO:
+        elif true_object.object_type in (PornCategories.MOST_VIEWED_VIDEO, PornCategories.POPULAR_VIDEO):
             params['block_id'] = 'list_videos_common_videos_list'
             params['sort_by'] = 'video_viewed'
             if page_filter.period.value is not None:
@@ -435,7 +517,7 @@ class AnyPorn(PornFetcher):
             params['block_id'] = 'list_videos_common_videos_list'
             params['sort_by'] = 'last_time_view_date'
         else:
-            raise ValueError('Wrong category type {c}'.format(c=page_data))
+            raise ValueError('Wrong category type {c}'.format(c=true_object.object_type))
 
         if (
                 page_filter.period.value is not None and
@@ -477,7 +559,7 @@ class AnyPorn(PornFetcher):
                 obj_id=re.findall(r'\d+', link[0].attrib['href'])[0],
                 title=image[0].attrib['alt'],
                 url=urljoin(self.base_url, link[0].attrib['href']),
-                image_link=image[0].attrib['data-original'],
+                image_link=urljoin(self.base_url, image[0].attrib['data-original']),
                 preview_video_link=image[0].attrib['data-preview'] if 'data-preview' in image[0].attrib else None,
                 is_hd=len(is_hd) > 0,
                 duration=self._format_duration(video_length[0].text),
@@ -593,7 +675,7 @@ class PervertSluts(AnyPorn):
                                          video_args=video_params,
                                          )
 
-    def __init__(self, source_name='AnyPorn', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
+    def __init__(self, source_name='PervertSluts', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
                  use_web_server=True, session_id=None):
         """
         C'tor
@@ -631,6 +713,18 @@ class PervertSluts(AnyPorn):
                                        ) for x in tags]
         tag_data.add_sub_objects(res)
         return res
+
+    def _add_tag_sub_pages(self, tag_data, sub_object_type):
+        """
+        Adds sub pages to the tags according to the first letter of the title. Stores all the tags to the proper pages.
+        Notice that the current method contradicts with the _get_tag_properties method, thus you must use either of
+        them, according to the way you want to implement the parsing (Use the _make_tag_pages_by_letter property to
+        indicate which of the methods you are about to use...)
+        :param tag_data: Tag data.
+        :param sub_object_type: Object types of the sub pages (either Page or VideoPage).
+        :return:
+        """
+        return super(AnyPorn, self)._add_tag_sub_pages(tag_data, sub_object_type)
 
     def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
@@ -682,7 +776,7 @@ class PervertSluts(AnyPorn):
                                                   obj_id=re.findall(r'\d+', link[0].attrib['href'])[0],
                                                   url=urljoin(self.base_url, link[0].attrib['href']),
                                                   title=image[0].attrib['alt'],
-                                                  image_link=image[0].attrib['src'],
+                                                  image_link=urljoin(self.base_url, image[0].attrib['src']),
                                                   duration=self._format_duration(video_length[0].text),
                                                   is_hd=len(is_hd) > 0,
                                                   object_type=PornCategories.VIDEO,
@@ -694,6 +788,60 @@ class PervertSluts(AnyPorn):
             res = [x for x in res if x.is_hd is True]
         page_data.add_sub_objects(res)
         return res
+
+    def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url):
+        if true_object.object_type in (PornCategories.TAG, PornCategories.SEARCH_MAIN):
+            headers = {
+                'Accept': '*.*',
+                'Cache-Control': 'max-age=0',
+                'Referer': self.base_url,
+                'Host': self.host_name,
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'same-origin',
+                'Sec-Fetch-User': '?1',
+                'Upgrade-Insecure-Requests': '1',
+                'User-Agent': self.user_agent,
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+            conditions = self.get_proper_filter(page_data).conditions
+            true_sort_filter_id = self._default_sort_by[true_object.object_type] \
+                if true_object.object_type in self._default_sort_by \
+                else page_filter.sort_order.filter_id
+
+            if page_number is None:
+                page_number = 1
+            params.update({
+                    'mode': 'async',
+                    'function': 'get_block',
+                })
+            if page_filter.length.value is not None:
+                params.update(parse_qsl(page_filter.length.value))
+            params['from'] = str(page_number).zfill(2)
+
+            if true_object.object_type == PornCategories.TAG:
+                params['block_id'] = 'list_videos_common_videos_list'
+            elif true_object.object_type == PornCategories.SEARCH_MAIN:
+                params['block_id'] = 'list_videos_videos_list_search_result'
+                params['category_ids'] = ''
+                params['sort_by'] = page_filter.sort_order.value
+                if 'from' in params:
+                    params.pop('from')
+                params['from_videos'] = str(page_number).zfill(2)
+                params['from_albums'] = str(page_number).zfill(2)
+                params['q'] = self._search_query if true_object.object_type == PornCategories.SEARCH_MAIN \
+                    else fetch_base_url.split('/')[-2]
+
+            if (
+                    page_filter.period.value is not None and
+                    (conditions.period.sort_order is None or true_sort_filter_id in conditions.period.sort_order)
+            ):
+                params['sort_by'] += page_filter.period.value
+
+            page_request = self.session.get(fetch_base_url, headers=headers, params=params)
+            return page_request
+        else:
+            return super(PervertSluts, self)._get_page_request_logic(page_data, params, page_number, true_object,
+                                                                     page_filter, fetch_base_url)
 
     def _prepare_new_search_query(self, query):
         """
@@ -1316,11 +1464,11 @@ class PornRewind(PervertSluts):
 
             viewers = video_tree_data.xpath('./span[@class="thumb-desc"]/span[@class="thumb-info"]/'
                                             'span[@class="thumb-label thumb-viewed"]/span/text()')
-            assert len(viewers) == 1
+            # assert len(viewers) == 1
 
             rating = video_tree_data.xpath('./span[@class="thumb-desc"]/span[@class="thumb-info"]/'
                                            'span[@class="thumb-label thumb-rating"]/text()')
-            assert len(rating) == 1
+            # assert len(rating) == 1
 
             video_data = PornCatalogVideoPageNode(catalog_manager=self.catalog_manager,
                                                   obj_id=video_tree_data.attrib['href'],
@@ -1330,8 +1478,8 @@ class PornRewind(PervertSluts):
                                                   flip_images_link=flip_image,
                                                   duration=self._format_duration(video_length[0]),
                                                   added_before=added_before[0],
-                                                  number_of_views=viewers[0],
-                                                  rating=rating[0],
+                                                  number_of_views=viewers[0] if len(viewers) > 0 else None,
+                                                  rating=rating[0] if len(rating) > 0 else None,
                                                   object_type=PornCategories.VIDEO,
                                                   super_object=page_data,
                                                   )
@@ -1372,7 +1520,11 @@ class PornRewind(PervertSluts):
             page_request = self.session.get(fetch_base_url, headers=headers, params=params)
             return page_request
         else:
-            page_number = page_number if page_number is not None else 1
+            # fixme: problem with the categories sort... To return to it later on
+            # if true_object.object_type == PornCategories.CATEGORY:
+            #     if page_number is None:
+            #         page_number = 1
+            #     fetch_base_url += '{p}/'.format(p=page_number)
             return super(PornRewind, self)._get_page_request_logic(page_data, params, page_number, true_object,
                                                                    page_filter, fetch_base_url)
 
@@ -1458,20 +1610,20 @@ class HellPorno(AnyPorn):
             assert len(title) == 1
             title = title[0].text
 
-            number_of_videos_data = (category.xpath('./span[@class="cat-info"]/span') +
-                                     category.xpath('./span[@class="cat-info long-cat-info"]/span'))
-            assert len(number_of_videos_data) > 0
-            number_of_videos = re.findall(r'\d+', number_of_videos_data[0].text)[0]
-            number_of_pictures = re.findall(r'\d+', number_of_videos_data[1].text)[0] \
-                if len(re.findall(r'\d+', number_of_videos_data[1].text)) > 0 else None
+            # number_of_videos_data = (category.xpath('./span[@class="cat-info"]/span') +
+            #                          category.xpath('./span[@class="cat-info long-cat-info"]/span'))
+            # assert len(number_of_videos_data) > 0
+            # number_of_videos = re.findall(r'\d+', number_of_videos_data[0].text)[0]
+            # number_of_pictures = re.findall(r'\d+', number_of_videos_data[1].text)[0] \
+            #     if len(re.findall(r'\d+', number_of_videos_data[1].text)) > 0 else None
 
             sub_object_data = PornCatalogCategoryNode(catalog_manager=self.catalog_manager,
                                                       obj_id=link,
                                                       url=urljoin(category_data.url, link),
                                                       title=title,
                                                       image_link=image,
-                                                      number_of_videos=number_of_videos,
-                                                      number_of_photos=number_of_pictures,
+                                                      # number_of_videos=number_of_videos,
+                                                      # number_of_photos=number_of_pictures,
                                                       object_type=PornCategories.CATEGORY,
                                                       super_object=category_data,
                                                       )
@@ -1795,7 +1947,7 @@ class AlphaPorno(HellPorno):
 
             image = category.xpath('./a/img')
             assert len(image) == 1
-            image = image[0].attrib['src']
+            image = urljoin(self.base_url, image[0].attrib['src'])
 
             title_data = category.xpath('./a/span[@class="cat-title"]')
             assert len(title_data) == 1
@@ -1834,7 +1986,7 @@ class AlphaPorno(HellPorno):
 
             image = channel.xpath('./a/img')
             assert len(image) == 1
-            image = image[0].attrib['src']
+            image = urljoin(self.base_url, image[0].attrib['src'])
 
             title_data = channel.xpath('./a/b')
             assert len(title_data) == 1
@@ -1846,7 +1998,7 @@ class AlphaPorno(HellPorno):
 
             related_categories = channel.xpath('./span/a')
 
-            additional_data = {'site_link': link_data[1].attrib['href'],
+            additional_data = {'site_link': link_data[-1].attrib['href'],
                                'related_categories': {x.attrib['title']: x.attrib['href'] for x in related_categories}}
 
             res.append(PornCatalogCategoryNode(catalog_manager=self.catalog_manager,
@@ -1879,7 +2031,7 @@ class AlphaPorno(HellPorno):
 
             image = porn_star.xpath('./a/img')
             assert len(image) == 1
-            image = image[0].attrib['src']
+            image = urljoin(self.base_url, image[0].attrib['src'])
 
             title_data = porn_star.xpath('./a/span')
             assert len(title_data) == 1
@@ -2018,11 +2170,11 @@ class AlphaPorno(HellPorno):
     def _get_page_request_logic(self, page_data, params, page_number, true_object,
                                 page_filter, fetch_base_url):
         if true_object.object_type in (PornCategories.TOP_RATED_VIDEO, PornCategories.MOST_VIEWED_VIDEO,):
-            if self.video_filters.videos_filters.current_filters.period.filter_id != PornFilterTypes.AllDate:
-                fetch_base_url += self.video_filters.videos_filters.current_filters.period.value + '/'
+            if page_filter.period.filter_id != PornFilterTypes.AllDate:
+                fetch_base_url += page_filter.period.value + '/'
         if true_object.object_type == PornCategories.PORN_STAR_MAIN:
-            if self.video_filters.porn_stars_filters.current_filters.sort_order.filter_id != PornFilterTypes.DateOrder:
-                fetch_base_url += self.video_filters.porn_stars_filters.current_filters.sort_order.value + '/'
+            if page_filter.sort_order.filter_id != PornFilterTypes.DateOrder:
+                fetch_base_url += page_filter.sort_order.value + '/'
 
         headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
@@ -2180,7 +2332,8 @@ class MegaTubeXXX(PervertSluts):
                 image = image_data[0].xpath('./img')[0].attrib['data-original']
             flip_images = [x.attrib['data-src']
                            for x in image_data[0].xpath('./ul[@class="thumb-slider-screenshots"]/li')]
-            video_preview = image_data[0].xpath('./div[@class="thumb-video-info"]')[0].attrib['data-mediabook']
+            video_preview = urljoin(self.base_url,
+                                    image_data[0].xpath('./div[@class="thumb-video-info"]')[0].attrib['data-mediabook'])
 
             video_length = image_data[0].xpath('./div[@class="item__flags"]/span[@class="item__flag--duration"]')
             assert len(video_length) >= 1
@@ -2389,6 +2542,14 @@ class XBabe(AnyPorn):
     videos_per_video_page = 100
 
     @property
+    def possible_empty_pages(self):
+        """
+        Defines whether it is possible to have empty pages in the site.
+        :return:
+        """
+        return True
+
+    @property
     def object_urls(self):
         return {
             PornCategories.TAG_MAIN: 'https://xbabe.com/categories/',
@@ -2466,6 +2627,18 @@ class XBabe(AnyPorn):
         links, titles, number_of_videos = zip(*[(x.attrib['href'], x.text, None)
                                                 for x in raw_data])
         return links, titles, number_of_videos
+
+    def _add_tag_sub_pages(self, tag_data, sub_object_type):
+        """
+        Adds sub pages to the tags according to the first letter of the title. Stores all the tags to the proper pages.
+        Notice that the current method contradicts with the _get_tag_properties method, thus you must use either of
+        them, according to the way you want to implement the parsing (Use the _make_tag_pages_by_letter property to
+        indicate which of the methods you are about to use...)
+        :param tag_data: Tag data.
+        :param sub_object_type: Object types of the sub pages (either Page or VideoPage).
+        :return:
+        """
+        return super(AnyPorn, self)._add_tag_sub_pages(tag_data, sub_object_type)
 
     @property
     def _make_tag_pages_by_letter(self):
@@ -2935,7 +3108,7 @@ class BravoPorn(AnyPorn):
 
             image_data = category.xpath('./img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src']
+            image = urljoin(self.base_url, image_data[0].attrib['src'])
             title = image_data[0].attrib['alt']
 
             number_of_videos = category.xpath('./div[@class="in-mod"]/strong/span')
@@ -2970,7 +3143,7 @@ class BravoPorn(AnyPorn):
 
             image_data = category.xpath('./img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src']
+            image = urljoin(self.base_url, image_data[0].attrib['src'])
             title = image_data[0].attrib['alt']
 
             number_of_videos = category.xpath('./div[@class="in-mod"]/strong/span')
@@ -3005,6 +3178,18 @@ class BravoPorn(AnyPorn):
         # assert len(titles) == len(number_of_videos)
 
         return links, titles, number_of_videos
+
+    def _add_tag_sub_pages(self, tag_data, sub_object_type):
+        """
+        Adds sub pages to the tags according to the first letter of the title. Stores all the tags to the proper pages.
+        Notice that the current method contradicts with the _get_tag_properties method, thus you must use either of
+        them, according to the way you want to implement the parsing (Use the _make_tag_pages_by_letter property to
+        indicate which of the methods you are about to use...)
+        :param tag_data: Tag data.
+        :param sub_object_type: Object types of the sub pages (either Page or VideoPage).
+        :return:
+        """
+        return super(AnyPorn, self)._add_tag_sub_pages(tag_data, sub_object_type)
 
     def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
@@ -3047,7 +3232,7 @@ class BravoPorn(AnyPorn):
 
             image_data = video_tree_data.xpath('./a/img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src']
+            image = urljoin(self.base_url, image_data[0].attrib['src'])
             title = image_data[0].attrib['alt']
             if 'onmouseover' in image_data[0].attrib:
                 max_flip_images = int(re.findall(r'(\d+)(?:\)$)', image_data[0].attrib['onmouseover'])[0])
@@ -3134,7 +3319,7 @@ class XCum(XBabe):
     @property
     def object_urls(self):
         return {
-            PornCategories.TAG_MAIN: 'https://xcum.com/t/',
+            PornCategories.TAG_MAIN: 'https://xcum.com/',
             PornCategories.LATEST_VIDEO: 'https://xcum.com/',
             PornCategories.SEARCH_MAIN: 'https://xcum.com/q/',
         }
@@ -4525,7 +4710,9 @@ class PornFd(PervertSluts):
         # Took from AnyPorn module with somme modifications...
         page_request = self.get_object_request(page_data)
         tree = self.parser.parse(page_request.text)
-        videos = tree.xpath('.//div[@class="list-videos"]/div[@class="margin-fix"]/div[@class="item  "]')
+        videos = (tree.xpath('.//div[@class="list-videos"]/div[@class="margin-fix"]/div[@class="item  "]') +
+                  tree.xpath('.//div[@class="list-videos"]/div[@class="margin-fix"]/div[@class="item private "]')
+                  )
         res = []
         for video_tree_data in videos:
             link_data = video_tree_data.xpath('./a')
@@ -4638,6 +4825,18 @@ class PornFd(PervertSluts):
                                                                page_filter, fetch_base_url)
 
         page_request = self.session.get(fetch_base_url, headers=headers, params=params)
+        max_number_of_retries = 5
+        number_of_retries = 0
+        while number_of_retries < max_number_of_retries:
+            if len(page_request.text) == 0:
+                # We have some sort of empty page
+                time.sleep(1)
+                page_request = self.session.get(fetch_base_url, headers=headers, params=params)
+                number_of_retries += 1
+            else:
+                break
+        if len(page_request.text) == 0:
+            raise ValueError('Got empty page for url {u}'.format(u=page_request.url))
         return page_request
 
     def _format_duration(self, raw_duration):
@@ -4742,6 +4941,20 @@ class ZeroDaysPorn(PornFd):
 
         return (category_params, porn_stars_params, actress_params, channel_params, tag_params, video_params,
                 search_params)
+
+    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
+        """
+        Extracts category number of videos out of category data.
+        :param fetched_request:
+        :param category_data: Category data (dict).
+        :return:
+        """
+        if category_data.object_type in (PornCategories.CATEGORY_MAIN, PornCategories.TAG_MAIN):
+            return 1
+        page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
+        tree = self.parser.parse(page_request.text)
+        pages = self._get_available_pages_from_tree(tree)
+        return max(pages) if len(pages) != 0 else 1
 
     def __init__(self, source_name='ZeroDaysPorn', source_id=0, store_dir='.', data_dir='../Data', source_type='Porn',
                  use_web_server=True, session_id=None):
@@ -4920,6 +5133,14 @@ class BoundHub(PornFd):
             PornCategories.TOP_RATED_VIDEO: PornFilterTypes.RatingOrder,
             PornCategories.MOST_VIEWED_VIDEO: PornFilterTypes.ViewsOrder,
         }
+
+    # @property
+    # def possible_empty_pages(self):
+    #     """
+    #     Defines whether it is possible to have empty pages in the site.
+    #     :return:
+    #     """
+    #     return True
 
     @property
     def base_url(self):
@@ -5442,7 +5663,8 @@ class Porn7(PornBimbo):
             number_of_videos = category.xpath('./div[@class="wrap pr-first"]/div[@class="rating"]')
             number_of_videos = \
                 int(re.findall(r'\d+', number_of_videos[0].text)[0]) if len(number_of_videos) > 0 else None
-
+            if number_of_videos is None or number_of_videos == 0:
+                continue
             title = category.xpath('./strong[@class="title"]')
             assert len(title) == 1
             title = self._clear_text(title[0].text)
@@ -6272,7 +6494,8 @@ class PunishBang(PervertSluts):
             link = category.attrib['href']
 
             image_data = category.xpath('./span/img')
-            image = image_data[0].attrib['src'] if len(image_data) == 1 else None
+            image = (image_data[0].attrib['src'] if 'data:image' not in image_data[0].attrib['src']
+                     else image_data[0].attrib['data-src']) if len(image_data) == 1 else None
             title = category.attrib['title'].title() \
                 if 'title' in category.attrib else image_data[0].attrib['alt'].title()
 
@@ -6383,7 +6606,7 @@ class PunishBang(PervertSluts):
         # Took from AnyPorn module with somme modifications...
         page_request = self.get_object_request(page_data)
         tree = self.parser.parse(page_request.text)
-        videos = tree.xpath('.//div[@class="cards__list"]/div[@class="cards__item js-item"]')
+        videos = tree.xpath('.//div[@class="cards__list"]/div')
         res = []
         for video_tree_data in videos:
             link_data = video_tree_data.xpath('./a')
@@ -6596,7 +6819,7 @@ class BravoTeens(AnyPorn):
 
             image_data = category.xpath('./a/img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src']
+            image = urljoin(self.base_url, image_data[0].attrib['src'])
 
             title_data = category.xpath('./div[@class="thumb_meta"]/span[@class="video-title"]')
             assert len(title_data) == 1
@@ -6699,12 +6922,15 @@ class BravoTeens(AnyPorn):
             'Upgrade-Insecure-Requests': '1',
             'User-Agent': self.user_agent
         }
+        if page_data.object_type == PornCategories.VIDEO_PAGE and page_data.url != page_data.super_object.url:
+            # We want to have original page url, without page index
+            fetch_base_url = page_data.super_object.url.split('?')[0]
         if true_object.object_type in (PornCategories.POPULAR_VIDEO, PornCategories.TOP_RATED_VIDEO,):
             if page_filter.period.filter_id != PornFilterTypes.AllDate:
                 fetch_base_url += page_filter.period.value + '/'
 
         if page_number is not None and page_number != 1:
-            fetch_base_url = re.sub(r'/*\d*/$', '/{d}/'.format(d=page_number), fetch_base_url)
+            fetch_base_url += '{d}/'.format(d=page_number)
         page_request = self.session.get(fetch_base_url, headers=headers, params=params)
         return page_request
 
@@ -6824,6 +7050,60 @@ class MadThumbs(Fapster):
         """
         return True
 
+    def _get_page_request_logic(self, page_data, params, page_number, true_object,
+                                page_filter, fetch_base_url):
+        if true_object.object_type == PornCategories.TAG:
+            return super(Fapster, self)._get_page_request_logic(page_data, params, page_number, true_object,
+                                                                page_filter, fetch_base_url)
+        if true_object.object_type == PornCategories.SEARCH_MAIN:
+            headers = {
+                'Accept': '*.*',
+                'Cache-Control': 'max-age=0',
+                'Referer': self.base_url,
+                'Host': self.host_name,
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'same-origin',
+                'Sec-Fetch-User': '?1',
+                'Upgrade-Insecure-Requests': '1',
+                'User-Agent': self.user_agent,
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+            conditions = self.get_proper_filter(page_data).conditions
+            true_sort_filter_id = self._default_sort_by[true_object.object_type] \
+                if true_object.object_type in self._default_sort_by \
+                else page_filter.sort_order.filter_id
+
+            if page_number is None:
+                page_number = 1
+            params.update({
+                'mode': 'async',
+                'function': 'get_block',
+            })
+            if page_filter.length.value is not None:
+                params.update(parse_qsl(page_filter.length.value))
+            params['from'] = str(page_number).zfill(2)
+            params['block_id'] = 'list_videos_videos_list_search_result'
+            params['category_ids'] = ''
+            params['sort_by'] = page_filter.sort_order.value
+            if 'from' in params:
+                params.pop('from')
+            params['from_videos'] = str(page_number).zfill(2)
+            params['from_albums'] = str(page_number).zfill(2)
+            params['q'] = self._search_query if true_object.object_type == PornCategories.SEARCH_MAIN \
+                else fetch_base_url.split('/')[-2]
+
+            if (
+                    page_filter.period.value is not None and
+                    (conditions.period.sort_order is None or true_sort_filter_id in conditions.period.sort_order)
+            ):
+                params['sort_by'] += page_filter.period.value
+
+            page_request = self.session.get(fetch_base_url, headers=headers, params=params)
+            return page_request
+        else:
+            return super(PervertSluts, self)._get_page_request_logic(page_data, params, page_number, true_object,
+                                                                     page_filter, fetch_base_url)
+
 
 class VQTube(MadThumbs):
 
@@ -6898,6 +7178,25 @@ class VQTube(MadThumbs):
         available_pages = self._get_available_pages_from_tree(tree)
         return max(available_pages) if len(available_pages) > 0 else 1
 
+    def _get_available_pages_from_tree(self, tree):
+        """
+        In binary looks for the available pages from current page tree.
+        :param tree: Current page tree.
+        :return: List of available trees
+        """
+        xpath = './/div[@class="pagination-holder"]/ul/li/a'
+        return ([int(x.attrib['href'].split('/')[-2]) for x in tree.xpath(xpath)
+                if 'href' in x.attrib and len(x.attrib['href'].split('/')) > 2 and
+                 x.attrib['href'].split('/')[-2].isdigit()]
+                ) + \
+               ([int(x.attrib['data-parameters'].split(':')[-1])
+                for x in tree.xpath(xpath)
+                if 'data-parameters' in x.attrib and x.attrib['data-parameters'].split(':')[-1].isdigit()] +
+                [int(re.findall(r'(?:from.*?:)(\d+)', x.attrib['href'])[0])
+                for x in tree.xpath(xpath)
+                if 'href' in x.attrib and len(re.findall(r'(?:from.*?:)(\d+)', x.attrib['href'])) > 0]
+                )
+
     def _get_tag_properties(self, page_request):
         """
         Fetches tag links and titles.
@@ -6912,33 +7211,37 @@ class VQTube(MadThumbs):
 
     def _get_page_request_logic(self, page_data, params, page_number, true_object,
                                 page_filter, fetch_base_url):
-        # New
-        headers = {
-            'Accept': '*.*',
-            'Cache-Control': 'max-age=0',
-            'Referer': self.base_url,
-            'Host': self.host_name,
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': self.user_agent,
-            'X-Requested-With': 'XMLHttpRequest',
-        }
-        if page_number is None:
-            page_number = 1
-        params.update({
-                'mode': 'async',
-                'function': 'get_block',
-            })
-        if page_number > 1:
-            params['from'] = str(page_number).zfill(2)
-        if true_object.object_type == PornCategories.TAG_MAIN:
-            params['block_id'] = 'list_tags_tags_list'
-            params['sort_by'] = 'tag'
+        if fetch_base_url == 'https://vqtube.com/categories/1/':
+            # ad-hoc solution for the problematic category
+            fetch_base_url += '1/'
+        if true_object.object_type in (PornCategories.TAG_MAIN, ):
+            # New
+            headers = {
+                'Accept': '*.*',
+                'Cache-Control': 'max-age=0',
+                'Referer': self.base_url,
+                'Host': self.host_name,
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'same-origin',
+                'Sec-Fetch-User': '?1',
+                'Upgrade-Insecure-Requests': '1',
+                'User-Agent': self.user_agent,
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+            if page_number is None:
+                page_number = 1
+            params.update({
+                    'mode': 'async',
+                    'function': 'get_block',
+                })
+            if page_number > 1:
+                params['from'] = str(page_number).zfill(2)
+            if true_object.object_type == PornCategories.TAG_MAIN:
+                params['block_id'] = 'list_tags_tags_list'
+                params['sort_by'] = 'tag'
 
-            page_request = self.session.get(fetch_base_url, headers=headers, params=params)
-            return page_request
+                page_request = self.session.get(fetch_base_url, headers=headers, params=params)
+                return page_request
         else:
             return super(VQTube, self)._get_page_request_logic(page_data, params, page_number, true_object,
                                                                page_filter, fetch_base_url)
@@ -7054,8 +7357,8 @@ class SlutLoad(MadThumbs):
             PornCategories.CATEGORY_MAIN: 'https://www.slutload.com/categories/',
             # VideoCategories.CHANNEL_MAIN: 'https://www.slutload.com/sites/',
             # VideoCategories.PORN_STAR_MAIN: 'https://www.slutload.com/models/',
-            PornCategories.TAG_MAIN: 'https://www.slutload.com/tags/',
-            PornCategories.TOP_RATED_VIDEO: 'https://www.slutload.com/top-rated/',
+            # PornCategories.TAG_MAIN: 'https://www.slutload.com/tags/',
+            PornCategories.TOP_RATED_VIDEO: 'https://www.slutload.com/rating/',
             PornCategories.MOST_VIEWED_VIDEO: 'https://www.slutload.com/view/',
             PornCategories.SEARCH_MAIN: 'https://www.slutload.com/search/',
         }
@@ -7173,7 +7476,7 @@ class Sex3(BravoPorn):
 
             image_data = category.xpath('./a/img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src']
+            image = urljoin(self.base_url, image_data[0].attrib['src'])
 
             title_data = (category.xpath('./div[@class="thumb_meta"]/a') +
                           category.xpath('./div[@style="position:absolute; color:#FFF; top:135px; left:0; '
@@ -7235,7 +7538,7 @@ class Sex3(BravoPorn):
 
             image_data = category.xpath('./img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src']
+            image = urljoin(self.base_url, image_data[0].attrib['src'])
             description = image_data[0].attrib['alt']
 
             res.append(PornCatalogCategoryNode(catalog_manager=self.catalog_manager,
@@ -7277,7 +7580,7 @@ class Sex3(BravoPorn):
 
             image_data = video_tree_data.xpath('./a/img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src']
+            image = urljoin(self.base_url, image_data[0].attrib['src'])
             title = image_data[0].attrib['alt']
             if 'onmouseover' in image_data[0].attrib:
                 max_flip_images = int(re.findall(r'(\d+)(?:\)$)', image_data[0].attrib['onmouseover'])[0])
@@ -7414,11 +7717,14 @@ class AnySex(Sex3):
                                        (PornFilterTypes.VideosRatingOrder, 'Videos rating', 'avg_videos_rating'),
                                        ],
                         }
-        video_params = {'period_filters': [(PornFilterTypes.ThreeDate, 'Today', 'today'),
-                                           (PornFilterTypes.TwoDate, 'This week', 'week'),
-                                           (PornFilterTypes.OneDate, 'This Month', 'month'),
-                                           (PornFilterTypes.AllDate, 'All time', None),
-                                           ],
+        video_params = {'period_filters': [[(PornFilterTypes.ThreeDate, 'Today', 'today'),
+                                            (PornFilterTypes.TwoDate, 'This week', 'week'),
+                                            (PornFilterTypes.OneDate, 'This Month', 'month'),
+                                            (PornFilterTypes.AllDate, 'All time', None),
+                                            ],
+                                           [('sort_order', [PornFilterTypes.ViewsOrder,
+                                                            PornFilterTypes.RatingOrder])]
+                                           ]
                         }
 
         self._video_filters = PornFilter(data_dir=self.fetcher_data_dir,
@@ -7745,36 +8051,37 @@ class CrocoTube(Sex3):
         """
         page_request = self.get_object_request(page_data)
         tree = self.parser.parse(page_request.text)
-        videos = tree.xpath('.//div[@class="ct-videos-list"]/a')
+        videos = tree.xpath('.//div[@class="ct-videos-list"]/div[@class="thumb"]/a')
         res = []
         for video_tree_data in videos:
             link = video_tree_data.attrib['href']
 
-            image_data = video_tree_data.xpath('./div[@class="ct-video-thumb-image"]/img')
+            image_general_data = video_tree_data.xpath('./div[@class="ct-video-thumb-image img"]')
+            assert len(image_general_data) == 1
+            image_data = image_general_data[0].xpath('./img')
             assert len(image_data) == 1
             image = image_data[0].attrib['src']
             title = image_data[0].attrib['alt']
-            video_data = video_tree_data.xpath('./div[@class="ct-video-thumb-image"]/video')
+            video_data = image_general_data[0].xpath('./video')
             flip_images = [re.sub(r'\d+.jpg', '{d}.jpg'.format(d=d), image) for d in range(1, self.flip_number + 1)]
             preview_link = video_data[0].attrib['src'] if len(video_data) == 1 else None
 
-            is_hd = video_tree_data.xpath('./div[@class="ct-video-thumb-image"]/div[@class="ct-video-thumb-icons"]/'
-                                          'div[@class="ct-video-thumb-hd-icon"]')
+            is_hd = image_general_data[0].xpath('./div[@class="ct-video-thumb-icons"]/'
+                                                'div[@class="ct-video-thumb-hd-icon"]')
             is_hd = len(is_hd) > 0
 
-            video_length = video_tree_data.xpath('./div[@class="ct-video-thumb-image"]/'
-                                                 'div[@class="ct-video-thumb-icons"]/'
-                                                 'div[@class="ct-video-thumb-duration"]')
+            video_length = image_general_data[0].xpath('./div[@class="ct-video-thumb-icons"]/'
+                                                       'div[@class="ct-video-thumb-duration"]')
             assert len(video_length) == 1
             video_length = video_length[0].text
 
-            rating = video_tree_data.xpath('./div[@class="ct-video-thumb-stats"]/'
-                                           'div[@class="ct-video-thumb-rating"]/em')
+            footer_data = video_tree_data.xpath('./div[@class="ct-video-thumb-stats"]')
+            assert len(footer_data) == 1
+            rating = footer_data[0].xpath('./div[@class="ct-video-thumb-rating"]/em')
             assert len(rating) == 1
             rating = rating[0].text
 
-            number_of_views = video_tree_data.xpath('./div[@class="ct-video-thumb-stats"]/'
-                                                    'div[@class="ct-video-thumb-views"]/em')
+            number_of_views = footer_data[0].xpath('./div[@class="ct-video-thumb-views"]/em')
             assert len(number_of_views) == 1
             number_of_views = int(number_of_views[0].text)
 
@@ -8593,6 +8900,18 @@ class PornoDep(AnyPorn):
         porn_star_data.add_sub_objects(res)
         return res
 
+    def _add_tag_sub_pages(self, tag_data, sub_object_type):
+        """
+        Adds sub pages to the tags according to the first letter of the title. Stores all the tags to the proper pages.
+        Notice that the current method contradicts with the _get_tag_properties method, thus you must use either of
+        them, according to the way you want to implement the parsing (Use the _make_tag_pages_by_letter property to
+        indicate which of the methods you are about to use...)
+        :param tag_data: Tag data.
+        :param sub_object_type: Object types of the sub pages (either Page or VideoPage).
+        :return:
+        """
+        return super(AnyPorn, self)._add_tag_sub_pages(tag_data, sub_object_type)
+
     def _get_tag_properties(self, page_request):
         """
         Fetches tag links and titles.
@@ -8660,7 +8979,8 @@ class PornoDep(AnyPorn):
 
             image_data = video_tree_data.xpath('./div[@class="card-top"]/span[@class="wrap-img"]/img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src']
+            image = image_data[0].attrib['src'] if 'data:image' not in image_data[0].attrib['src'] \
+                else image_data[0].attrib['data-original']
             preview = image_data[0].attrib['data-preview'] if 'data-preview' in image_data[0].attrib else None
             flip_image = [re.sub(r'\d+.jpg', '{i}.jpg'.format(i=i), image)
                           for i in range(1, int(image_data[0].attrib['data-cnt']) + 1)]
@@ -8723,14 +9043,15 @@ class PornoDep(AnyPorn):
                 true_object.object_type in (PornCategories.CATEGORY_MAIN, ) or
                 page_data.object_type in (PornCategories.CATEGORY, )
         ):
-            page_request = self.session.get(fetch_base_url, headers=headers)
-            return page_request
+            params = {}
         elif true_object.object_type == PornCategories.LATEST_VIDEO:
             params['block_id'] = 'list_videos_most_recent_videos'
             params['sort_by'] = 'post_date'
             params['from'] = str(page_number).zfill(2)
-            page_request = self.session.get(fetch_base_url, headers=headers, params=params)
-            return page_request
+        elif true_object.object_type == PornCategories.TAG:
+            params['block_id'] = 'list_videos_common_videos_list'
+            params['sort_by'] = page_filter.sort_order.value
+            params['from'] = str(page_number).zfill(2)
         elif true_object.object_type == PornCategories.SEARCH_MAIN:
             params['block_id'] = 'list_videos_videos_list_search_result'
             params['q'] = self._search_query
@@ -8740,12 +9061,11 @@ class PornoDep(AnyPorn):
                 params['sort_by'] += page_filter.period.value
             params['from_videos'] = str(page_number).zfill(2)
             params['from_albums'] = str(page_number).zfill(2)
-            page_request = self.session.get(fetch_base_url, headers=headers, params=params)
-            return page_request
-
         else:
             return super(PornoDep, self)._get_page_request_logic(page_data, params, page_number, true_object,
                                                                  page_filter, fetch_base_url)
+        page_request = self.session.get(fetch_base_url, headers=headers, params=params)
+        return page_request
 
 
 class WatchMyGfMe(AnyPorn):
@@ -8796,7 +9116,7 @@ class WatchMyGfMe(AnyPorn):
                         [('sort_order', [PornFilterTypes.RatingOrder,
                                          PornFilterTypes.ViewsOrder])]
                         )
-        video_quality = [(PornFilterTypes.AllQuality, 'All', '0'),
+        video_quality = [(PornFilterTypes.AllQuality, 'All', ''),
                          (PornFilterTypes.HDQuality, 'HD', '1'),
                          ]
         search_sort_order = [(PornFilterTypes.RelevanceOrder, 'Most Relevant', '')] + video_sort_order
@@ -8814,7 +9134,14 @@ class WatchMyGfMe(AnyPorn):
                             (PornFilterTypes.NumberOfVideosOrder, 'Most Videos', 'total_videos'),
                             ]
              }
-        channel_params = porn_stars_params
+        channel_params = \
+            {'sort_order': [(PornFilterTypes.VideosPopularityOrder, 'Most Viewed', 'cs_viewed'),
+                            (PornFilterTypes.VideosRatingOrder, 'Top Rated', 'avg_videos_rating'),
+                            (PornFilterTypes.AlphabeticOrder, 'Alphabetically', 'title'),
+                            (PornFilterTypes.NumberOfVideosOrder, 'Most Videos', 'total_videos'),
+                            ],
+             }
+
         video_params = {'sort_order': video_sort_order,
                         'period_filters': video_period,
                         'quality_filters': video_quality,
@@ -9170,6 +9497,11 @@ class WatchMyGfMe(AnyPorn):
 
         if true_object.object_type == PornCategories.TAG_MAIN:
             params = {}
+        elif true_object.object_type == PornCategories.TAG:
+            params['block_id'] = 'list_videos_common_videos_list'
+            params['sort_by'] = page_filter.sort_order.value
+            params['from'] = str(page_number).zfill(2)
+            params['section'] = ''
         elif true_object.object_type == PornCategories.LATEST_VIDEO:
             params['block_id'] = 'list_videos_common_videos_list'
             params['sort_by'] = page_filter.sort_order.value

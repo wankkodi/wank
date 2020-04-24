@@ -160,10 +160,10 @@ class PornTube(PornFetcher):
                                         (PornFilterTypes.ViewsOrder, 'Most Viewed', 'views'),
                                         (PornFilterTypes.LengthOrder, 'Longest', 'duration'),
                                         ),
-                         'added_before_filters': [(PornFilterTypes.ThreeAddedBefore, 'This month', 'month'),
-                                                  (PornFilterTypes.AllAddedBefore, 'All time', None),
+                         'added_before_filters': [(PornFilterTypes.AllAddedBefore, 'All time', None),
                                                   (PornFilterTypes.OneAddedBefore, '24 Hours', '24h'),
                                                   (PornFilterTypes.TwoAddedBefore, 'This week', 'week'),
+                                                  (PornFilterTypes.ThreeAddedBefore, 'This month', 'month'),
                                                   (PornFilterTypes.FourAddedBefore, 'This Year', 'year'),
                                                   ],
                          'length_filters': [(PornFilterTypes.AllLength, 'Any duration', None),
@@ -211,7 +211,7 @@ class PornTube(PornFetcher):
             additional_data = {'slug': x['slug'], 'category_id': x['id']}
             title = x['name']
             number_of_videos = None
-            image = x['thumbDesktop']
+            image = x['thumbDesktop'] if len(x['thumbDesktop']) > 0 else None
 
             object_data = PornCatalogCategoryNode(catalog_manager=self.catalog_manager,
                                                   obj_id=cat_id,
@@ -276,7 +276,7 @@ class PornTube(PornFetcher):
             title = x['name']
             number_of_videos = x['videoCount']
             rating = x['ratingValue']
-            image = x['thumbUrl']
+            image = x['thumbUrl'] if len(x['thumbUrl']) > 0 else None
 
             object_data = PornCatalogCategoryNode(catalog_manager=self.catalog_manager,
                                                   obj_id=cat_id,
@@ -309,7 +309,7 @@ class PornTube(PornFetcher):
             additional_data = {'slug': x['slug'], 'category_id': x['id']}
             title = x['name']
             number_of_videos = x['videoCount']
-            image = x['thumbUrl']
+            image = x['thumbUrl'] if len(x['thumbUrl']) > 0 else None
 
             object_data = PornCatalogCategoryNode(catalog_manager=self.catalog_manager,
                                                   obj_id=cat_id,
@@ -410,8 +410,9 @@ class PornTube(PornFetcher):
                                                   obj_id=video_id,
                                                   url=urljoin(self.base_url, video_id),
                                                   title=x['title'],
-                                                  image_link=x['videoThumbnail'],
-                                                  flip_images_link=x['thumbnailsList'],
+                                                  image_link=urljoin(self.base_url, x['videoThumbnail']),
+                                                  flip_images_link=[urljoin(self.base_url, y)
+                                                                    for y in x['thumbnailsList']],
                                                   duration=x['durationInSeconds'],
                                                   is_hd=x['isHD'],
                                                   number_of_views=x['playsQty'],
@@ -463,10 +464,10 @@ class PornTube(PornFetcher):
         param_filter.update({k: v for k, v in params.items() if k in param_filter})
         params = {
             # 'filter': urlencode(param_filter),
-            'filter': json.dumps(param_filter),
+            'filter': json.dumps(param_filter) if len(param_filter) > 0 else '{}',
             'orientation': self.general_filter.current_filters.general.value,
             'order': page_filter.sort_order.value if 'sort' not in original_params else original_params['sort'],
-            'ssr': False,
+            'ssr': 'false',
             'p': page_number,
         }
         if true_object.object_type in (PornCategories.TAG_MAIN, PornCategories.CATEGORY_MAIN):

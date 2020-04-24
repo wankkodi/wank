@@ -110,11 +110,13 @@ class CumLouder(PornFetcher):
         categories = tree.xpath(xpath)
         res = []
         for category in categories:
-            image = category.xpath('./img')
-            assert len(image) == 1
-            image = image[0].attrib['src'] \
-                if image[0].attrib['src'] != "/css/css-cumlouder/images/loading-placeholder.gif" \
-                else image[0].attrib['data-src']
+            image_data = category.xpath('./img')
+            assert len(image_data) == 1
+            image = image_data[0].attrib['src'] \
+                if (image_data[0].attrib['src'] != "/css/css-cumlouder/images/loading-placeholder.gif" and
+                    'data:image' not in image_data[0].attrib['src']) \
+                else image_data[0].attrib['data-src']
+            image = urljoin(self.base_url, image)
 
             title = category.xpath('./h2/span[@class="ico-h2 sprite"]')
             if len(title) == 1:
@@ -217,12 +219,21 @@ class CumLouder(PornFetcher):
         page_request = self.get_object_request(page_data)
 
         tree = self.parser.parse(page_request.text)
-        videos = tree.xpath('.//body/div[@class="listado-escenas"]/div[@class="medida"]/a[@class="muestra-escena"]')
+        videos = (tree.xpath('.//body/div[@class="listado-escenas"]/div[@class="medida"]/a[@class="muestra-escena"]') +
+                  tree.xpath('.//body/div[@class="listado-escenas listado-busqueda"]/div[@class="medida"]/'
+                             'a[@class="muestra-escena"]')
+                  )
         res = []
         for video_tree_data in videos:
 
-            img = video_tree_data.xpath('./img')
-            assert len(img) == 1
+            image_data = video_tree_data.xpath('./img')
+            assert len(image_data) == 1
+            image = image_data[0].attrib['src'] \
+                if (image_data[0].attrib['src'] != "/css/css-cumlouder/images/loading-placeholder.gif" and
+                    'data:image' not in image_data[0].attrib['src']) \
+                else image_data[0].attrib['data-src']
+            image = urljoin(self.base_url, image)
+            title = image_data[0].attrib['alt']
 
             number_of_views = video_tree_data.xpath('./span[@class="box-fecha-mins"]/span[@class="vistas"]/'
                                                     'span[@class="ico-vistas sprite"]')
@@ -236,16 +247,17 @@ class CumLouder(PornFetcher):
             video_length = self._clear_text(video_length[0].tail) if len(video_length) == 1 else None
 
             is_hd = video_tree_data.xpath('./span[@class="hd sprite"]')
+            is_hd = len(is_hd) > 0
 
             video_data = PornCatalogVideoPageNode(catalog_manager=self.catalog_manager,
                                                   obj_id=video_tree_data.attrib['href'],
                                                   url=urljoin(self.base_url, video_tree_data.attrib['href']),
-                                                  title=img[0].attrib['alt'],
-                                                  image_link=img[0].attrib['src'],
+                                                  title=title,
+                                                  image_link=image,
                                                   number_of_views=number_of_views,
                                                   added_before=added_before,
                                                   duration=video_length,
-                                                  is_hd=len(is_hd) > 0,
+                                                  is_hd=is_hd,
                                                   object_type=PornCategories.VIDEO,
                                                   super_object=page_data,
                                                   )

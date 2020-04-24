@@ -82,7 +82,7 @@ from ..hidden.wankgalore import WankGalore
 from ..hidden.xfantazy import XFantazy
 from ..hidden.xhamster import XHamster
 from ..hidden.xnxx import Xnxx, XVideos
-from ..hidden.yes_porn_please import YesPornPlease, SayPornPlease
+from ..hidden.yes_porn_please import YesPornPleaseX, SayPornPlease
 from ..hidden.youjizz import YouJizz
 
 
@@ -159,7 +159,7 @@ class SourceHandler(object):
             self.image = path.join(logo_dir, 'porntrex.png')
         elif source_id == -12:
             self.title = 'YesPornPlease'
-            self.main_module = YesPornPlease
+            self.main_module = YesPornPleaseX
             self.image = path.join(logo_dir, 'yespornplease.png')
         elif source_id == -13:
             self.title = 'DraftSex'

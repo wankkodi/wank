@@ -28,6 +28,7 @@ from ..id_generator import IdGenerator
 
 
 class GotPorn(PornFetcher):
+    max_search_results = 40
     channel_json_request_template = 'https://www.gotporn.com/channels/{chid}/get-more-videos'
 
     @property
@@ -59,6 +60,14 @@ class GotPorn(PornFetcher):
     @property
     def number_of_videos_per_channel_page(self):
         return 16
+
+    @property
+    def possible_empty_pages(self):
+        """
+        Defines whether it is possible to have empty pages in the site.
+        :return:
+        """
+        return True
 
     @property
     def base_url(self):
@@ -243,16 +252,25 @@ class GotPorn(PornFetcher):
             page_request = self.get_object_request(category_data, force_fetch_channel_page=True) \
                 if fetched_request is None else fetched_request
             tree = self.parser.parse(page_request.text)
-            total_number_of_videos = tree.xpath('.//button[@id="show-more-videos-btn"]')
-            assert len(total_number_of_videos) == 1
-            total_number_of_videos = int(total_number_of_videos[0].attrib['data-videos-num'])
+            total_number_of_videos = tree.xpath('.//div[@class="stats right"]/dl/dd')
+            assert len(total_number_of_videos) == 2
+            if total_number_of_videos[0].text.isdigit():
+                total_number_of_videos = int(total_number_of_videos[0].text)
+            else:
+                total_number_of_videos = tree.xpath('.//button[@id="show-more-videos-btn"]')
+                assert len(total_number_of_videos) == 1
+                total_number_of_videos = int(total_number_of_videos[0].attrib['data-videos-num'])
+
             videos = tree.xpath('.//span[@class="video-thumb"]')
             return math.ceil(total_number_of_videos / len(videos))
         else:
             page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
             tree = self.parser.parse(page_request.text)
             available_pages = self._get_available_pages_from_tree(tree)
-            return max(available_pages) if len(available_pages) > 0 else 1
+            if category_data.true_object.object_type == PornCategories.SEARCH_MAIN:
+                return min(self.max_search_results, max(available_pages)) if len(available_pages) > 0 else 1
+            else:
+                return max(available_pages) if len(available_pages) > 0 else 1
 
     def _get_available_pages_from_tree(self, tree):
         """
@@ -298,7 +316,7 @@ class GotPorn(PornFetcher):
                                                   obj_id=video_tree_data.attrib['data-id'],
                                                   url=url,
                                                   title=title,
-                                                  image_link=img[0].attrib['src'],
+                                                  image_link=urljoin(self.base_url, img[0].attrib['src']),
                                                   is_hd='hd' in is_hd[0].attrib['class'],
                                                   duration=self._format_duration(video_length),
                                                   object_type=PornCategories.VIDEO,
@@ -356,8 +374,8 @@ class GotPorn(PornFetcher):
             page_request = self.session.get(page_data.url, headers=headers)
             return page_request
         else:
-            return super(GotPorn, self).get_object_request(page_data, override_page_number, override_params,
-                                                           override_url)
+            return super(GotPorn, self)._get_object_request_no_exception_check(page_data, override_page_number,
+                                                                               override_params, override_url)
 
     def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url):
         # split_url = urlparse(fetch_base_url)
@@ -382,10 +400,10 @@ class GotPorn(PornFetcher):
                     split_url.insert(-1, page_filter.sort_order.value)
                 elif true_object.object_type in (PornCategories.SEARCH_MAIN,):
                     params['sort'] = page_filter.sort_order.value
-            if page_filter.length.filter_id != PornFilterTypes.AllLength:
+            if page_filter.length.value is not None:
                 k, v = page_filter.length.value.split('=')
                 params[k] = v
-            if page_filter.quality.filter_id != PornFilterTypes.AllQuality:
+            if page_filter.quality.value is not None:
                 k, v = page_filter.quality.value.split('=')
                 params[k] = v
 
@@ -465,7 +483,7 @@ class PornHD(PornFetcher):
             PornCategories.MOST_VIEWED_VIDEO: 'https://www.pornhd.com/?order=most-popular',
             PornCategories.LONGEST_VIDEO: 'https://www.pornhd.com/?order=longest',
             PornCategories.TOP_RATED_VIDEO: 'https://www.pornhd.com/?order=top-rated',
-            PornCategories.LIVE_VIDEO: 'https://www.pornhd.com/live-sex',
+            # PornCategories.LIVE_VIDEO: 'https://www.pornhd.com/live-sex',
             PornCategories.SEARCH_MAIN: 'https://www.pornhd.com/search',
         }
 
@@ -592,7 +610,7 @@ class PornHD(PornFetcher):
             title = None
             image = None
             if len(image_data) > 0:
-                image = image_data[0].attrib['src']
+                image = urljoin(self.base_url, image_data[0].attrib['src'])
                 if 'alt' in image_data[0].attrib:
                     title = image_data[0].attrib['alt']
 
@@ -943,7 +961,7 @@ class PinFlix(PornHD):
             PornCategories.MOST_VIEWED_VIDEO: 'https://www.pinflix.com/?order=most-popular',
             PornCategories.LONGEST_VIDEO: 'https://www.pinflix.com/?order=longest',
             PornCategories.TOP_RATED_VIDEO: 'https://www.pinflix.com/?order=top-rated',
-            PornCategories.LIVE_VIDEO: 'https://www.pinflix.com/live-sex',
+            # PornCategories.LIVE_VIDEO: 'https://www.pinflix.com/live-sex',
             PornCategories.SEARCH_MAIN: 'https://www.pinflix.com/search',
         }
 
@@ -1013,7 +1031,7 @@ class PornRox(PornHD):
             PornCategories.MOST_VIEWED_VIDEO: 'https://www.pornrox.com/?order=most-popular',
             PornCategories.LONGEST_VIDEO: 'https://www.pornrox.com/?order=longest',
             PornCategories.TOP_RATED_VIDEO: 'https://www.pornrox.com/?order=top-rated',
-            PornCategories.LIVE_VIDEO: 'https://www.pornrox.com/live-sex',
+            # PornCategories.LIVE_VIDEO: 'https://www.pornrox.com/live-sex',
             PornCategories.SEARCH_MAIN: 'https://www.pornrox.com/search',
         }
 

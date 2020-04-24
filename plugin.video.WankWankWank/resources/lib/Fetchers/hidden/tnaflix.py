@@ -56,6 +56,14 @@ class TnaFlix(PornFetcher):
         return 'https://www.tnaflix.com/'
 
     @property
+    def possible_empty_pages(self):
+        """
+        Defines whether it is possible to have empty pages in the site.
+        :return:
+        """
+        return True
+
+    @property
     def max_pages(self):
         """
         Most viewed videos page url.
@@ -239,8 +247,9 @@ class TnaFlix(PornFetcher):
             link_data = [x for x in category.xpath('./a') if 'class' in x.attrib and 'thumb' in x.attrib['class']]
             assert len(link_data) == 1
 
-            image = link_data[0].xpath('./img')
-            assert len(image) == 1
+            image_data = link_data[0].xpath('./img')
+            assert len(image_data) == 1
+            image = urljoin(self.base_url, image_data[0].attrib['src'])
 
             title = (category.xpath('./a[@class="categoryTitle"]/text()') +
                      category.xpath('./a[@class="categoryTitle channelTitle"]/text()'))
@@ -259,7 +268,7 @@ class TnaFlix(PornFetcher):
                                                   obj_id=link_data[0].attrib['href'],
                                                   url=urljoin(base_object_data.url, link_data[0].attrib['href']),
                                                   title=title,
-                                                  image_link=image[0].attrib['src'],
+                                                  image_link=image,
                                                   number_of_videos=number_of_videos,
                                                   number_of_subscribers=number_of_subscribers,
                                                   object_type=object_type,
@@ -421,7 +430,7 @@ class TnaFlix(PornFetcher):
         else:
             start_page = self.max_pages
             while 1:
-                page_request = self.get_object_request(category_data, start_page)
+                page_request = self._get_object_request_no_exception_check(category_data, start_page)
                 if self._check_is_available_page(category_data, page_request):
                     # We propagate the start page
                     start_page += self.max_pages
@@ -442,7 +451,8 @@ class TnaFlix(PornFetcher):
         """
         if page_request is None:
             page_request = self.get_object_request(page_object)
-        return len(page_request.history) == 0
+        return len(page_request.history) == 0 or (page_request.ok and
+                                                  all(x.url == page_request.url for x in page_request.history))
 
     def _get_available_pages_from_tree(self, tree):
         """
@@ -571,11 +581,13 @@ class TnaFlix(PornFetcher):
             if page_filter.period.value is not None:
                 params['su'] = page_filter.period.value
             if page_filter.sort_order.value:
+                # params['browsefilter-sort'] = page_filter.sort_order.value
                 params['sb'] = page_filter.sort_order.value
             if page_filter.quality.value is not None:
                 # params['browsefilter-hd'] = page_filter.quality.value
                 params['hd'] = page_filter.quality.value
             if page_filter.length.value is not None:
+                # params['browsefilter-duration'] = page_filter.length.value
                 params['sd'] = page_filter.length.value
 
         elif true_object.object_type in (PornCategories.PORN_STAR, ):

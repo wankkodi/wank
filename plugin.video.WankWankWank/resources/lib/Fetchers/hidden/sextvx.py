@@ -111,7 +111,7 @@ class SexTvX(PornFetcher):
 
             image_data = link_data[0].xpath('./img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['data-src']
+            image = urljoin(self.base_url, image_data[0].attrib['data-src'])
 
             title_data = category.xpath('./div[@class="thumb-info"]')
             assert len(title_data) == 1
@@ -157,7 +157,7 @@ class SexTvX(PornFetcher):
 
             image_data = porn_star.xpath('./a/img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src']
+            image = urljoin(self.base_url, image_data[0].attrib['src'])
 
             video_preview = porn_star.xpath('./a/div')
             video_preview = video_preview[0].attrib['data-url'] if len(video_preview) == 1 else None
@@ -176,7 +176,7 @@ class SexTvX(PornFetcher):
                                                   title=title,
                                                   image_link=image,
                                                   number_of_videos=number_of_videos,
-                                                  video_preview_link=video_preview,
+                                                  preview_video_link=video_preview,
                                                   object_type=PornCategories.PORN_STAR,
                                                   super_object=porn_star_data,
                                                   )

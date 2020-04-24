@@ -32,7 +32,7 @@ class BaseFetcher(PornFetcher):
             PornCategories.TOP_RATED_VIDEO: urljoin(self.base_url, 'videos/top-rated/'),
             PornCategories.LATEST_VIDEO: urljoin(self.base_url, 'videos/newest/'),
             PornCategories.POPULAR_VIDEO: urljoin(self.base_url, 'videos/most-popular/'),
-            PornCategories.TRENDING_VIDEO: urljoin(self.base_url, ''),
+            PornCategories.TRENDING_VIDEO: urljoin(self.base_url, 'videos/best-recent/'),
             PornCategories.LONGEST_VIDEO: urljoin(self.base_url, 'videos/longest/'),
             PornCategories.MOST_DISCUSSED_VIDEO: urljoin(self.base_url, 'videos/comment/'),
             PornCategories.RANDOM_VIDEO: urljoin(self.base_url, 'videos/random/'),
@@ -50,6 +50,14 @@ class BaseFetcher(PornFetcher):
             PornCategories.MOST_DISCUSSED_VIDEO: PornFilterTypes.CommentsOrder,
             PornCategories.RANDOM_VIDEO: PornFilterTypes.RandomOrder,
         }
+
+    @property
+    def possible_empty_pages(self):
+        """
+        Defines whether it is possible to have empty pages in the site.
+        :return:
+        """
+        return True
 
     @property
     @abstractmethod

@@ -58,6 +58,14 @@ class EPorner(PornFetcher):
         }
 
     @property
+    def possible_empty_pages(self):
+        """
+        Defines whether it is possible to have empty pages in the site.
+        :return:
+        """
+        return True
+
+    @property
     def base_url(self):
         """
         Base site url.
@@ -340,7 +348,7 @@ class EPorner(PornFetcher):
             image_data = link_data[0].xpath('./img')
             assert len(image_data) == 1
             image = image_data[0].attrib['src']
-            if len(image) == 0:
+            if len(image) == 0 or 'data:image' in image:
                 # We try alternative path
                 image = image_data[0].attrib['data-src']
             # flip_start = image_data[0].attrib['data-st']

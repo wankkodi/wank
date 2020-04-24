@@ -110,18 +110,21 @@ class HQPorner(PornFetcher):
         for category in categories:
             link = category.xpath('./a')
             assert len(link) == 1
+            link = link[0].attrib['href']
 
-            image = category.xpath('./a/img/@src')
+            image = category.xpath('./a/img')
             assert len(image) == 1
+            image = urljoin(self.base_url, image[0].attrib['src'])
 
-            title = category.xpath('./h3/a/text()')
+            title = category.xpath('./h3/a')
             assert len(title) == 1
+            title = title[0].text
 
             sub_object_data = PornCatalogCategoryNode(catalog_manager=self.catalog_manager,
-                                                      obj_id=link[0].attrib['href'],
-                                                      url=urljoin(self.base_url, link[0].attrib['href']),
-                                                      title=title[0],
-                                                      image_link=image[0],
+                                                      obj_id=link,
+                                                      url=urljoin(self.base_url, link),
+                                                      title=title,
+                                                      image_link=image,
                                                       object_type=object_type,
                                                       super_object=object_data,
                                                       )

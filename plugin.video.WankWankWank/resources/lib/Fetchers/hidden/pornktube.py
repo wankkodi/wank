@@ -228,11 +228,11 @@ class PornKTube(PornFetcher):
 
             image_data = video_tree_data.xpath('./div[@class="vid_info"]/a/img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src']
+            image = urljoin(self.base_url, image_data[0].attrib['src'])
             if 'onmouseover' in image_data[0].attrib:
                 _, flip_url, flip_range = re.findall(r'(?:\()(.*)(?:\))',
                                                      image_data[0].attrib['onmouseover'])[0].split(', ')
-                flip_image = ['{u}{i}.jpg'.format(u=flip_url, i=i) for i in range(int(flip_range)+1)]
+                flip_image = ['{u}{i}.jpg'.format(u=flip_url[1:-1], i=i) for i in range(int(flip_range)+1)]
             else:
                 flip_image = None
 

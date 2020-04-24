@@ -28,6 +28,7 @@ except ImportError:
 
 # Sys
 import sys
+import time
 
 # Video catalog
 # from video_catalog import GeneralMainDummy
@@ -113,6 +114,14 @@ class PornFetcher(BaseFetcher):
         :return:
         """
         return self._video_filters
+
+    @property
+    def possible_empty_pages(self):
+        """
+        Defines whether it is possible to have empty pages in the site.
+        :return:
+        """
+        return False
 
     @property
     def max_pages(self):
@@ -303,6 +312,7 @@ class PornFetcher(BaseFetcher):
                                                                              PornCategoryTypes.SECONDARY_CATEGORY,
                                                                              PornCategoryTypes.VIDEO_CATEGORY,
                                                                              )
+                    and self.possible_empty_pages is False
                     and (element_object.sub_objects is None or len(element_object.sub_objects) == 0)):
                 error_module = self._prepare_porn_error_module(element_object, 1, element_object.url,
                                                                'No sub-pages for object {obj}'
@@ -312,8 +322,11 @@ class PornFetcher(BaseFetcher):
                                             error_module.page_filters, error_module.general_filters)
 
             return element_object.sub_objects
-        except ValueError as err:
-            raise PornValueError('Got the following err {r}.\nPage url {u}'.format(r=err, u=element_object.url))
+        except (ValueError, IndexError) as err:
+            error_module = self._prepare_porn_error_module(element_object, 1, element_object.url,
+                                                           'Got the following err {r}.\nPage url {u}'
+                                                           ''.format(r=err, u=element_object.url))
+            raise PornValueError(error_module.message, error_module)
 
     # def fetch_sub_objects(self, element_object):
     #     """
@@ -529,13 +542,22 @@ class PornFetcher(BaseFetcher):
                                                 url=urljoin(tag_data.url, link),
                                                 title=title,
                                                 number_of_videos=number_of_videos,
-                                                object_type=PornCategories.TAG,
+                                                object_type=self._get_tag_true_object_type_from_url(
+                                                    urljoin(tag_data.url, link)),
                                                 super_object=new_page,
                                                 )
                         for link, title, number_of_videos in partitioned_data[new_page.additional_data['letter']]]
             new_page.add_sub_objects(sub_tags)
 
         tag_data.add_sub_objects(new_pages)
+
+    def _get_tag_true_object_type_from_url(self, url):
+        """
+        Returns tag true object type. By default returns PornCategories.TAG.
+        :param url:
+        :return:
+        """
+        return PornCategories.TAG
 
     def _add_category_sub_pages(self, category_data, sub_object_type, page_request=None, clear_sub_elements=True):
         """
@@ -646,6 +668,47 @@ class PornFetcher(BaseFetcher):
                 right_page = page - 1
             page = int(math.ceil((right_page + left_page) / 2))
 
+    def _binary_search_max_number_of_pages_with_broken_pages(self, category_data, last_available_number_of_pages):
+        """
+        Performs binary search in order to find the last available page.
+        :param category_data: Category data.
+        :param last_available_number_of_pages: Last available number of pages. Will be the pivot for our next search.
+        By default is None, which mean the original pivot will be used...
+        :return: Page request
+        """
+        left_page = 1
+        right_page = self.max_pages
+        page = last_available_number_of_pages if last_available_number_of_pages is not None \
+            else int(math.ceil((right_page + left_page) / 2))
+        while 1:
+            if right_page == left_page:
+                return left_page
+
+            page_request = self._get_object_request_no_exception_check(category_data, override_page_number=page)
+            if self._check_is_available_page(category_data, page_request):
+                tree = self.parser.parse(page_request.text)
+                pages = self._get_available_pages_from_tree(tree)
+                if len(pages) == 0:
+                    # We also moved too far...
+                    right_page = page - 1
+                else:
+                    # Sometimes we have mistaken max page, so we take it only it is is lower then the right page.
+                    pages = [x for x in sorted(pages, reverse=True) if x <= right_page]
+                    max_page = pages[-1]
+                    for p in pages:
+                        page_request = self._get_object_request_no_exception_check(category_data,
+                                                                                   override_page_number=p)
+                        if self._check_is_available_page(category_data, page_request):
+                            # The page is valid for left page
+                            max_page = p
+                            break
+
+                    left_page = max_page
+            else:
+                # We moved too far...
+                right_page = page - 1
+            page = int(math.ceil((right_page + left_page) / 2))
+
     def _check_is_available_page(self, page_object, page_request=None):
         """
         In binary search performs test whether the current page is available.
@@ -684,24 +747,16 @@ class PornFetcher(BaseFetcher):
         res = self._get_object_request_no_exception_check(object_data, override_page_number, override_params,
                                                           override_url)
         if not self._check_is_available_page(object_data, res):
-            error_module = self._prepare_porn_error_module(
-                object_data, 0, res.url,
-                'Could not fetch {url} in object {obj}'.format(url=res.url, obj=object_data.title))
-            raise PornFetchUrlError(res, error_module)
+            # We give it another try
+            time.sleep(1)
+            res = self._get_object_request_no_exception_check(object_data, override_page_number, override_params,
+                                                              override_url)
+            if not self._check_is_available_page(object_data, res):
+                error_module = self._prepare_porn_error_module(
+                    object_data, 0, res.url,
+                    'Could not fetch {url} in object {obj}'.format(url=res.url, obj=object_data.title))
+                raise PornFetchUrlError(res, error_module)
         return res
-
-    def _get_object_request_no_exception_check(self, object_data, override_page_number=None, override_params=None,
-                                               override_url=None):
-        """
-        Fetches the page number with respect to base url.
-        :param object_data: Page data.
-        :param override_page_number: Override page number.
-        :param override_params: Override params.
-        :param override_url: Override url.
-        :return: Page request
-        """
-        return super(PornFetcher, self).get_object_request(object_data, override_page_number, override_params,
-                                                           override_url)
 
     def _prepare_porn_error_module(self, object_data, error_mode, url, title):
         current_page_filters = self.get_proper_filter(object_data).current_filters_text()

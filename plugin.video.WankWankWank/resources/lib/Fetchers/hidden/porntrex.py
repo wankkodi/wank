@@ -49,6 +49,14 @@ class PornTrex(PornFetcher):
         """
         return 'https://www.porntrex.com/'
 
+    @property
+    def possible_empty_pages(self):
+        """
+        Defines whether it is possible to have empty pages in the site.
+        :return:
+        """
+        return True
+
     def _set_video_filter(self):
         """
         Sets the video filters and the default values of the current filters
@@ -635,6 +643,7 @@ class JAVBangers(PornTrex):
             image = image_data[0].attrib['src']
             if 'data:image' in image:
                 image = image_data[0].attrib['data-original']
+            image = urljoin(page_request.url, image)
 
             num_screenshots = video_tree_data.xpath('./a/img/@data-cnt')
             assert len(num_screenshots) == 1

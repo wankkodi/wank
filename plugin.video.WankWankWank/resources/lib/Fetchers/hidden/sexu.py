@@ -128,6 +128,7 @@ class SexU(PornFetcher):
             assert len(image) == 1
             image = image[0].attrib['data-src'] \
                 if 'data-src' in image[0].attrib else image[0].attrib['src']
+            image = urljoin(self.base_url, image)
 
             number_of_videos = category.xpath('./div[@class="item__main"]/div[@class="item__counter"]')
             assert len(number_of_videos) == 1
@@ -223,6 +224,7 @@ class SexU(PornFetcher):
             assert len(image) == 1
             image = image[0].attrib['data-src'] \
                 if 'data-src' in image[0].attrib else image[0].attrib['src']
+            image = urljoin(self.base_url, image)
 
             video_length = video_tree_data.xpath('./a/div[@class="item__counter"]')
             assert len(video_length) == 1

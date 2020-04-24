@@ -43,6 +43,14 @@ class DaChix(PornFetcher):
         }
 
     @property
+    def possible_empty_pages(self):
+        """
+        Defines whether it is possible to have empty pages in the site.
+        :return:
+        """
+        return True
+
+    @property
     def base_url(self):
         """
         Base site url.
@@ -249,9 +257,16 @@ class DaChix(PornFetcher):
             assert len(image_data) == 1
             image = image_data[0].attrib['src']
             flip_images = (image_data[0].attrib['data-thumbs'][1:-1].split(',')
-                           if 'data-thumbs' in image_data[0].attrib else None)
+                           if 'data-thumbs' in image_data[0].attrib
+                              and len(image_data[0].attrib['data-thumbs'][1:-1]) > 0 else None)
+            if flip_images is None:
+                # We give another try...
+                if 'json' in image_data[0].attrib:
+                    flip_images = prepare_json_from_not_formatted_text(image_data[0].attrib['json'])
             if flip_images is not None:
                 flip_images = [re.sub(r'[\\"]', '', x) for x in flip_images]
+            if len(image) == 0:
+                image = flip_images[0] if flip_images is not None else None
 
             is_hd = video_tree_data.xpath('./a[@class="thumb_container video"]/span[@class="hd_icon"]')
             is_hd = len(is_hd) > 0
@@ -318,7 +333,7 @@ class DaChix(PornFetcher):
             final_duration += 60 * int(minutes[0])
         if len(seconds) > 0:
             final_duration += int(seconds[0])
-        return raw_duration
+        return final_duration
 
     def _prepare_new_search_query(self, query):
         """

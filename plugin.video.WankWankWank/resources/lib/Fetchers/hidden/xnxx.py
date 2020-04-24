@@ -136,7 +136,7 @@ class Xnxx(PornFetcher):
                                        raw_data=x,
                                        object_type=PornCategories.CATEGORY,
                                        super_object=category_data,
-                                       ) for x in raw_data]
+                                       ) for x in raw_data if x['n'] != '0']
         category_data.add_sub_objects(res)
         return res
 
@@ -381,7 +381,7 @@ class Xnxx(PornFetcher):
         """
         page_request = self.get_object_request(page_data)
         tree = self.parser.parse(page_request.text)
-        videos = tree.xpath('.//div[@class="thumb-block "]')
+        videos = [x for x in tree.xpath('.//div') if 'data-id' in x.attrib]
         res = []
         for video_tree_data in videos:
             link_data = video_tree_data.xpath('./div[@class="thumb-inside"]/div[@class="thumb"]/a/@href')
@@ -1085,14 +1085,14 @@ class XVideos(Xnxx):
             if page_number is not None and page_number != 1:
                 params['p'] = page_number
         elif true_object.object_type in (PornCategories.TAG,):
+            if page_filter.sort_order.value is not None:
+                split_url.insert(-1, 's:' + page_filter.sort_order.value)
+            if page_filter.period.value is not None:
+                split_url.insert(-1, 'm:' + page_filter.period.value)
+            if page_filter.length.value is not None:
+                split_url.insert(-1, 'd:' + page_filter.length.value)
             if page_number is not None and page_number != 1:
                 split_url.append(str(page_number - 1))
-            if page_filter.sort_order.value is not None:
-                split_url.append('s:' + page_filter.sort_order.value)
-            if page_filter.period.value is not None:
-                split_url.append('m:' + page_filter.period.value)
-            if page_filter.length.value is not None:
-                split_url.append('d:' + page_filter.length.value)
         elif true_object.object_type == PornCategories.TOP_RATED_VIDEO:
             if self.general_filter.current_filters.general.value is not None:
                 split_url[-1] += '-of-{s}'.format(s=self.general_filter.current_filters.general.value)

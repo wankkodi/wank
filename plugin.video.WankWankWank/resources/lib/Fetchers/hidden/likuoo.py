@@ -35,11 +35,19 @@ class Likuoo(PornFetcher):
     def object_urls(self):
         return {
             PornCategories.CATEGORY_MAIN: 'https://www.likuoo.video/all-channels/',
-            PornCategories.TAG_MAIN: 'https://www.likuoo.video/',
+            # PornCategories.TAG_MAIN: 'https://www.likuoo.video/',
             PornCategories.PORN_STAR_MAIN: 'https://www.likuoo.video/pornstars/',
             PornCategories.LATEST_VIDEO: 'https://www.likuoo.video/',
             PornCategories.SEARCH_MAIN: 'https://www.likuoo.video/search/',
         }
+
+    @property
+    def possible_empty_pages(self):
+        """
+        Defines whether it is possible to have empty pages in the site.
+        :return:
+        """
+        return True
 
     @property
     def _default_sort_by(self):
@@ -81,21 +89,21 @@ class Likuoo(PornFetcher):
         return self._update_available_base_objects(category_data, './/div[@class="item_p"]/a',
                                                    PornCategories.PORN_STAR)
 
-    def _get_tag_properties(self, page_request):
-        """
-        Fetches tag links and titles.
-        :param page_request: Page request.
-        :return:
-        """
-        tree = self.parser.parse(page_request.text)
-        raw_objects = tree.xpath('.//ul[@class="category"]/li/a')
-        links = [x.attrib['href'] for x in raw_objects]
-        titles = [x.text for x in raw_objects]
-        number_of_videos = [None] * len(links)
-        assert len(titles) == len(links)
-        # assert len(titles) == len(number_of_videos)
-
-        return links, titles, number_of_videos
+    # def _get_tag_properties(self, page_request):
+    #     """
+    #     Fetches tag links and titles.
+    #     :param page_request: Page request.
+    #     :return:
+    #     """
+    #     tree = self.parser.parse(page_request.text)
+    #     raw_objects = tree.xpath('.//ul[@class="category"]/li/a')
+    #     links = [x.attrib['href'] for x in raw_objects]
+    #     titles = [x.text for x in raw_objects]
+    #     number_of_videos = [None] * len(links)
+    #     assert len(titles) == len(links)
+    #     # assert len(titles) == len(number_of_videos)
+    #
+    #     return links, titles, number_of_videos
 
     def _update_available_base_objects(self, base_object_data, sub_object_xpath, object_type):
         """
@@ -215,6 +223,8 @@ class Likuoo(PornFetcher):
         :return:
         """
         # We perform binary search
+        if category_data.object_type == PornCategories.TAG_MAIN:
+            return 1
         start_page = category_data.page_number if category_data.page_number is not None else 1
         page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
         tree = self.parser.parse(page_request.text)

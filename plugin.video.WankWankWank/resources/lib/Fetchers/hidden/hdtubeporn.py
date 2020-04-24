@@ -20,6 +20,8 @@ from ..tools.external_fetchers import KTMoviesFetcher
 
 
 class HDTubePorn(PornFetcher):
+    max_flip_images = 10
+
     @property
     def object_urls(self):
         return {
@@ -144,7 +146,10 @@ class HDTubePorn(PornFetcher):
             assert len(content_data) == 1
             image_data = content_data[0].xpath('./img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src']
+            image = image_data[0].attrib['src'] if 'data:image' not in image_data[0].attrib['src'] \
+                else image_data[0].attrib['data-original']
+            if 'data:image' in image:
+                image = None
 
             number_of_videos_data = content_data[0].xpath('./span[@class="card__flag"]')
             assert len(number_of_videos_data) == 1
@@ -208,19 +213,23 @@ class HDTubePorn(PornFetcher):
         """
         page_request = self.get_object_request(page_data)
         tree = self.parser.parse(page_request.text)
-        videos = tree.xpath('.//div[@class="cards__list"]/div[@class="item cards__item"]/a')
+        videos = tree.xpath('.//div[@class="cards__list "]/div[@class="item cards__item"]/div')
         res = []
         for video_tree_data in videos:
-            link = video_tree_data.attrib['href']
-            title = video_tree_data.attrib['title']
+            link_data = video_tree_data.xpath('./a[@class="card__content"]')
+            assert len(link_data) == 1
+            link = link_data[0].attrib['href']
+            title = link_data[0].attrib['title']
 
-            image_data = video_tree_data.xpath('./div[@class="card__content"]/img')
+            image_data = link_data[0].xpath('./img')
             assert len(image_data) == 1
             image = image_data[0].attrib['src']
-            max_images = int(re.findall(r'(\d+)(?:\))', image_data[0].attrib['onmouseover'])[0])
-            flip_images = [re.sub(r'\d+.jpg', '{d}.jpg'.format(d=d), image) for d in range(1, max_images+1)]
+            flip_images = [re.sub(r'\d+.jpg', '{d}.jpg'.format(d=d), image)
+                           for d in range(1, self.max_flip_images + 1)]
+            preview_video = link_data[0].attrib['data-preview'] if 'data-preview' in video_tree_data.attrib \
+                else None
 
-            video_length = video_tree_data.xpath('./div[@class="card__content"]/span[@class="card__flag"]')
+            video_length = link_data[0].xpath('./span[@class="card__flag"]')
             assert len(video_length) == 1
             video_length = self._clear_text(video_length[0].text)
 
@@ -231,6 +240,7 @@ class HDTubePorn(PornFetcher):
                                                   image_link=image,
                                                   duration=self._format_duration(video_length),
                                                   flip_images_link=flip_images,
+                                                  preview_video_link=preview_video,
                                                   object_type=PornCategories.VIDEO,
                                                   super_object=page_data,
                                                   )
@@ -240,6 +250,9 @@ class HDTubePorn(PornFetcher):
 
     def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url):
         split_url = fetch_base_url.split('/')
+        last_slash = len(split_url[-1]) == 0
+        if last_slash:
+            split_url.pop(-1)
         headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
                       'q=0.8,application/signed-exchange;v=b3',
@@ -257,13 +270,14 @@ class HDTubePorn(PornFetcher):
                                                value=page_filter.general.value)
             self.session.cookies.set_cookie(new_cookie)
 
-        insert_value = None
         if true_object.object_type not in self._default_sort_by and page_filter.sort_order.value is not None:
-            insert_value = page_filter.sort_order.value
-        if insert_value is not None:
-            split_url.insert(-1, insert_value)
+            split_url.append(page_filter.sort_order.value)
+            last_slash = True
         if page_number is not None and page_number != 1:
-            split_url.insert(-1, str(page_number))
+            split_url.append(str(page_number))
+            last_slash = True
+        if last_slash is True:
+            split_url.append('')
         fetch_base_url = '/'.join(split_url)
         page_request = self.session.get(fetch_base_url, headers=headers, params=params)
         return page_request
@@ -962,7 +976,7 @@ class ZBPorn(HDTubePorn):
 
             image_data = category.xpath('./div[@class="th-image"]/div/img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src']
+            image = urljoin(self.base_url, image_data[0].attrib['src'])
 
             title_data = category.xpath('./div[@class="th-model"]')
             assert len(title_data) == 1
@@ -999,7 +1013,7 @@ class ZBPorn(HDTubePorn):
 
             image_data = category.xpath('./div[@class="th-image th-image-vertical"]/div/img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src']
+            image = urljoin(self.base_url, image_data[0].attrib['src'])
 
             rating_data = category.xpath('./div[@class="th-image th-image-vertical"]/div/span[@class="th-rating"]/i')
             assert len(rating_data) == 1
@@ -1046,9 +1060,8 @@ class ZBPorn(HDTubePorn):
 
             image_data = category.xpath('./span[@class="preview"]/img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src']
-            if 'data:image' in image:
-                image = image_data[0].attrib['data-original']
+            image = image_data[0].attrib['src'] if 'data:image' not in image_data[0].attrib['src'] \
+                else image_data[0].attrib['data-original']
 
             title_data = category.xpath('./span[@class="thumb-info"]/span[@class="info-channel"]/'
                                         'div[@class="channel-name"]')

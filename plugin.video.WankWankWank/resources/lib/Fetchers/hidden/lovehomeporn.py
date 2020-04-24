@@ -169,6 +169,7 @@ class LoveHomePorn(PornFetcher):
             title = image_data[0].attrib['title']
             image = image_data[0].attrib['data-original'] \
                 if 'data-original' in image_data[0].attrib else image_data[0].attrib['src']
+            image = urljoin(self.base_url, image)
 
             is_hd = video_tree_data.xpath('./div[@class="img-holder"]/div[@class="quality"]')
             is_hd = len(is_hd) == 1 and is_hd[0].text == 'HD'
