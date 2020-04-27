@@ -193,8 +193,7 @@ class VideoFetchTools(object):
         output_filename = None
         if video_filename is not None and audio_filename is not None:
             output_filename = 'new_tmp_video.mp4'
-            cmd = 'ffmpeg -y -i {ia} -i {iv} ' \
-                  '-filter:a aresample=async=1 -c:a aac -c:v copy {ov}' \
+            cmd = 'ffmpeg -y -i {ia} -i {iv} -filter:a aresample=async=1 -c:a aac -c:v copy {ov}' \
                   ''.format(ia=audio_filename, iv=video_filename, ov=output_filename)
             subprocess.call(cmd, shell=True)
             with open(output_filename, 'rb') as fl:

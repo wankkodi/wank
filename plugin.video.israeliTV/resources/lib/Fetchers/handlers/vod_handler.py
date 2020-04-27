@@ -14,6 +14,7 @@ from ..channels.channel20 import Channel20
 from ..channels.channel9 import Channel9
 # from ..channels.channel10_obsolete import Channel10
 from ..channels.iba_archive import IBA
+from ..channels.knesset import Knesset
 
 
 class SourceHandler(object):
@@ -98,6 +99,10 @@ class SourceHandler(object):
             self.title = 'channel24'
             self.main_module = Channel24
             self.image = path.join(logo_dir, '24logocleannew.jpg')
+        elif source_id == -31:
+            self.title = 'Knesset'
+            self.main_module = Knesset
+            self.image = path.join(logo_dir, 'knesset_channel_logo2.png')
         else:
             raise ValueError('Wrong source type {s}'.format(s=source_id))
         self.handler_id = source_id

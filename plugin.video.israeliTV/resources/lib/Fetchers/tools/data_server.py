@@ -102,7 +102,7 @@ class DataServer(object):
         request_result = self.session.get(self.send_url, params=params)
         if not request_result.ok:
             raise ConnectionRefusedError(request_result.text())
-        return request_result.json()
+        return bool(request_result.text)
 
 
 if __name__ == '__main__':
