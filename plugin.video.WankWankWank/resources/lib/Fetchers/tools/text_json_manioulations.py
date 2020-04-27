@@ -1,6 +1,8 @@
 # import json
 import re
 
+white_spaces = '\r\n\t '
+
 
 def clean_white_spaces(raw_text):
     return re.sub(r'^[\r\n\t ]*|[\r\n\t ]*$', '', raw_text)
@@ -11,7 +13,7 @@ def prepare_json_from_not_formatted_text(raw_text):
     Takes text of the form where the keys are not put inside quotes, add the special quotes, and returns the proper
     JSON object
     :param raw_text: raw text
-    :return: JSON object in case chrek_structure is True,
+    :return: JSON object in case check_structure is True,
     """
     return_object = prepare_dict_from_not_formatted_text(raw_text)
     return return_object
@@ -22,7 +24,7 @@ def prepare_dict_from_not_formatted_text(raw_text):
     Takes text of the form where the keys are not put inside quotes, add the special quotes, and returns the proper
     JSON object
     :param raw_text: raw text
-    :return: JSON object in case chrek_structure is True,
+    :return: JSON object in case check_structure is True,
     """
     raw_text = clean_white_spaces(raw_text)
     start_i = 1
@@ -48,14 +50,19 @@ def prepare_json_dictionary_element(raw_text):
     while 1:
         if len(tmp_res) != 2:
             x = raw_text[i]
-            if x in ('"', '\'', '{', '['):
+            if x in white_spaces:
+                i += 1
+                if i >= len(raw_text):
+                    return res
+                continue
+            elif x in ('"', '\'', '{', '['):
                 open_i = i
                 close_i = find_end_index(raw_text[i:]) + i + 1
                 tmp_res.append(prepare_dict_from_not_formatted_text(raw_text[open_i:close_i]))
             else:
                 open_i = i
                 try:
-                    close_i = raw_text[i+1:].index(separators[len(tmp_res)]) + i+1
+                    close_i = raw_text[i + 1:].index(separators[len(tmp_res)]) + i + 1
                 except ValueError:
                     # We reached the end of the text
                     close_i = len(raw_text)
@@ -88,13 +95,18 @@ def prepare_json_list_element(raw_text):
     i = 0
     while 1:
         x = raw_text[i]
-        if x in ('"', '\'', '{', '['):
+        if x in white_spaces:
+            i += 1
+            if i >= len(raw_text):
+                return res
+            continue
+        elif x in ('"', '\'', '{', '['):
             open_i = i
             close_i = find_end_index(raw_text[i:]) + i + 1
             value = prepare_dict_from_not_formatted_text(raw_text[open_i:close_i])
         else:
             open_i = i
-            close_i = raw_text[i+1:].index(',') + i+1
+            close_i = (raw_text[i + 1:].index(',') + i + 1) if ',' in raw_text[i + 1:] else len(raw_text)
             value = prepare_json_text_element(raw_text[open_i:close_i])
 
         i = close_i
@@ -110,6 +122,8 @@ def prepare_json_text_element(raw_text):
     res = clean_white_spaces(raw_text)
     if res.isdigit():
         return int(res)
+    elif res.replace('.', '').isdigit() and res.count('.') == 1:
+        return float(res)
     if res == 'true':
         return True
     if res == 'false':
@@ -131,8 +145,8 @@ def find_end_index(raw_text):
     else:
         raise ValueError('Unknown parenthesis')
     start_is = [x for x, c in enumerate(raw_text) if start_char == c]
-    end_is = [x+1 for x, c in enumerate(raw_text[1:]) if end_char == c]
-    diff = [x-y for x, y in zip(end_is[:-1], start_is[1:])]
+    end_is = [x + 1 for x, c in enumerate(raw_text[1:]) if end_char == c]
+    diff = [x - y for x, y in zip(end_is[:-1], start_is[1:])]
     end_i = [i for i, x in enumerate(diff) if x < 0]
     end_i = end_i[0] if len(end_i) > 0 else len(end_is) - 1
     return end_is[end_i]
@@ -158,13 +172,14 @@ def find_end_index(raw_text):
 
 
 if __name__ == '__main__':
-    raw_text = '{"image":"//i.sexu.com/sexu-thumbs/26/2527029/23-main.jpg","width":"100%",' \
-               '"aspectratio":"16:9","startparam":"start","autostart":false,"primary":"html5",' \
-               '"splash":true,"share":false,"clip":{"downloadUrl":"//v.sexu.com/key=+l0QlP6z-' \
-               '644KGL5HesZVA,end=1584412779,ip=87.69.109.56/sec=protect/download2=/sexu/26/2527029-720p-x.mp4",' \
-               '"qualities":["240p","480p","720p"],"defaultQuality":"720p","thumbnails":{"width":800,"height":' \
-               '450,"columns":5,"rows":5,"startIndex":1,"interval":25.53846153846154,"template":"//i.sexu.com/sexu-thumbs' \
-               '/26/2527029/{time}-timeline-160x90.jpg"},"vtt_link":"//i.sexu.com/sexu-thumbs/26/2527029/timeline.vtt"}}'
+    raw_text1 = '{"image":"//i.sexu.com/sexu-thumbs/26/2527029/23-main.jpg","width":"100%",' \
+                '"aspectratio":"16:9","startparam":"start","autostart":false,"primary":"html5",' \
+                '"splash":true,"share":false,"clip":{"downloadUrl":"//v.sexu.com/key=+l0QlP6z-' \
+                '644KGL5HesZVA,end=1584412779,ip=87.69.109.56/sec=protect/download2=/sexu/26/2527029-720p-x.mp4",' \
+                '"qualities":["240p","480p","720p"],"defaultQuality":"720p","thumbnails":{"width":800,"height":' \
+                '450,"columns":5,"rows":5,"startIndex":1,"interval":25.53846153846154,' \
+                '"template":"//i.sexu.com/sexu-thumbs/26/2527029/{time}-timeline-160x90.jpg"},' \
+                '"vtt_link":"//i.sexu.com/sexu-thumbs/26/2527029/timeline.vtt"}}'
     raw_text2 = """
     {
     video_id: '5862',
@@ -228,6 +243,36 @@ if __name__ == '__main__':
             },
         }    
     """
-    res = prepare_json_from_not_formatted_text(raw_text2)
-    print(res)
+    raw_text4 = """
+    {
+        logo: "https://videos.freeones.com/foplayer/logo-small.png",
+        poster: "https://img.freeones.com/videos/008/M5/NT/M5NTudp4tQoVC4pVMD8xRg/poster/351.jpg",
+        flash: {
+            swf: 'https://videos.freeones.com/foplayer/player.swf',
+        },
+        thumbnails: {
+            baseUrl: 'https://img.freeones.com/videos/008/M5/NT/M5NTudp4tQoVC4pVMD8xRg/timeline/'
+        },
+        affiliateUrl: 'http://n4n.babecall.com/track/Fr33Stati0n.865.53.54.0.0.0.0.0.0.0.0',
+        relatedXML: 'https://videos.freeones.com/PlayerRelatedXML/190896/',
+        src: [
+            {type: 'application/x-mpegURL', src: 'https://videolb.freeones.com/fo/008/M5/NT/M5NTudp4tQoVC4pVMD8xRg/list.smil/playlist.m3u8'},
+            {type: 'application/dash+xml', src: 'https://videolb.freeones.com/fo/008/M5/NT/M5NTudp4tQoVC4pVMD8xRg/list.smil/manifest.mpd'},
+            {type: 'video/mp4', src: 'https://videolb.freeones.com/fo/008/M5/NT/M5NTudp4tQoVC4pVMD8xRg/480p.mp4'}
+        ],
+        qualitySelector: {
+            streamingUrl: 'https://videolb.freeones.com/fo/008/M5/NT/M5NTudp4tQoVC4pVMD8xRg',
+            qualities: '1080p,720p,480p,360p,240p'
+        },
+        chromecast: {
+            metadata:{
+                title: document.getElementById('video-name').innerText,
+                subtitle: 'Freeones.com'
+            }
+        }
+    }
+    """
+
+    test_res = prepare_json_from_not_formatted_text(raw_text4)
+    print(test_res)
     # print(find_end_index(raw_text[1:]))

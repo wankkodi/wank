@@ -30,22 +30,36 @@ import re
 import base64
 
 
+class ExternalSourceErrorModule(object):
+    def __init__(self, site_name, url, message=None):
+        self.site_name = site_name
+        self.url = url
+        self.message = message
+
+
+class ExternalSourceError(ValueError):
+    def __init__(self, request, error_module=None):
+        super(ValueError, self).__init__(request)
+        self.error_module = error_module
+
+
 def base_n(num, b, numerals="0123456789abcdefghijklmnopqrstuvwxyz"):
     return ((num == 0) and numerals[0]) or (
             base_n(num // b, b, numerals).lstrip(numerals[0]) + numerals[num % b])
 
 
-class NoVideosException(RuntimeError):
-    def __init__(self, *args):
-        super(NoVideosException, self).__init__(*args)
-        self.args = args
+class NoVideosException(ExternalSourceError):
+    def __init__(self, request, error_module=None):
+        super(NoVideosException, self).__init__(request)
+        self.error_module = error_module
 
     def __str__(self):
         return repr('No videos Found for url {u}'.format(u=self.args))
 
 
 class ExternalFetcher(object):
-    def __init__(self, session=None, user_agent=None, parser=None):
+    def __init__(self, session=None, user_agent=None, parser=None, name='ExternalFetcher'):
+        self.name = name
         self.session = session if session is not None else requests.session()
 
         if user_agent is not None:
@@ -60,7 +74,8 @@ class ExternalFetcher(object):
         # self.parser = parser if parser is not None else \
         #     html5lib.html5parser.HTMLParser(tree=html5lib.treebuilders.getTreeBuilder("lxml"),
         #                                     namespaceHTMLElements=False)
-        self.parser = MyParser(tree=html5lib.treebuilders.getTreeBuilder("etree"), namespaceHTMLElements=False)
+        self.parser = MyParser(tree=html5lib.treebuilders.getTreeBuilder("etree"), namespaceHTMLElements=False) \
+            if parser is None else parser
 
     def get_video_link_fembed(self, video_url):
         """
@@ -109,7 +124,60 @@ class ExternalFetcher(object):
         tmp_request = self.session.get(video_link, headers=video_header)
         tmp_tree = self.parser.parse(tmp_request.text)
         video_links = tmp_tree.xpath('.//p[@id="videolink"]/text()')
+        if not tmp_request.ok or len(video_links) == 0:
+            error_module = ExternalSourceErrorModule(self.name, video_links)
+            raise NoVideosException(error_module.message, error_module)
         return [('https://woof.tube/gettoken/' + video_links[0] + '?mime=true'), 0]
+
+    def get_video_link_from_protoawe(self, video_link):
+        """
+        Parses the video address from the protoawe server.
+        :param video_link: Link to the video.
+        :return:
+        """
+        video_header = {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
+                      'q=0.8,application/signed-exchange;v=b3*',
+            'Cache-Control': 'max-age=0',
+            # 'Referer': new_video_data['url'],
+            'Sec-Fetch-Mode': 'nested-navigate',
+            'Sec-Fetch-Site': 'cross-site',
+            'Upgrade-Insecure-Requests': '1',
+            'User-Agent': self.user_agent
+        }
+        tmp_request = self.session.get(video_link, headers=video_header)
+        new_video_link = re.findall(r'(?:iframeElement.src *= *\')(.*?)(?:\')', tmp_request.text)
+        if not tmp_request.ok or len(new_video_link) == 0:
+            error_module = ExternalSourceErrorModule(self.name, new_video_link)
+            raise NoVideosException(error_module.message, error_module)
+
+        new_video_link2 = urljoin(video_link, new_video_link[0])
+        tmp_request = self.session.get(new_video_link2, headers=video_header)
+        raw_data = re.findall(r'(?:window.playerConfig *= *)(.*?)(?:;)', tmp_request.text)
+        if not tmp_request.ok or len(raw_data) == 0:
+            error_module = ExternalSourceErrorModule(self.name, new_video_link2)
+            raise NoVideosException(error_module.message, error_module)
+        raw_data = prepare_json_from_not_formatted_text(raw_data[0])
+        new_video_link3 = raw_data['contentProviderUrl'].replace('\\/', '/')
+
+        video_header = {
+            'Accept': '*/*',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Cache-Control': 'no-cache',
+            'Referer': new_video_link2,
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin',
+            'User-Agent': self.user_agent,
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+        tmp_request = self.session.get(new_video_link3, headers=video_header)
+        raw_data = tmp_request.json()
+        if not tmp_request.ok or raw_data['success'] is False:
+            error_module = ExternalSourceErrorModule(self.name, new_video_link)
+            raise NoVideosException(error_module.message, error_module)
+
+        return [(urljoin(new_video_link3, raw_data['data']['contentUrl']), 0)]
 
     def get_video_link_from_videyo_tube(self, video_link):
         """
@@ -128,8 +196,10 @@ class ExternalFetcher(object):
             'User-Agent': self.user_agent
         }
         tmp_request = self.session.get(video_link, headers=video_header)
-        tmp_data = re.findall(r'(?:window.hola_player\()(\{.*?\})(?:, function)', tmp_request.text, re.DOTALL)
-        assert len(tmp_data) > 0
+        tmp_data = re.findall(r'(?:window.hola_player\()({.*?})(?:, function)', tmp_request.text, re.DOTALL)
+        if not tmp_request.ok or len(tmp_data) == 0:
+            error_module = ExternalSourceErrorModule(self.name, video_link)
+            raise NoVideosException(error_module.message, error_module)
         res = prepare_json_from_not_formatted_text(tmp_data[0])
         return res
 
@@ -152,7 +222,9 @@ class ExternalFetcher(object):
         tmp_request = self.session.get(video_link, headers=video_header)
         tmp_tree = self.parser.parse(tmp_request.text)
         raw_data = [x for x in tmp_tree.xpath('.//script') if x.text is not None and 'p,a,c,k,e,d' in x.text]
-        assert len(raw_data) == 1
+        if not tmp_request.ok or len(raw_data) == 0:
+            error_module = ExternalSourceErrorModule(self.name, video_link)
+            raise NoVideosException(error_module.message, error_module)
         new_raw_data = re.findall(r'(?:}\()(.*)(?:\)\))', raw_data[0].text)[0]
 
         var1, var2, var3, var4 = self._split_params(new_raw_data)
@@ -163,8 +235,46 @@ class ExternalFetcher(object):
             split_arg = var4[-3]
             var4 = var4[1:-12].split(split_arg)
         raw_func = self._get_info_from_packed_codding2(var1, var2, var3, var4, None, None)
-        video_links = [(x, 0) for x in re.findall(r'(?:sources:\[")(.*?)(?:"\])', raw_func)]
+        if 'sources:' in raw_func > 0:
+            video_links = [(x, 0) for x in re.findall(r'(?:sources:\[")(.*?)(?:"\])', raw_func)]
+        elif 'player.src' in raw_func:
+            video_data = prepare_json_from_not_formatted_text(re.findall(r'(?:player\.src\()(\[.*\])(?:\))',
+                                                                         raw_func)[0])
+            video_links = [(x['src'], x['res']) for x in video_data]
+        else:
+            error_module = ExternalSourceErrorModule(self.name, tmp_request.url)
+            raise NoVideosException(error_module.message, error_module)
         return video_links
+
+    def get_video_link_from_vidlox(self, video_link, referer):
+        """
+        Parses the video address from the vidlox.me server.
+        :param video_link: Link to the video.
+        :param referer: Referer.
+        :return:
+        """
+        video_header = {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
+                      'q=0.8,application/signed-exchange;v=b3*',
+            'Cache-Control': 'max-age=0',
+            'Referer': referer,
+            'Sec-Fetch-Dest': 'iframe',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'cross-site',
+            'Upgrade-Insecure-Requests': '1',
+            'User-Agent': self.user_agent
+        }
+        tmp_request = self.session.get(video_link, headers=video_header)
+        tmp_data = re.findall(r'(?:Clappr.Player\()({.*?})(?:\);)', tmp_request.text, re.DOTALL)
+        if not tmp_request.ok or len(tmp_data) == 0:
+            error_module = ExternalSourceErrorModule(self.name, video_link)
+            raise NoVideosException(error_module.message, error_module)
+        raw_res = prepare_json_from_not_formatted_text(tmp_data[0])
+        res = [(link, raw_res['levelSelectorConfig']['labels'][i]) for i, link in enumerate(raw_res['sources'][::-1])]
+        if len(res) == 0:
+            error_module = ExternalSourceErrorModule(self.name, video_link)
+            raise NoVideosException(error_module.message, error_module)
+        return res
 
     def get_video_link_from_verystream(self, video_url):
         """
@@ -205,6 +315,27 @@ class ExternalFetcher(object):
         default_res = '720p'
         video_prefix_prefix = '_'
         video_suffix = '.mp4'
+
+        server, raw_data, video_id, folder_id = self._get_video_link_from_cdna_general(video_url)
+        v_put = str(folder_id) + video_subdir3 + str(video_id)
+        video_urls = []
+        for x in raw_data:
+            video_url = (base_video_url_template.format(s=server) + video_subdir1 +
+                         video_subdir2 + x[4] + video_subdir3 +
+                         x[5] + video_subdir3 + v_put + video_subdir3 + video_id)
+            prefix = '' if default_res == x[0] else video_prefix_prefix + x[0]
+            video_url = video_url + prefix + video_suffix
+            video_resolution = re.findall(r'\d+', x[0])[0]
+            video_urls.append((video_url, video_resolution))
+
+        return video_urls
+
+    def _get_video_link_from_cdna_general(self, video_url):
+        """
+        Fetches stream link for cdna video.
+        :param video_url: very stream url
+        :return:
+        """
         headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
                       'q=0.8,application/signed-exchange;v=b3*',
@@ -219,17 +350,38 @@ class ExternalFetcher(object):
         # Was taken from pornktube module (have the same engine.
         tmp_request = self.session.get(video_url, headers=headers)
         tmp_tree = self.parser.parse(tmp_request.text)
-        server = tmp_tree.xpath('.//div[@id="player"]/@data-n')[0]
-        raw_data = tmp_tree.xpath('.//div[@id="player"]/@data-q')
+        server_data = tmp_tree.xpath('.//div[@id="player"]')
+
+        if not tmp_request.ok or len(server_data) == 0:
+            error_module = ExternalSourceErrorModule(self.name, video_url)
+            raise NoVideosException(error_module.message, error_module)
+        server = server_data[0].attrib['data-n']
+        raw_data = [x.attrib['data-q'] for x in server_data]
         assert len(raw_data) == 1
         raw_data = [x.split(';') for x in raw_data[0].split(',')]
         # video_id = video_data['id']
-        video_id = tmp_tree.xpath('.//div[@id="player"]/@data-id')[0]
+        video_id = server_data[0].attrib['data-id']
         folder_id = int(1e3 * math.floor(int(video_id) / 1e3))
+
+        return server, raw_data, video_id, folder_id
+
+    def get_video_link_from_fapmedia(self, video_url):
+        """
+        Fetches stream link for cdna video.
+        :param video_url: very stream url
+        :return:
+        """
+        base_video_url_template = 'http://s{s}.fapmedia.com/'
+        video_subdir2 = 'cqpvid/'
+        video_subdir3 = '/'
+        default_res = '720p'
+        video_prefix_prefix = '_'
+        video_suffix = '.mp4'
+        server, raw_data, video_id, folder_id = self._get_video_link_from_cdna_general(video_url)
         v_put = str(folder_id) + video_subdir3 + str(video_id)
         video_urls = []
         for x in raw_data:
-            video_url = (base_video_url_template.format(s=server) + video_subdir1 +
+            video_url = (base_video_url_template.format(s=server) +
                          video_subdir2 + x[4] + video_subdir3 +
                          x[5] + video_subdir3 + v_put + video_subdir3 + video_id)
             prefix = '' if default_res == x[0] else video_prefix_prefix + x[0]
@@ -366,6 +518,44 @@ class ExternalFetcher(object):
                        for x in video_links if 'src' in x.attrib]
         return video_links
 
+    def get_video_link_from_no_scam_hosting(self, video_url, referer):
+        """
+        Fetches stream link for cdna video.
+        :param video_url: Vshare stream url.
+        :param referer: Page referer.
+        :return:
+        """
+        headers = {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
+                      'q=0.8,application/signed-exchange;v=b3*',
+            'Cache-Control': 'max-age=0',
+            'Referer': referer,
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'same-origin',
+            'Sec-Fetch-User': '?1',
+            'Upgrade-Insecure-Requests': '1',
+            'User-Agent': self.user_agent
+        }
+        tmp_request = self.session.get(video_url, headers=headers)
+        tmp_tree = self.parser.parse(tmp_request.text)
+        tmp_video_links = tmp_tree.xpath('./body//div[@class="right"]/a')
+        if not tmp_request.ok or len(tmp_video_links) == 0:
+            error_module = ExternalSourceErrorModule(self.name, tmp_video_links)
+            raise NoVideosException(error_module.message, error_module)
+
+        video_links = []
+        for video_link_data in tmp_video_links:
+            resolution = int(re.findall(r'\d+', video_link_data.text)[0])
+            video_link = urljoin(video_url, video_link_data.attrib['href'])
+            tmp_request = self.session.get(video_link, headers=headers)
+            tmp_tree = self.parser.parse(tmp_request.text)
+            link = tmp_tree.xpath('.//video')
+            if not tmp_request.ok or len(link) == 0:
+                error_module = ExternalSourceErrorModule(self.name, video_links)
+                raise NoVideosException(error_module.message, error_module)
+            video_links.append((link[0].attrib['src'], resolution))
+        return video_links
+
     def _get_vshare_info(self, raw_data):
         """
         Tries to fetch the server name
@@ -460,7 +650,9 @@ class ExternalFetcher(object):
         }
         tmp_request = self.session.get(video_url, headers=headers)
         raw_code = re.findall(r'(?:JuicyCodes.Run\()(.*?)(?:\))', tmp_request.text)
-        assert len(raw_code) == 1
+        if not tmp_request.ok or len(raw_code) == 0:
+            error_module = ExternalSourceErrorModule(self.name, video_url)
+            raise NoVideosException(error_module.message, error_module)
         raw_code = re.sub(r'" *\+ *"', '', raw_code[0])
         raw_code = re.sub(r'"', '', raw_code)
         raw_code = base64.b64decode(raw_code.encode("utf-8")).decode('utf-8')
@@ -492,7 +684,9 @@ class ExternalFetcher(object):
         }
         tmp_request = self.session.get(url, headers=headers)
         raw_data = re.findall(r'(?:srces.push\( *)({.*})(?:\);)', tmp_request.text)
-        assert len(raw_data) == 1
+        if not tmp_request.ok or len(raw_data) == 0:
+            error_module = ExternalSourceErrorModule(self.name, url)
+            raise NoVideosException(error_module.message, error_module)
         bitrate = int(re.findall(r'(?:bitrate:)(\d+)', raw_data[0])[0])
         raw_code = re.findall(r'(?:src:d\()(.*)(?:\))', raw_data[0])
         raw_code11 = re.findall(r'(?:\')(.*)(?:\')', raw_code[0])[0]
@@ -536,7 +730,9 @@ class ExternalFetcher(object):
         tmp_request = self.session.get(url, headers=headers)
 
         new_raw_data = re.findall(r'(?:}\()(\'.*)(?:\)\))', tmp_request.text)
-        assert len(new_raw_data) >= 1
+        if not tmp_request.ok or len(new_raw_data) == 0:
+            error_module = ExternalSourceErrorModule(self.name, url)
+            raise NoVideosException(error_module.message, error_module)
         new_raw_data = new_raw_data[0]
 
         var1 = re.findall(r'\'.*?(?<!\\)\'', new_raw_data)[0]
@@ -996,7 +1192,11 @@ class ExternalFetcher(object):
             'User-Agent': self.user_agent
         }
         request = self.session.get(url, headers=headers)
-        videokey = re.findall(r'(?:videokey = ")(.+?)(?:")', request.text)[0]
+        videokey = re.findall(r'(?:videokey = ")(.+?)(?:")', request.text)
+        if not request.ok or len(videokey) == 0:
+            error_module = ExternalSourceErrorModule(self.name, url)
+            raise NoVideosException(error_module.message, error_module)
+        videokey = videokey[0]
         referer = base64.b64encode(referer.encode("utf-8")).decode('utf-8')
         headers = {
             'Accept': '*/*',
@@ -1017,7 +1217,12 @@ class ExternalFetcher(object):
         }
         post_req = self.session.post('https://pbtube.co/ajax.php', headers=headers, data=params)
         assert post_req.ok
-        adb = re.findall(r'(?:var adb = \')(.+?)(?:\')', request.text)[0]
+        adb = re.findall(r'(?:var adb = \')(.+?)(?:\')', request.text)
+        if not request.ok or len(adb) == 0:
+            error_module = ExternalSourceErrorModule(self.name, url)
+            raise NoVideosException(error_module.message, error_module)
+        adb = adb[0]
+
         # link_m3u8 = "/player/get_md5.php?ver=3&secure=0&adb=" + adb + "&v=" + "UTZ5azY5YkZRM3lNSnF0K3hrM0Nqdz09" +\
         #             "&token="+encodeURIComponent(token)+"&gt=";
         link_m3u8 = "/player/get_md5.php?ver=3&secure=0&adb=" + adb + "&v=" + "UTZ5azY5YkZRM3lNSnF0K3hrM0Nqdz09" +\
@@ -1045,6 +1250,9 @@ class ExternalFetcher(object):
             'gt': '0e0d41e33e3e0e1a0a1a401d22e6aaf6',
         }
         tmp_request = self.session.get(link_m3u8, headers=headers, params=params)
+        if not tmp_request.ok:
+            error_module = ExternalSourceErrorModule(self.name, url)
+            raise NoVideosException(error_module.message, error_module)
 
         return tmp_request
 
@@ -1074,8 +1282,8 @@ class ExternalFetcher(object):
 
 
 class KTMoviesFetcher(ExternalFetcher):
-    def __init__(self, session=None, user_agent=None, parser=None):
-        super(KTMoviesFetcher, self).__init__(session, user_agent, parser)
+    def __init__(self, session=None, user_agent=None, parser=None, name='TKMovies', ):
+        super(KTMoviesFetcher, self).__init__(session, user_agent, parser, name)
 
     def _find_correct_url(self, video_data):
         """
@@ -1313,7 +1521,9 @@ class KTMoviesFetcher(ExternalFetcher):
         }
         tmp_request = self.session.get(url, headers=headers)
         raw_data = re.findall(r'(?:var flashvars = )({.*?})(?:;)', tmp_request.text, re.DOTALL)
-        assert len(raw_data) == 1
+        if not tmp_request.ok or len(raw_data) == 0:
+            error_module = ExternalSourceErrorModule(self.name, url)
+            raise NoVideosException(error_module.message, error_module)
         raw_data = prepare_json_from_not_formatted_text(raw_data[0])
 
         self._find_correct_url(raw_data)
