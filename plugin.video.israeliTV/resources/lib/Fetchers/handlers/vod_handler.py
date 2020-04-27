@@ -99,7 +99,7 @@ class SourceHandler(object):
             self.title = 'channel24'
             self.main_module = Channel24
             self.image = path.join(logo_dir, '24logocleannew.jpg')
-        elif source_id == -31:
+        elif source_id == -21:
             self.title = 'Knesset'
             self.main_module = Knesset
             self.image = path.join(logo_dir, 'knesset_channel_logo2.png')
@@ -115,7 +115,7 @@ class HandlerManager(object):
         self.logo_dir = logo_dir
         self.user_data_dir = user_data_dir
         self.session_id = session_id
-        source_ids = range(-1, -21, -1)
+        source_ids = range(-1, -22, -1)
         # xbmc.log('Preparing handlers for source ids {s}'.format(s=source_ids))
         for _x in source_ids:
             _h = SourceHandler(_x, logo_dir)
