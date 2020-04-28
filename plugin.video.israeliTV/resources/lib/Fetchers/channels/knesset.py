@@ -212,7 +212,7 @@ class Knesset(VODFetcher):
         """
         return VODCatalogNode(catalog_manager=self.catalog_manager,
                               obj_id=-1,
-                              title=u'שידור חי - ערוץ בכנסת',
+                              title=u'שידור חי - ערוץ הכנסת',
                               url=self.object_urls[VODCategories.LIVE_VIDEO],
                               object_type=VODCategories.LIVE_SCHEDULE
                               )
