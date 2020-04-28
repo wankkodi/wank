@@ -11,6 +11,12 @@ from ..catalogs.vod_catalog import VODCatalogNode, VODCategories, VideoNode, Vid
 # # JSON
 # import json
 
+# JSON
+from ..tools.text_json_manioulations import prepare_json_from_not_formatted_text
+
+# regex
+import re
+
 # M3U8
 import m3u8
 
@@ -196,9 +202,9 @@ class Channel20(VODFetcher):
             'User-Agent': self.user_agent
         }
         req = self.session.get(scripts[0], headers=headers)
-        tree = self.parser.parse(req.text)
-        new_url = tree.xpath('.//video/source')
+        new_url = re.findall(r'(?:player.src\()({.*}?)(?:\);)', req.text)
         assert len(new_url) == 1
+        new_url = prepare_json_from_not_formatted_text(new_url[0])
 
         headers = {
             'Accept': '*/*',
@@ -211,13 +217,13 @@ class Channel20(VODFetcher):
             'User-Agent': self.user_agent,
             'X-Requested-With': 'XMLHttpRequest'
         }
-        req = self.session.get(new_url[0].attrib['src'], headers=headers)
+        req = self.session.get(new_url['src'], headers=headers)
         video_m3u8 = m3u8.loads(req.text)
         video_playlists = video_m3u8.playlists
         if all(vp.stream_info.bandwidth is not None for vp in video_playlists):
             video_playlists.sort(key=lambda k: k.stream_info.bandwidth, reverse=True)
 
-        video_objects = [VideoSource(link=urljoin(new_url[0].attrib['src'], x.uri),
+        video_objects = [VideoSource(link=urljoin(new_url['src'], x.uri),
                                      video_type=VideoTypes.VIDEO_SEGMENTS,
                                      quality=x.stream_info.bandwidth,
                                      codec=x.stream_info.codecs)

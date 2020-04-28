@@ -131,7 +131,7 @@ class VODFetcher(BaseFetcher):
         if self._use_web_server is True:
             raw_num_of_pages = self.data_server.fetch_request(category_data.url, None, None)
             if raw_num_of_pages['status'] is True:
-                num_of_pages = raw_num_of_pages['value']['num_of_pages']
+                num_of_pages = raw_num_of_pages['value']['number_of_pages']
             else:
                 num_of_pages = self._get_number_of_sub_pages(category_data, page_request)
                 push_result = self.data_server.push_request(self.source_name, category_data.url,
