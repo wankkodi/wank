@@ -139,7 +139,7 @@ class VePorns(PornFetcher):
         tmp_tree = self.parser.parse(tmp_request.text)
         commands = [x for x in tmp_tree.xpath('.//div[@class="r"]/a') if 'onclick' in x.attrib]
         res = []
-        for command in commands:
+        for i, command in enumerate(commands):
             arguments = re.findall(r'(?:\()(.*)(?:\))', command.attrib['onclick'])
             assert len(arguments) == 1
             thumb, theme, video, vid, catid, tip, server = arguments[0].replace('\'', '').split(',')
@@ -165,7 +165,9 @@ class VePorns(PornFetcher):
             tmp_request = self.session.get(self.video_request_url, headers=headers, params=params)
             tmp_tree = self.parser.parse(tmp_request.text)
             video_links = tmp_tree.xpath('.//iframe/@src')
-            if urlparse(video_links[0]).hostname == 'woof.tube':
+            if len(video_links) == 0:
+                warnings.warn('No alternative for source {i}'.format(i=i))
+            elif urlparse(video_links[0]).hostname == 'woof.tube':
                 res.extend([VideoSource(link=x[0], resolution=x[1])
                             for x in self.external_fetchers.get_video_link_from_woof_tube(video_links[0])]
                            )

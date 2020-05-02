@@ -216,6 +216,10 @@ def show_porn_programs(handler_id, args, page_number):
         # web_pdb.set_trace()
         show_list = handler.get_show_object(*())
 
+    if len(show_list) == 1:
+        # We go straight ahead to its subcategory
+        return show_porn_programs(handler_id, separator.join(show_list[0].get_full_id_path()),
+                                  show_list[0].page_number)
     items = prepare_list_items(show_list, handler_id)
     # In case we have additional pages, we prepare another page
     additional_pages = prepare_additional_pages(show_list, handler_id, show_porn_programs, page_porn_input_window,

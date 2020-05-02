@@ -569,6 +569,9 @@ class PornHub(PornFetcher):
         """
         super(PornHub, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
                                       session_id)
+        self.user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
+                          'Chrome/76.0.3809.100 Safari/537.36'
+        self.session.headers['User-Agent'] = self.user_agent
 
     def _update_available_categories(self, category_data):
         """
@@ -819,18 +822,7 @@ class PornHub(PornFetcher):
         except (PornValueError, PornFetchUrlError):
             return []
         tree = self.parser.parse(page_request.text)
-        videos = ([x for x in tree.xpath('.//ul[@id="videoCategory"]/li') if '_vkey' in x.attrib] +
-                  [x for x in tree.xpath('.//ul[@id="showAllChanelVideos"]/li') if '_vkey' in x.attrib] +
-                  [x for x in tree.xpath('.//ul[@id="pornstarsVideoSection"]/li') if '_vkey' in x.attrib] +
-                  [x for x in tree.xpath('.//ul[@id="mostRecentVideosSection"]/li') if '_vkey' in x.attrib] +
-                  [x for x in tree.xpath('.//ul[@class="related-video-thumbs videos user-playlist"]/li')
-                   if '_vkey' in x.attrib] +
-                  [x for x in tree.xpath('.//ul[@class="videos recommendedContainerLoseOne"]/li')
-                   if '_vkey' in x.attrib] +
-                  [x for x in tree.xpath('.//ul[@class="videos search-video-thumbs freeView"]/li')
-                   if '_vkey' in x.attrib] +
-                  [x for x in tree.xpath('.//ul[@class="videos search-video-thumbs"]/li')
-                   if '_vkey' in x.attrib])
+        videos = [x for x in tree.xpath('.//ul/li') if '_vkey' in x.attrib]
         res = []
         for video_tree_data in videos:
             additional_data = {'_vkey': video_tree_data.attrib['_vkey']}
@@ -917,7 +909,7 @@ class PornHub(PornFetcher):
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
                       'q=0.8,application/signed-exchange;v=b3',
             'Cache-Control': 'max-age=0',
-            'Referer': self.base_url,
+            # 'Referer': self.base_url,
             'Host': self.host_name,
             'Sec-Fetch-Mode': 'navigate',
             'Sec-Fetch-Site': 'same-origin',

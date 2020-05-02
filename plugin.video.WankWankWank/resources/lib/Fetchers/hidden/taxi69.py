@@ -94,7 +94,8 @@ class Taxi69(PornFetcher):
 
             image_data = link_data[0].xpath('./img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src']
+            image = image_data[0].attrib['data-real-src'] \
+                if 'data-real-src' in image_data[0].attrib else image_data[0].attrib['src']
             title = image_data[0].attrib['alt']
 
             res.append(PornCatalogCategoryNode(catalog_manager=self.catalog_manager,
