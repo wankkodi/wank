@@ -346,15 +346,13 @@ class AnyPorn(PornFetcher):
             error_module = self._prepare_porn_error_module_for_video_page(video_data, tmp_request.url)
             raise PornNoVideoError(error_module.message, error_module)
         elif len(videos) > 1:
-            videos = VideoNode(video_sources=sorted(((VideoSource(link=x.attrib['src'],
-                                                                  resolution=re.findall(r'\d+', x.attrib['title'])[0],
-                                                                  video_type=VideoTypes.VIDEO_REGULAR)
-                                                      ) for x in videos),
-                                                    key=lambda x: x.resolution, reverse=True)
-                               )
+            videos = sorted(((VideoSource(link=x.attrib['src'],
+                                          resolution=re.findall(r'\d+', x.attrib['title'])[0],
+                                          video_type=VideoTypes.VIDEO_REGULAR)
+                              ) for x in videos),
+                            key=lambda x: x.resolution, reverse=True)
         else:
-            videos = VideoNode(video_sources=[VideoSource(link=videos[0].attrib['src'],
-                                                          video_type=VideoTypes.VIDEO_REGULAR)])
+            videos = [VideoSource(link=videos[0].attrib['src'], video_type=VideoTypes.VIDEO_REGULAR)]
         return VideoNode(video_sources=videos)
 
     def _get_video_links_from_video_data4(self, video_data):
