@@ -569,9 +569,6 @@ class PornHub(PornFetcher):
         """
         super(PornHub, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
                                       session_id)
-        self.user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
-                          'Chrome/76.0.3809.100 Safari/537.36'
-        self.session.headers['User-Agent'] = self.user_agent
 
     def _update_available_categories(self, category_data):
         """
@@ -827,18 +824,16 @@ class PornHub(PornFetcher):
         for video_tree_data in videos:
             additional_data = {'_vkey': video_tree_data.attrib['_vkey']}
 
-            image_data = (video_tree_data.xpath('.//a[@class="linkVideoThumb js-linkVideoThumb img "]/img') +
-                          video_tree_data.xpath('.//a[@class="linkVideoThumb js-linkVideoThumb img js-viewTrack "]/'
-                                                'img'))
+            link_data = [x for x in video_tree_data.xpath('.//a')
+                         if 'class' in x.attrib and 'linkVideoThumb' in x.attrib['class']]
+            assert len(link_data) == 1
+            image_data = link_data[0].xpath('./img')
             assert len(image_data) == 1
             image = image_data[0].attrib['src'] if 'src' in image_data[0].attrib else None
             if image is None or 'data:image' in image:
                 # We try alternative path
                 image = image_data[0].attrib['data-thumb_url']
 
-            link_data = (video_tree_data.xpath('.//a[@class="linkVideoThumb js-linkVideoThumb img "]') +
-                         video_tree_data.xpath('.//a[@class="linkVideoThumb js-linkVideoThumb img js-viewTrack "]'))
-            assert len(link_data) == 1
             link = link_data[0].attrib['href']
             url = urljoin(self.base_url, link)
             additional_data['data_related_url'] = urljoin(self.base_url, link_data[0].attrib['data-related-url'])
@@ -911,6 +906,7 @@ class PornHub(PornFetcher):
             'Cache-Control': 'max-age=0',
             # 'Referer': self.base_url,
             'Host': self.host_name,
+            'Sec-Fetch-Dest': 'document',
             'Sec-Fetch-Mode': 'navigate',
             'Sec-Fetch-Site': 'same-origin',
             'Sec-Fetch-User': '?1',
