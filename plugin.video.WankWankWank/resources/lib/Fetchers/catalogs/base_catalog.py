@@ -387,7 +387,7 @@ class CatalogManager(object):
             try:
                 with open(self.store_filename, 'rb') as fl:
                     self.store_data = pickle.load(fl)
-            except (EOFError, ValueError):
+            except (EOFError, ValueError, KeyError):
                 self.store_data = {}
             if self.session_id in self.store_data:
                 self._nodes = self.store_data[self.session_id]

@@ -387,7 +387,7 @@ class CatalogManager(object):
             try:
                 with open(self.store_filename, 'rb') as fl:
                     self.store_data = pickle.load(fl)
-            except EOFError:
+            except (EOFError, ValueError, KeyError):
                 self.store_data = {}
             if self.session_id in self.store_data:
                 self._nodes = self.store_data[self.session_id]
@@ -474,7 +474,7 @@ class CatalogNode(object):
         raise NotImplementedError
 
     def __init__(self, catalog_manager, obj_id, title, number=None, page_number=None, url=None, image_link=None,
-                 related_objects=None, sub_objects=None, super_object=None,
+                 poster_link=None, related_objects=None, sub_objects=None, super_object=None,
                  subtitle=None, description=None, duration=None, date=None,
                  object_type=None, additional_data=None, raw_data=None):
         """
@@ -486,6 +486,7 @@ class CatalogNode(object):
         :param page_number:
         :param url:
         :param image_link:
+        :param poster_link :
         :param related_objects:
         :param sub_objects:
         :param super_object:
@@ -504,6 +505,7 @@ class CatalogNode(object):
         self.page_number = page_number
         self.url = url
         self.image_link = image_link
+        self.poster_link = poster_link
         self.related_objects = related_objects
         self._sub_object_ids = [x.id for x in sub_objects] if sub_objects is not None else None
         self._super_object_id = super_object.id if super_object is not None else None
@@ -807,7 +809,7 @@ class VideoFilter(object):
                 with open(self.store_filename, 'rb') as fl:
                     self._filters, self._current_filter_values, self._conditions = pickle.load(fl)
                 init_data = False
-        except EOFError:
+        except (EOFError, ValueError):
             init_data = True
         if init_data is True:
             raw_data = self._prepare_input(general_filters, length_filters, added_before_filters,
