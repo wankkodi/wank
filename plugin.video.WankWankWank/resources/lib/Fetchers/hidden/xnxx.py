@@ -3,6 +3,7 @@ from ..fetchers.porn_fetcher import PornFetcher
 
 # Internet tools
 from .. import urljoin, quote_plus
+import requests
 
 # Playlist tools
 import m3u8
@@ -309,10 +310,6 @@ class Xnxx(PornFetcher):
         :return:
          """
         tmp_request = self.get_object_request(video_data)
-        tmp_tree = self.parser.parse(tmp_request.text)
-        request_data = re.findall(r'(?:html5player.setVideoHLS\(\')(.*?)(?:\'\);)',
-                                  [x for x in tmp_tree.xpath('.//script/text()')
-                                   if 'html5player.setVideoHLS' in x][0])
         headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
                       'q=0.8,application/signed-exchange;v=b3*',
@@ -323,16 +320,77 @@ class Xnxx(PornFetcher):
             'Upgrade-Insecure-Requests': '1',
             'User-Agent': self.user_agent
         }
-        m3u8_req = self.session.get(request_data[0], headers=headers)
-        video_m3u8 = m3u8.loads(m3u8_req.text)
-        video_playlists = video_m3u8.playlists
-        if all(vp.stream_info.bandwidth is not None for vp in video_playlists):
-            video_playlists.sort(key=lambda k: k.stream_info.bandwidth, reverse=True)
-        res = sorted((VideoSource(link=urljoin(request_data[0], video_playlist.uri),
-                                  video_type=VideoTypes.VIDEO_SEGMENTS,
-                                  quality=video_playlist.stream_info.bandwidth,
-                                  codec=video_playlist.stream_info.codecs) for video_playlist in video_playlists),
-                     key=lambda x: x.quality, reverse=True)
+        res = []
+        hls_url = None
+        m3u8_req = None
+        tmp_tree = self.parser.parse(tmp_request.text)
+        try:
+            raw_script = [x for x in tmp_tree.xpath('.//script/text()')
+                          if 'html5player.setVideoHLS' in x]
+            hls_data = re.findall(r'(?:html5player.setVideoHLS\(\')(.*?)(?:\'\);)',
+                                  raw_script[0])
+            if len(hls_data):
+                hls_url = hls_data[0]
+                m3u8_req = self.session.get(hls_url, headers=headers)
+
+            mp4_low_data = re.findall(r'(?:html5player.setVideoUrlLow\(\')(.*?)(?:\'\);)',
+                                      raw_script[0])
+            if len(mp4_low_data):
+                res.append(VideoSource(link=urljoin(tmp_request.url, mp4_low_data[0]),
+                                       video_type=VideoTypes.VIDEO_REGULAR,
+                                       resolution=360))
+            mp4_high_data = re.findall(r'(?:html5player.setVideoUrlHigh\(\')(.*?)(?:\'\);)',
+                                       raw_script[0])
+            if len(mp4_high_data):
+                res.append(VideoSource(link=urljoin(tmp_request.url, mp4_high_data[0]),
+                                       video_type=VideoTypes.VIDEO_REGULAR,
+                                       resolution=720))
+
+        except requests.exceptions.RetryError:
+            headers = {
+                'Accept': '*/*',
+                'Cache-Control': 'max-age=0',
+                'Referer': video_data.url,
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-origin',
+                'Upgrade-Insecure-Requests': '1',
+                'User-Agent': self.user_agent
+            }
+
+            error_page = re.findall(r'(?:js_error.open\(\'\w+\', \')(.*?)(?:\')',
+                                    [x for x in tmp_tree.xpath('.//script/text()')
+                                     if 'js_error.open' in x][0])
+            new_url = urljoin(self.base_url, error_page[0])
+            new_request = self.session.get(new_url, headers=headers)
+
+            new_url_data = new_request.json()
+            assert new_url_data['OK'] == 'OK'
+            new_url = re.sub(r'hls_playerror|jserror', 'getvideo', new_url)
+            tmp_request = self.session.get(new_url, headers=headers)
+            tmp_data = tmp_request.json()
+            if 'mp4_low' in tmp_data:
+                res.append(VideoSource(link=urljoin(new_url, tmp_data['mp4_low']),
+                                       video_type=VideoTypes.VIDEO_REGULAR,
+                                       resolution=360))
+            if 'mp4_high' in tmp_data:
+                res.append(VideoSource(link=urljoin(new_url, tmp_data['mp4_high']),
+                                       video_type=VideoTypes.VIDEO_REGULAR,
+                                       resolution=720))
+            if 'hls' in tmp_data:
+                hls_url = urljoin(new_url, tmp_data['hls'])
+                m3u8_req = self.session.get(hls_url, headers=headers)
+
+        if hls_url is not None:
+            video_m3u8 = m3u8.loads(m3u8_req.text)
+            video_playlists = video_m3u8.playlists
+            res.extend((VideoSource(link=urljoin(tmp_request.url, video_playlist.uri),
+                                    video_type=VideoTypes.VIDEO_SEGMENTS,
+                                    resolution=video_playlist.stream_info.resolution[1]
+                                    if video_playlist.stream_info.resolution[1] is not None else 0,
+                                    quality=video_playlist.stream_info.bandwidth,
+                                    codec=video_playlist.stream_info.codecs) for video_playlist in video_playlists),
+                       )
+        res.sort(key=lambda x: x.resolution, reverse=True)
 
         return VideoNode(video_sources=res)
 
@@ -541,6 +599,7 @@ class Xnxx(PornFetcher):
 class XVideos(Xnxx):
     # Very similar to xvideos!
     max_flip_images = 30
+    best_videos_url = 'https://www.xvideos.com/best'
 
     @property
     def object_urls(self):
@@ -549,7 +608,7 @@ class XVideos(Xnxx):
             PornCategories.TAG_MAIN: 'https://www.xvideos.com/tags',
             PornCategories.PORN_STAR_MAIN: 'https://www.xvideos.com/pornstars-index',
             PornCategories.CHANNEL_MAIN: 'https://www.xvideos.com/channels-index',
-            PornCategories.TOP_RATED_VIDEO: 'https://www.xvideos.com/best',
+            PornCategories.TOP_RATED_VIDEO: self.best_videos_url,
             PornCategories.VERIFIED_VIDEO: 'https://www.xvideos.com/verified/videos',
             PornCategories.SEARCH_MAIN: 'https://www.xvideos.com/',
         }
@@ -628,14 +687,15 @@ class XVideos(Xnxx):
              'period_filters': search_filters['period_filters'],
              'length_filters': search_filters['length_filters'],
              }
-        single_category_filters = \
-            {'period_filters': ((PornFilterTypes.AllDate, 'All period', None),
-                                (PornFilterTypes.OneDate, 'This Month', 'month'),
-                                (PornFilterTypes.TwoDate, 'This Week', 'week'),
-                                (PornFilterTypes.ThreeDate, 'Yesterday', 'yesterday'),
-                                (PornFilterTypes.FiveDate, 'Today', 'day'),
-                                ),
-             }
+        single_category_filters = single_tag_filters
+        # single_category_filters = \
+        #     {'period_filters': ((PornFilterTypes.AllDate, 'All period', None),
+        #                         (PornFilterTypes.OneDate, 'This Month', 'month'),
+        #                         (PornFilterTypes.TwoDate, 'This Week', 'week'),
+        #                         (PornFilterTypes.ThreeDate, 'Yesterday', 'yesterday'),
+        #                         (PornFilterTypes.FiveDate, 'Today', 'day'),
+        #                         ),
+        #      }
         single_porn_star_filters = \
             {'sort_order': ((PornFilterTypes.BeingWatchedOrder, 'Watched Recently', 'best'),
                             (PornFilterTypes.DateOrder, 'New', 'new'),
@@ -1066,11 +1126,11 @@ class XVideos(Xnxx):
         elif true_object.object_type == PornCategories.CATEGORY_MAIN:
             if self.general_filter.current_filters.general.value is not None:
                 split_url.append(self.general_filter.current_filters.general.value)
-        elif true_object.object_type == PornCategories.CATEGORY:
-            if page_filter.period.value is not None:
-                split_url.insert(-1, page_filter.period.value)
-            if page_number is not None and page_number != 1:
-                split_url.insert(-1, str(page_number - 1))
+        # elif true_object.object_type == PornCategories.CATEGORY:
+        #     if page_filter.period.value is not None:
+        #         split_url.insert(-1, page_filter.period.value)
+        #     if page_number is not None and page_number != 1:
+        #         split_url.insert(-1, str(page_number - 1))
         elif true_object.object_type in (PornCategories.SEARCH_MAIN, ):
             if self.general_filter.current_filters.general.value is not None:
                 params['typef'] = self.general_filter.current_filters.general.value
@@ -1084,7 +1144,7 @@ class XVideos(Xnxx):
                 params['quality'] = page_filter.quality.value
             if page_number is not None and page_number != 1:
                 params['p'] = page_number
-        elif true_object.object_type in (PornCategories.TAG,):
+        elif true_object.object_type in (PornCategories.TAG, PornCategories.CATEGORY):
             if page_filter.sort_order.value is not None:
                 split_url.insert(-1, 's:' + page_filter.sort_order.value)
             if page_filter.period.value is not None:
@@ -1094,10 +1154,15 @@ class XVideos(Xnxx):
             if page_number is not None and page_number != 1:
                 split_url.append(str(page_number - 1))
         elif true_object.object_type == PornCategories.TOP_RATED_VIDEO:
+            if len(split_url) == 4:
+                tmp_request = self.session.get(fetch_base_url, headers=headers)
+                tmp_tree = self.parser.parse(tmp_request.text)
+                available_dates = tmp_tree.xpath('.//div[@id="date-links-pagination"]/ul/li/a')
+                self.best_videos_url = urljoin(self.base_url, available_dates[0].attrib['href'])
+                split_url = self.object_urls[PornCategories.TOP_RATED_VIDEO].split('/')
             if self.general_filter.current_filters.general.value is not None:
                 split_url[-1] += '-of-{s}'.format(s=self.general_filter.current_filters.general.value)
-            request_date = datetime.now() - timedelta(days=30)
-            split_url.append('{y}-{m}'.format(y=request_date.year, m=str(request_date.month).zfill(2)))
+
             if page_number is not None and page_number != 1:
                 split_url.append(str(page_number - 1))
         else:
