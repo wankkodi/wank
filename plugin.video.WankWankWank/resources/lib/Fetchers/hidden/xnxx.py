@@ -383,7 +383,7 @@ class Xnxx(PornFetcher):
         if hls_url is not None:
             video_m3u8 = m3u8.loads(m3u8_req.text)
             video_playlists = video_m3u8.playlists
-            res.extend((VideoSource(link=urljoin(tmp_request.url, video_playlist.uri),
+            res.extend((VideoSource(link=urljoin(m3u8_req.url, video_playlist.uri),
                                     video_type=VideoTypes.VIDEO_SEGMENTS,
                                     resolution=video_playlist.stream_info.resolution[1]
                                     if video_playlist.stream_info.resolution[1] is not None else 0,
