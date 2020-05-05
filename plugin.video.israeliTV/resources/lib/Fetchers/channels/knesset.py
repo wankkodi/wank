@@ -84,7 +84,7 @@ class Knesset(VODFetcher):
                                                   url=None,
                                                   super_object=base_object,
                                                   object_type=VODCategories.GENERAL_CHANNEL_SUB_CATEGORY,
-                                                  raw_data=show_category)
+                                                  raw_data=show_category['CurrentCategory'])
             main_objects.append(show_category_object)
             show_category_sub_objects = []
             for show in show_category['SubCategories']:
@@ -92,38 +92,51 @@ class Knesset(VODFetcher):
                                              obj_id=show['Id'],
                                              title=show['Label'],
                                              url=None,
-                                             super_object=base_object,
+                                             super_object=show_category_object,
                                              object_type=VODCategories.GENERAL_CHANNEL_SUB_CATEGORY,
-                                             raw_data=show_category_object)
+                                             raw_data=show)
+
+                show_object = self._prepare_sub_objects_from_main_object(show_object, raw_data['Videos'])
                 show_category_sub_objects.append(show_object)
-                show_objects = [x for x in raw_data['Videos'] if x['SubCategoryId'] == show['Id']]
-                show_videos_chunks = [show_objects[i:i + self.number_of_shows_per_page]
-                                      for i in range(0, len(show_objects), self.number_of_shows_per_page)]
-                show_pages = []
-                for i, chunk in enumerate(show_videos_chunks):
-                    show_page = VODCatalogNode(catalog_manager=self.catalog_manager,
-                                               obj_id=(show_object.id, 'video'),
-                                               title='{t} | Page {p}'.format(t=show_object.title, p=i + 1),
-                                               url=show_object.url,
-                                               object_type=VODCategories.PAGE,
-                                               super_object=show_object)
-                    show_pages.append(show_page)
-                    show_page_videos = [VODCatalogNode(catalog_manager=self.catalog_manager,
-                                                       obj_id=x['Url'],
-                                                       title=x['Title'],
-                                                       url=urljoin(self.base_url, x['Url']),
-                                                       image_link=urljoin(self.base_url, x['PicUrl']),
-                                                       object_type=VODCategories.VIDEO,
-                                                       date=datetime.fromtimestamp(
-                                                           int(re.findall(r'(?:Date\()(\d+)(?:\))',
-                                                                          x['PublishedDate'])[0])//1000),
-                                                       raw_data=x,
-                                                       super_object=show_page) for x in chunk]
-                    show_page.add_sub_objects(show_page_videos)
-                show_object.add_sub_objects(show_pages)
             show_category_object.add_sub_objects(show_category_sub_objects)
+            self._prepare_sub_objects_from_main_object(show_category_object, raw_data['Videos'])
 
         base_object.add_sub_objects(main_objects)
+
+    def _prepare_sub_objects_from_main_object(self, show_object, videos):
+        """
+        Prepares sub objects (pages of video objects) for the given show.
+        The analysis is based on the structure of the JSON object of the site...
+        :param show_object: Show raw object.
+        :param videos: Videos raw data.
+        :return:
+        """
+        show_objects = [x for x in videos if x['SubCategoryId'] == show_object.raw_data['Id']]
+        show_videos_chunks = [show_objects[i:i + self.number_of_shows_per_page]
+                              for i in range(0, len(show_objects), self.number_of_shows_per_page)]
+        show_pages = []
+        for i, chunk in enumerate(show_videos_chunks):
+            show_page = VODCatalogNode(catalog_manager=self.catalog_manager,
+                                       obj_id=(show_object.id, i),
+                                       title='{t} | Page {p}'.format(t=show_object.title, p=i + 1),
+                                       url=show_object.url,
+                                       object_type=VODCategories.PAGE,
+                                       super_object=show_object)
+            show_pages.append(show_page)
+            show_page_videos = [VODCatalogNode(catalog_manager=self.catalog_manager,
+                                               obj_id=x['Url'],
+                                               title=x['Title'],
+                                               url=urljoin(self.base_url, x['Url']),
+                                               image_link=urljoin(self.base_url, x['PicUrl']),
+                                               object_type=VODCategories.VIDEO,
+                                               date=datetime.fromtimestamp(
+                                                   int(re.findall(r'(?:Date\()(\d+)(?:\))',
+                                                                  x['PublishedDate'])[0]) // 1000),
+                                               raw_data=x,
+                                               super_object=show_page) for x in chunk]
+            show_page.add_sub_objects(show_page_videos)
+        show_object.add_sub_objects(show_pages)
+        return show_object
 
     def get_video_links_from_video_data(self, video_data):
         """
