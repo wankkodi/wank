@@ -180,6 +180,10 @@ class YesPornPlease(PornFetcher):
             video_links = [VideoSource(link=x[0], resolution=x[1])
                            for x in self.external_fetchers.get_video_link_from_no_scam_hosting(
                     urljoin(video_data.url, new_video_url[0]), video_data.url)]
+        elif hostname == 'heybaby.online':
+            video_links = [VideoSource(link=x[0], resolution=x[1])
+                           for x in self.external_fetchers.get_video_link_from_heybaby_online(
+                    urljoin(video_data.url, new_video_url[0]), video_data.url)]
         else:
             warnings.warn('Unknown source {h}...'.format(h=hostname))
             video_links = []

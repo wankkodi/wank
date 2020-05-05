@@ -47,7 +47,7 @@ class PornErrorModule(object):
         self.error_mode = error_mode
         self.site_name = site_name
         self.url = url
-        self.message = message
+        self.message = site_name + ': ' + message
         self.page_filters = page_filters
         self.general_filters = general_filters
 
@@ -315,8 +315,8 @@ class PornFetcher(BaseFetcher):
                     and self.possible_empty_pages is False
                     and (element_object.sub_objects is None or len(element_object.sub_objects) == 0)):
                 error_module = self._prepare_porn_error_module(element_object, 1, element_object.url,
-                                                               'No sub-pages for object {obj} of the site {s}'
-                                                               ''.format(obj=element_object.title, s=self.source_name))
+                                                               'No sub-pages for object {obj}'
+                                                               ''.format(obj=element_object.title))
                 self.data_server.push_error(error_module.error_mode, error_module.site_name, error_module.url,
                                             error_module.message,
                                             error_module.page_filters, error_module.general_filters)

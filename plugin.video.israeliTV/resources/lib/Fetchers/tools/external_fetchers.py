@@ -556,6 +556,45 @@ class ExternalFetcher(object):
             video_links.append((link[0].attrib['src'], resolution))
         return video_links
 
+    def get_video_link_from_heybaby_online(self, video_url, referer):
+        """
+        Fetches stream link for heybaby.online .
+        :param video_url: stream url.
+        :param referer: Page referer.
+        :return:
+        """
+        # headers = {
+        #     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
+        #               'q=0.8,application/signed-exchange;v=b3*',
+        #     'Cache-Control': 'max-age=0',
+        #     'Referer': referer,
+        #     'Sec-Fetch-Mode': 'navigate',
+        #     'Sec-Fetch-Site': 'same-origin',
+        #     'Sec-Fetch-User': '?1',
+        #     'Upgrade-Insecure-Requests': '1',
+        #     'User-Agent': self.user_agent
+        # }
+        # tmp_request = self.session.get(video_url, headers=headers)
+        # assert tmp_request.ok
+        video_id = video_url.split('/')[-1]
+        url = 'https://heybaby.online/api/source/' + video_id
+        headers = {
+            'Accept': '*/*',
+            'Cache-Control': 'max-age=0',
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'Referer': referer,
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'same-origin',
+            'Sec-Fetch-User': '?1',
+            'User-Agent': self.user_agent,
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+        tmp_request = self.session.post(url, headers=headers)
+        raw_data = tmp_request.json()
+
+        video_links = [(x['file'], re.findall(r'\d+', x['label'])[0]) for x in raw_data['data']]
+        return video_links
+
     def _get_vshare_info(self, raw_data):
         """
         Tries to fetch the server name
