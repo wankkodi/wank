@@ -386,7 +386,7 @@ class RedTube(PornFetcher):
         raw_data = re.findall(r'(?:mediaDefinition: )(\[.*\])(?:,\n)', script[0])
         raw_data = json.loads(raw_data[0])
         video_links = sorted((VideoSource(link=x['videoUrl'], quality=int(re.findall(r'\d+', x['quality'])[0]))
-                              for x in raw_data),
+                              for x in raw_data if len(x['videoUrl']) > 0),
                              key=lambda x: x.quality, reverse=True)
         return VideoNode(video_sources=video_links)
 

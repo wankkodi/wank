@@ -336,7 +336,11 @@ class Txxx(PornFetcher):
         b = 0
         # if not re.findall(r'[^АВСЕМA-Za-z0-9.,~]', raw_video_url):
         #     raise RuntimeError
-        raw_video_url = re.sub(r'[^АВСЕМA-Za-z0-9.,~]', '', raw_video_url)
+        if isinstance(raw_video_url, str):
+            raw_video_url = re.sub(r'[^АВСЕМA-Za-z0-9.,~]', '', raw_video_url)
+        else:
+            raw_video_url = re.sub(ur'[^\u0410\u0412\u0421\u0415\u041CA-Za-z0-9.,~]', '', raw_video_url)
+
         while 1:
             e = key_str.index(raw_video_url[b])
             b += 1

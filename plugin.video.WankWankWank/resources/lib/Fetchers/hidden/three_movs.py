@@ -150,7 +150,8 @@ class ThreeMovs(PornFetcher):
             image_data = category.xpath('./span[@class="image-holder"]/img')
             assert len(image_data) == 1
             image = image_data[0].attrib['src'] if 'data:image' not in image_data[0].attrib['src'] \
-                else image_data[0].attrib['data-src']
+                else (image_data[0].attrib['data-src'] if 'data-src' in image_data[0].attrib
+                      else image_data[0].attrib['data-original'])
 
             title_data = (category.xpath('./span[@class="info"]/strong/text()') +
                           category.xpath('./div[@class="info"]/h2/text()'))

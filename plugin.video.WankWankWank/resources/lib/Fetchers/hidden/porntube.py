@@ -657,13 +657,15 @@ class FourTube(PornTube):
             number_of_videos = category.xpath('./div[@class="bottom"]//i[@class="icon icon-video"]')
             assert len(number_of_videos) == 1
 
-            image = category.xpath('./div[@class="thumb"]/img/@src')
-            assert len(image) == 1
+            image_data = category.xpath('./div[@class="thumb"]/img')
+            assert len(image_data) == 1
+            image = image_data[0].attrib['data-original'] if 'data-original' in image_data[0].attrib \
+                else image_data[0].attrib['src']
 
             sub_object_data = PornCatalogCategoryNode(catalog_manager=self.catalog_manager,
                                                       obj_id=category.attrib['href'],
                                                       url=urljoin(object_data.url, category.attrib['href']),
-                                                      image_link=image[0],
+                                                      image_link=image,
                                                       title=title,
                                                       number_of_videos=int(re.sub(r'[(),]', '',
                                                                                   str(number_of_videos[0].tail))),
