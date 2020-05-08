@@ -303,7 +303,8 @@ class LetsJerk(PornFetcher):
         res = []
         for video_tree_data in videos:
             image_data = video_tree_data.xpath('./img')
-            image = image_data[0].attrib['data-src'] \
+            image = image_data[0].attrib['data-original'] \
+                if 'data-original' in image_data[0].attrib else image_data[0].attrib['data-src'] \
                 if 'data-src' in image_data[0].attrib else image_data[0].attrib['src']
             title = image_data[0].attrib['alt'] if 'alt' in image_data[0].attrib else None
 
