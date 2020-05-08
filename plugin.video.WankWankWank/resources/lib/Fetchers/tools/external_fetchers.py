@@ -349,6 +349,8 @@ class ExternalFetcher(object):
         }
         # Was taken from pornktube module (have the same engine.
         tmp_request = self.session.get(video_url, headers=headers)
+        if not tmp_request.ok:
+            tmp_request = self.session.get(video_url, headers=headers)
         tmp_tree = self.parser.parse(tmp_request.text)
         server_data = tmp_tree.xpath('.//div[@id="player"]')
 
