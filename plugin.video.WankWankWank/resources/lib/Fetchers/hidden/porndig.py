@@ -108,9 +108,9 @@ class PornDig(PornFetcher):
                                         (PornFilterTypes.DateOrder, 'Date', 'date'),
                                         (PornFilterTypes.LengthOrder, 'Length', 'duration'),
                                         ),
-                         'period_filters': ([(PornFilterTypes.OneDate, 'Month', 'month'),
+                         'period_filters': ([(PornFilterTypes.AllDate, 'All time', ''),
+                                             (PornFilterTypes.OneDate, 'Month', 'month'),
                                              (PornFilterTypes.TwoDate, 'Year', 'year'),
-                                             (PornFilterTypes.AllDate, 'All time', ''),
                                              ],
                                             [('sort_order', [PornFilterTypes.ClicksOrder,
                                                              PornFilterTypes.RatingOrder,
@@ -364,8 +364,6 @@ class PornDig(PornFetcher):
         raw_data = re.findall(r'(?:var vc *= *)({.*})(?:;\n)', request_data[0], re.DOTALL)
         assert len(raw_data) == 1
         raw_data = prepare_json_from_not_formatted_text(raw_data[0])
-
-        # todo: could be videoLink instead of videoLinkDownload
         res = sorted((VideoSource(link=x['src'].replace('\\/', '/'), resolution=x['res'])
                       for x in raw_data['sources'] if 'res' in x and 'src' in x),
                      key=lambda x: x.resolution, reverse=True)
@@ -425,23 +423,27 @@ class PornDig(PornFetcher):
         :return:
         """
         page_request = self.get_object_request(page_data)
-        if page_data.page_number > 1:
-            videos = page_request.json()
-            tree = self.parser.parse(videos['data']['content'])
-            videos = [x for x in tree.xpath('.//section') if 'id' in x.attrib]
-        else:
-            tree = self.parser.parse(page_request.text)
-            videos = (tree.xpath('.//div[@class="js_entity_container js_content_category_videos '
-                                 'videos_grid_wrapper videos_grid_wrapper_medium"]/section') +
-                      tree.xpath('.//div[@class="js_entity_container js_content_pornstar_related_videos '
-                                 'videos_grid_wrapper videos_grid_wrapper_medium"]/section') +
-                      tree.xpath('.//div[@class="js_entity_container js_content_studio_related_videos '
-                                 'videos_grid_wrapper videos_grid_wrapper_medium"]/section') +
-                      tree.xpath('.//div[@class="js_entity_container js_content_all_videos '
-                                 'videos_grid_wrapper videos_grid_wrapper_medium"]/section') +
-                      tree.xpath('.//div[@class="js_entity_container js_content_search_posts '
-                                 'videos_grid_wrapper videos_grid_wrapper_medium"]/section')
-                      )
+        videos = page_request.json()
+        tree = self.parser.parse(videos['data']['content'])
+        videos = [x for x in tree.xpath('.//section') if 'id' in x.attrib]
+
+        # if page_data.page_number > 1:
+        #     videos = page_request.json()
+        #     tree = self.parser.parse(videos['data']['content'])
+        #     videos = [x for x in tree.xpath('.//section') if 'id' in x.attrib]
+        # else:
+        #     tree = self.parser.parse(page_request.text)
+        #     videos = (tree.xpath('.//div[@class="js_entity_container js_content_category_videos '
+        #                          'videos_grid_wrapper videos_grid_wrapper_medium"]/section') +
+        #               tree.xpath('.//div[@class="js_entity_container js_content_pornstar_related_videos '
+        #                          'videos_grid_wrapper videos_grid_wrapper_medium"]/section') +
+        #               tree.xpath('.//div[@class="js_entity_container js_content_studio_related_videos '
+        #                          'videos_grid_wrapper videos_grid_wrapper_medium"]/section') +
+        #               tree.xpath('.//div[@class="js_entity_container js_content_all_videos '
+        #                          'videos_grid_wrapper videos_grid_wrapper_medium"]/section') +
+        #               tree.xpath('.//div[@class="js_entity_container js_content_search_posts '
+        #                          'videos_grid_wrapper videos_grid_wrapper_medium"]/section')
+        #               )
         res = []
         for video_tree_data in videos:
             link = video_tree_data.xpath('./a')
@@ -507,24 +509,24 @@ class PornDig(PornFetcher):
             }
             return self.session.get(page_data.url, headers=headers)
 
-        if page_number == 1:
-            split_url = fetch_base_url.split('/')
-            if self.general_filter.current_filters.general.value is not None:
-                split_url.insert(3, self.general_filter.current_filters.general.value)
-
-            headers = {
-                'Accept': '*/*',
-                'Cache-Control': 'max-age=0',
-                'Referer': self.base_url,
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'same-origin',
-                'Sec-Fetch-User': '?1',
-                'Upgrade-Insecure-Requests': '1',
-                'User-Agent': self.user_agent
-            }
-            fetch_base_url = '/'.join(split_url)
-            page_request = self.session.get(fetch_base_url, headers=headers)
-            return page_request
+        # if page_number == 1:
+        #     split_url = fetch_base_url.split('/')
+        #     if self.general_filter.current_filters.general.value is not None:
+        #         split_url.insert(3, self.general_filter.current_filters.general.value)
+        #
+        #     headers = {
+        #         'Accept': '*/*',
+        #         'Cache-Control': 'max-age=0',
+        #         'Referer': self.base_url,
+        #         'Sec-Fetch-Mode': 'navigate',
+        #         'Sec-Fetch-Site': 'same-origin',
+        #         'Sec-Fetch-User': '?1',
+        #         'Upgrade-Insecure-Requests': '1',
+        #         'User-Agent': self.user_agent
+        #     }
+        #     fetch_base_url = '/'.join(split_url)
+        #     page_request = self.session.get(fetch_base_url, headers=headers)
+        #     return page_request
 
         conditions = self.get_proper_filter(page_data).conditions
         true_sort_filter_id = self._default_sort_by[true_object.object_type] \
@@ -558,7 +560,7 @@ class PornDig(PornFetcher):
             main_category_id = 1
 
         program_fetch_url = self.load_more_videos_url
-        if page_data.object_type == PornCategories.CATEGORY:
+        if true_object.object_type == PornCategories.CATEGORY:
             params.update({
                 'main_category_id': [main_category_id],
                 'type': ['post'],
@@ -569,10 +571,10 @@ class PornDig(PornFetcher):
                 'filters[filter_duration][]': [45, 26, 15, 14],
                 'category_id[]': [cat_id],
                 'offset': [self.number_of_videos_per_video_page * (page_number-1)],
-                'use_unique_videos': [1],
-                'current_page_offset': [0],
+                # 'use_unique_videos': [1],
+                # 'current_page_offset': [0],
             })
-        elif page_data.object_type == PornCategories.CHANNEL:
+        elif true_object.object_type == PornCategories.CHANNEL:
             cat_id = re.findall(r'\d+', cat_id)[0]
             params.update({
                 'main_category_id': [main_category_id],
@@ -584,7 +586,7 @@ class PornDig(PornFetcher):
                 'content_id': [cat_id],
                 'offset': [self.number_of_videos_per_channel_page * (page_number-1)],
             })
-        elif page_data.object_type == PornCategories.PORN_STAR:
+        elif true_object.object_type == PornCategories.PORN_STAR:
             cat_id = re.findall(r'\d+', cat_id)[0]
             params.update({
                 'main_category_id': [main_category_id],

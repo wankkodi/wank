@@ -128,14 +128,16 @@ class Netfapx(PornFetcher):
         categories = tree.xpath(base_xpath)
         res = []
         for category in categories:
-            image = category.xpath('./img')
-            title = category.attrib['href'].split('/')[-2].title().replace('-', ' ')
+            image_data = category.xpath('./img')
+            image = image_data[0].attrib['src'] if len(image_data) > 0 else None
+            title = category.text if category.text is not None \
+                else ' '.join(image.split('/')[-1].split('-')[:-2]).title()
 
             object_data = PornCatalogCategoryNode(catalog_manager=self.catalog_manager,
                                                   obj_id=category.attrib['href'],
                                                   url=urljoin(self.base_url, category.attrib['href']),
                                                   title=title,
-                                                  image_link=image[0].attrib['src'] if len(image) > 0 else None,
+                                                  image_link=image,
                                                   object_type=object_type,
                                                   super_object=base_object_data,
                                                   )
