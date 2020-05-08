@@ -777,7 +777,7 @@ class TubeXXPorn(PornKTube):
 
             info_data = category.xpath('./h2/a')
             assert len(info_data) == 1
-            title = re.findall(r'(\w+?)(?: *\(\d+\))', info_data[0].text)[0]
+            title = re.findall(r'([\w ]+?)(?: *\(\d+\))', info_data[0].text)[0]
             number_of_videos = int(re.findall(r'(?:\()(\d+)(?:\))', info_data[0].text)[0])
 
             object_data = PornCatalogCategoryNode(catalog_manager=self.catalog_manager,
