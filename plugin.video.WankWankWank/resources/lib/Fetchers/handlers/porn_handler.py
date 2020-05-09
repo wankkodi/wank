@@ -2,88 +2,157 @@
 # import sys
 from os import path
 
-from ..hidden.ahme import AhMe, SunPorno
-from ..hidden.analpornvideosxxx import AnalPornVideosXXX
-from ..hidden.anyporn import AnyPorn, PervertSluts, Analdin, Fapster, HellPorno, AlphaPorno, TubeWolf, XBabe, \
-    BravoPorn, XCum, HellMoms, PornPlus, BravoTeens, MadThumbs, VQTube, Xozilla, SlutLoad, Sex3, AnySex, CrocoTube, \
-    PornRewind, MegaTubeXXX, WatchMyGfTv, WatchMyExGf, TropicTube, PunishBang, PornFd, PornBimbo, BoundHub, EroClips, \
-    CamVideosTv, AnonV, MrDeepFake, Ebony8, CamUploads, ZedPorn, Porn7, AdultCartoons, MoviesAnd, Interracial, \
-    Deviants, ZeroDaysPorn, PornoDep, WatchMyGfMe
-from ..hidden.asspoint import AssPoint, AsianPornVideos, AnalPornVideos, GhettoTube, PornTV, YoungPornVideos, \
-    CartoonPornVideos, LesbianPornVideos, SexOasis, TeeniePorn, HoodTube, PornTitan, YoungPorno, SuzisPorn, \
-    MobilePornMovies, MovieShark, MovieTitan, XJizz
-from ..hidden.beeg import Beeg
-from ..hidden.cliphunter import ClipHunter
-from ..hidden.collectionofbestporn import CollectionOfBestPorn
-from ..hidden.cumlouder import CumLouder
-from ..hidden.cumngo import CumNGo
-from ..hidden.dachix import DaChix, DeviantClip, DaGay
-from ..hidden.draftsex import DraftSex
-from ..hidden.drtuber import DrTuber
-from ..hidden.eporner import EPorner
-from ..hidden.extremetube import ExtremeTube, SpankWire
-from ..hidden.faapy import Faapy
-from ..hidden.fapbraze import FapBraze, FreeHDInterracialPorn
-from ..hidden.fakings import FakingsTV
-from ..hidden.fetishpapa import FetishPapa, Pornoxo, BoyfriendTV, AShemaleTube
-from ..hidden.freeones import FreeOnes
-from ..hidden.goforporn import GoForPorn
-from ..hidden.gotporn import GotPorn, PornHD, PinFlix, PornRox
-from ..hidden.hdtubeporn import HDTubePorn, SexVid, PornID, ZBPorn
-from ..hidden.homemoviestube import HomeMoviesTube
-from ..hidden.hotgirlclub import HotGirlClub
-from ..hidden.hqporner import HQPorner
-from ..hidden.jizzbunker import JizzBunker, XXXDan
-from ..hidden.joysporn import JoysPorn
-from ..hidden.katestube import KatesTube, PervClips, PornWhite, SleazyNEasy, VikiPorn, WankOz, PorniCom, \
-    FetishShrine, SheShaft
-from ..hidden.laidhub import LaidHub, Nudez, HypnoTube, HandJobHub, PornXio, PornRabbit, PornWatchers, \
-    StileProject, Eroxia
-from ..hidden.letsjerk import LetsJerk
-from ..hidden.likuoo import Likuoo
-from ..hidden.lovehomeporn import LoveHomePorn
-from ..hidden.luxuretv import LuxureTV
-from ..hidden.motherless import MotherLess
-from ..hidden.netfapx import Netfapx
-from ..hidden.nubilefilmxxx import NubileFilmXXX, PlusOne8
-from ..hidden.okxxx import OkXXX
-from ..hidden.palmtube import PalmTube
-from ..hidden.perfectgirls import PerfectGirls
-from ..hidden.porn00 import Porn00
-from ..hidden.porn300 import Porn300
-from ..hidden.porndig import PornDig
-from ..hidden.porndoe import PornDoe
-from ..hidden.porngo import PornGo, XXXFiles
-from ..hidden.pornhd8k import PornHDEightK
-from ..hidden.pornhub import PornHub, YouPorn, TubeEight, PornDotCom
-from ..hidden.pornktube import PornKy, PornKTube, RushPorn, TubeXXPorn
-from ..hidden.pornomovies import PornoMovies
-from ..hidden.porntrex import PornTrex, JAVBangers, CamWhoresBay
-from ..hidden.porntube import PornTube, PornerBros, Fux, FourTube
-from ..hidden.realgfporn import RealGfPorn
-from ..hidden.red_wap import RedWap
-from ..hidden.redtube import RedTube
-from ..hidden.sextvx import SexTvX
-from ..hidden.sexu import SexU
-from ..hidden.shesfreaky import ShesFreaky
-from ..hidden.spankbang import SpankBang
-from ..hidden.sxyprn import SexyPorn
-from ..hidden.taxi69 import Taxi69
-from ..hidden.three_movs import ThreeMovs
-from ..hidden.tnaflix import TnaFlix, MovieFap, EmpFlix
-from ..hidden.tubev import TubeV
-from ..hidden.txxx import Txxx, HClips, UPornia, HDZog, HotMovs, VoyeurHit, TubePornClassic, VJav, TheGay, \
+from ..hidden.PornSites.ahme import AhMe, SunPorno
+from ..hidden.PornSites.analpornvideosxxx import AnalPornVideosXXX
+from ..hidden.PornSites.anyporn import AnyPorn, PervertSluts, Fapster, HellPorno, AlphaPorno, XBabe, \
+    BravoPorn, HellMoms, MadThumbs, Sex3, CrocoTube, \
+    PornFd, PornBimbo, BoundHub, AdultCartoons, MoviesAnd
+from ..hidden.PornSites.anyporn.watchmygfme import WatchMyGfMe
+from ..hidden.PornSites.anyporn.pornodep import PornoDep
+from ..hidden.PornSites.anyporn.watchmyexgf import WatchMyExGf
+from ..hidden.PornSites.anyporn.watchmygftv import WatchMyGfTv
+from ..hidden.PornSites.anyporn.anysex import AnySex
+from ..hidden.PornSites.anyporn.slutload import SlutLoad
+from ..hidden.PornSites.anyporn.xozilla import Xozilla
+from ..hidden.PornSites.anyporn.vqtube import VQTube
+from ..hidden.PornSites.anyporn.bravoteens import BravoTeens
+from ..hidden.PornSites.anyporn.punishbang import PunishBang
+from ..hidden.PornSites.anyporn.deviants import Deviants
+from ..hidden.PornSites.anyporn.interracial import Interracial
+from ..hidden.PornSites.anyporn.porn7 import Porn7
+from ..hidden.PornSites.anyporn.camuploads import CamUploads
+from ..hidden.PornSites.anyporn.ebony8 import Ebony8
+from ..hidden.PornSites.anyporn.mrdeepfake import MrDeepFake
+from ..hidden.PornSites.anyporn.anonv import AnonV
+from ..hidden.PornSites.anyporn.camvideostv import CamVideosTv
+from ..hidden.PornSites.anyporn.eroclips import EroClips
+from ..hidden.PornSites.anyporn.zerodaysporn import ZeroDaysPorn
+from ..hidden.PornSites.anyporn.zedporn import ZedPorn
+from ..hidden.PornSites.anyporn.tropictube import TropicTube
+from ..hidden.PornSites.anyporn.pornplus import PornPlus
+from ..hidden.PornSites.anyporn.xcum import XCum
+from ..hidden.PornSites.anyporn.tubewolf import TubeWolf
+from ..hidden.PornSites.anyporn.magatubexxx import MegaTubeXXX
+from ..hidden.PornSites.anyporn.pornrewind import PornRewind
+from ..hidden.PornSites.anyporn.analdin import Analdin
+from ..hidden.PornSites.asspoint import LesbianPornVideos
+from ..hidden.PornSites.asspoint.xjizz import XJizz
+from ..hidden.PornSites.asspoint.movietitan import MovieTitan
+from ..hidden.PornSites.asspoint.movieshark import MovieShark
+from ..hidden.PornSites.asspoint.mobilepornvideos import MobilePornMovies
+from ..hidden.PornSites.asspoint.suzisporn import SuzisPorn
+from ..hidden.PornSites.asspoint.youngporno import YoungPorno
+from ..hidden.PornSites.asspoint.porntitan import PornTitan
+from ..hidden.PornSites.asspoint.hoodtube import HoodTube
+from ..hidden.PornSites.asspoint.teenieporn import TeeniePorn
+from ..hidden.PornSites.asspoint.sexoasis import SexOasis
+from ..hidden.PornSites.asspoint.cartoonpornvideos import CartoonPornVideos
+from ..hidden.PornSites.asspoint.youngpornvideos import YoungPornVideos
+from ..hidden.PornSites.asspoint.porntv import PornTV
+from ..hidden.PornSites.asspoint.ghettotube import GhettoTube
+from ..hidden.PornSites.asspoint.analpornvideos import AnalPornVideos
+from ..hidden.PornSites.asspoint.asianpornvideos import AsianPornVideos
+from ..hidden.PornSites.asspoint.asspoint import AssPoint
+from ..hidden.PornSites.beeg import Beeg
+from ..hidden.PornSites.cliphunter import ClipHunter
+from ..hidden.PornSites.collectionofbestporn import CollectionOfBestPorn
+from ..hidden.PornSites.cumlouder import CumLouder
+from ..hidden.PornSites.cumngo import CumNGo
+from ..hidden.PornSites.dachix import DaChix, DeviantClip
+from ..hidden.PornSites.dachix.dagay import DaGay
+from ..hidden.PornSites.draftsex import DraftSex
+from ..hidden.PornSites.drtuber import DrTuber
+from ..hidden.PornSites.eporner import EPorner
+from ..hidden.PornSites.extremetube import SpankWire
+from ..hidden.PornSites.extremetube.extremetube import ExtremeTube
+from ..hidden.PornSites.faapy import Faapy
+from ..hidden.PornSites.fapbraze import FapBraze
+from ..hidden.PornSites.fapbraze.freehdinterracialporn import FreeHDInterracialPorn
+from ..hidden.PornSites.fakings import FakingsTV
+from ..hidden.PornSites.fetishpapa import AShemaleTube
+from ..hidden.PornSites.fetishpapa.boyfriendtv import BoyfriendTV
+from ..hidden.PornSites.fetishpapa.pornoxo import Pornoxo
+from ..hidden.PornSites.fetishpapa.fetishpapa import FetishPapa
+from ..hidden.PornSites.freeones import FreeOnes
+from ..hidden.PornSites.goforporn import GoForPorn
+from ..hidden.PornSites.gotporn import PornHD
+from ..hidden.PornSites.gotporn.pornrox import PornRox
+from ..hidden.PornSites.gotporn.pinflix import PinFlix
+from ..hidden.PornSites.gotporn.gotporn import GotPorn
+from ..hidden.PornSites.hdtubeporn import HDTubePorn, ZBPorn
+from ..hidden.PornSites.hdtubeporn.pornid import PornID
+from ..hidden.PornSites.hdtubeporn.sexvid import SexVid
+from ..hidden.PornSites.homemoviestube import HomeMoviesTube
+from ..hidden.PornSites.hotgirlclub import HotGirlClub
+from ..hidden.PornSites.hqporner import HQPorner
+from ..hidden.PornSites.jizzbunker import JizzBunker, XXXDan
+from ..hidden.PornSites.joysporn import JoysPorn
+from ..hidden.PornSites.katestube import KatesTube, PornWhite, WankOz
+from ..hidden.PornSites.katestube.sheshaft import SheShaft
+from ..hidden.PornSites.katestube.fetishshrine import FetishShrine
+from ..hidden.PornSites.katestube.pornicom import PorniCom
+from ..hidden.PornSites.katestube.vikiporn import VikiPorn
+from ..hidden.PornSites.katestube.sleazyneasy import SleazyNEasy
+from ..hidden.PornSites.katestube.pervclips import PervClips
+from ..hidden.PornSites.laidhub import PornXio
+from ..hidden.PornSites.laidhub.eroxia import Eroxia
+from ..hidden.PornSites.laidhub.stileproject import StileProject
+from ..hidden.PornSites.laidhub.pornwatchers import PornWatchers
+from ..hidden.PornSites.laidhub.pornrabbit import PornRabbit
+from ..hidden.PornSites.laidhub.handjobhub import HandJobHub
+from ..hidden.PornSites.laidhub.hypnotube import HypnoTube
+from ..hidden.PornSites.laidhub.nudez import Nudez
+from ..hidden.PornSites.laidhub.laidhub import LaidHub
+from ..hidden.PornSites.letsjerk import LetsJerk
+from ..hidden.PornSites.likuoo import Likuoo
+from ..hidden.PornSites.lovehomeporn import LoveHomePorn
+from ..hidden.PornSites.luxuretv import LuxureTV
+from ..hidden.PornSites.motherless import MotherLess
+from ..hidden.PornSites.netfapx import Netfapx
+from ..hidden.PornSites.nubilefilmxxx import NubileFilmXXX
+from ..hidden.PornSites.nubilefilmxxx.plusone8 import PlusOne8
+from ..hidden.PornSites.okxxx import OkXXX
+from ..hidden.PornSites.palmtube import PalmTube
+from ..hidden.PornSites.perfectgirls import PerfectGirls
+from ..hidden.PornSites.porn00 import Porn00
+from ..hidden.PornSites.porn300 import Porn300
+from ..hidden.PornSites.porndig import PornDig
+from ..hidden.PornSites.porndoe import PornDoe
+from ..hidden.PornSites.porngo import PornGo
+from ..hidden.PornSites.porngo.xxxfiles import XXXFiles
+from ..hidden.PornSites.pornhd8k import PornHDEightK
+from ..hidden.PornSites.pornhub import PornHub
+from ..hidden.PornSites.pornhub.tube8 import TubeEight
+from ..hidden.PornSites.pornhub.youporn import YouPorn
+from ..hidden.PornSites.pornhub.porndotcom import PornDotCom
+from ..hidden.PornSites.pornktube import PornKy, PornKTube, RushPorn, TubeXXPorn
+from ..hidden.PornSites.pornomovies import PornoMovies
+from ..hidden.PornSites.porntrex import PornTrex, JAVBangers, CamWhoresBay
+from ..hidden.PornSites.porntube import PornTube, PornerBros, Fux, FourTube
+from ..hidden.PornSites.realgfporn import RealGfPorn
+from ..hidden.PornSites.red_wap import RedWap
+from ..hidden.PornSites.redtube import RedTube
+from ..hidden.PornSites.sextvx import SexTvX
+from ..hidden.PornSites.sexu import SexU
+from ..hidden.PornSites.shesfreaky import ShesFreaky
+from ..hidden.PornSites.spankbang import SpankBang
+from ..hidden.PornSites.sxyprn import SexyPorn
+from ..hidden.PornSites.taxi69 import Taxi69
+from ..hidden.PornSites.three_movs import ThreeMovs
+from ..hidden.PornSites.tnaflix import TnaFlix, MovieFap, EmpFlix
+from ..hidden.PornSites.tubev import TubeV
+from ..hidden.PornSites.txxx import Txxx, HClips, UPornia, HDZog, HotMovs, VoyeurHit, TubePornClassic, VJav, TheGay, \
     Shemalez
-from ..hidden.ultrahorny import UltraHorny
-from ..hidden.veporns import VePorns
-from ..hidden.vintagetube import VintageTube
-from ..hidden.vporn import VPorn
-from ..hidden.wankgalore import WankGalore
-from ..hidden.xfantazy import XFantazy
-from ..hidden.xhamster import XHamster
-from ..hidden.xnxx import Xnxx, XVideos
-from ..hidden.yes_porn_please import YesPornPleaseX, SayPornPlease
-from ..hidden.youjizz import YouJizz
+from ..hidden.PornSites.ultrahorny import UltraHorny
+from ..hidden.PornSites.veporns import VePorns
+from ..hidden.PornSites.vintagetube import VintageTube
+from ..hidden.PornSites.vporn import VPorn
+from ..hidden.PornSites.wankgalore import WankGalore
+from ..hidden.PornSites.xfantazy import XFantazy
+from ..hidden.PornSites.xhamster import XHamster
+from ..hidden.PornSites.xnxx import Xnxx, XVideos
+from ..hidden.PornSites.yes_porn_please import YesPornPleaseX, SayPornPlease
+from ..hidden.PornSites.youjizz import YouJizz
 
 
 class PornHandlerIndicator(object):
