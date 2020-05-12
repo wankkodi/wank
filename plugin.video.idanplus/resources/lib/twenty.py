@@ -79,17 +79,20 @@ def EpisodesToList(episodes):
 			iconimage = common.encode(iconimage, 'utf-8')
 			common.addDir(name, link, 2, iconimage, infos={"Title": name, "Plot": desc}, contextMenu=[(common.GetLocaleString(30005), 'RunPlugin({0}?url={1}&name={2}&mode=2&iconimage={3}&moredata=choose&module={4})'.format(sys.argv[0], common.quote_plus(link), name, common.quote_plus(iconimage), module)), (common.GetLocaleString(30023), 'RunPlugin({0}?url={1}&name={2}&mode=2&iconimage={3}&moredata=set_twenty_res&module={4})'.format(sys.argv[0], common.quote_plus(link), name, common.quote_plus(iconimage), module))], module=module, moreData=bitrate, isFolder=False, isPlayable=True)
 
-def Play(name, url, iconimage, quality='best'):
+def Play(name, url, iconimage, quality='best', live=None):
 	text = common.OpenURL(url, headers=headers)
 	match = re.compile('<div class="content">(.*?)<!-- .content -->', re.S).findall(text)
 	match = re.compile('<div id="cdnwizPlayerWrapper.*?<iframe.*?src="(.*?)"', re.S).findall(match[0])
 	text = common.OpenURL(match[0], headers=headers)
 	#match = re.compile('<iframe src="(.*?)"').findall(text)
 	#text = common.OpenURL(match[0], headers=headers)
-	#match = re.compile('src: "(.*?)"').findall(text)
-	match = re.compile('source\s*src="(.*?)"').findall(text)
+	match = re.compile('src:\s*"(.*?)"').findall(text)
+	if len(match) < 0:
+		match = re.compile('source\s*src="(.*?)"').findall(text)
 	if len(match) < 0:
 		match = re.compile("hls.loadSource\('(.*?)'\)").findall(text)
+	if len(match) < 0 and live is not None:
+		match = [live]
 	link = common.GetStreams(match[0], headers=headers, quality=quality)
 	final = '{0}|User-Agent={1}'.format(link, userAgent)
 	common.PlayStream(final, quality, name, iconimage)
@@ -112,6 +115,6 @@ def Run(name, url, mode, iconimage='', moreData=''):
 	elif mode == 4:		#------------- Toggle Lists' sorting method -----
 		common.ToggleSortMethod('twentySortBy', sortBy)
 	elif mode == 10:	#------------- Watch live channel  -------
-		Play(name, 'https://www.20il.co.il/vod/', iconimage, moreData)
+		Play(name, 'https://www.20il.co.il/vod/', iconimage, moreData, live='https://dvr.ch20-cdnwiz.com/mobilehls/dvr.m3u8')
 		
 	common.SetViewMode('episodes')

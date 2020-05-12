@@ -208,6 +208,19 @@ def WatchLive(url, name='', iconimage='', quality='best'):
 	PlayItem(channels[url], name, iconimage, quality)
 	
 def PlayItem(url, name='', iconimage='', quality='best'):
+	html = common.OpenURL(url, headers={"User-Agent": UA})
+	if html == "":
+		return None
+	match = re.compile("var videoJson ='(.*?)';").findall(html)
+	prms = json.loads(match[0])
+	if prms is None or len(prms) < 1:
+		return None
+	iconimage = GetImage(prms, 'pic_I', iconimage)
+	videoChannelId=prms["chId"]
+	vcmid = prms["guid"]
+	url = "vcmid={0}&videoChannelId={1}".format(vcmid,videoChannelId)
+	Play(url, name, iconimage, quality)
+	'''
 	url = "{0}&{1}".format(url, endings) if "?" in url else "{0}?{1}".format(url, endings)
 	prms = GetJson(url)
 	if prms is None or "video" not in prms:
@@ -218,6 +231,7 @@ def PlayItem(url, name='', iconimage='', quality='best'):
 	vcmid = prms["video"]["guid"]
 	url = "vcmid={0}&videoChannelId={1}".format(vcmid,videoChannelId)
 	Play(url, name, iconimage, quality)
+	'''
 
 def Play(url, name='', iconimage='', quality='best'):
 	common.DelCookies()
