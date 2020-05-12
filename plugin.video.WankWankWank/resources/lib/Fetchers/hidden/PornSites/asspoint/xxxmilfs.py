@@ -187,3 +187,11 @@ class XXXMilfs(Base2):
 
         object_data.add_sub_objects(res)
         return res
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(XXXMilfs, self)._version_stack + [self.__version]

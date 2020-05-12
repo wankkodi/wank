@@ -483,3 +483,11 @@ class AnyPorn(Base):
         :return:
         """
         return self._format_duration1(raw_duration)
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(AnyPorn, self)._version_stack + [self.__version]

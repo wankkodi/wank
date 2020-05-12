@@ -29,6 +29,10 @@ class VODFetcher(BaseFetcher):
     _catalog_node_object = VODCatalogNode
 
     @property
+    def _version_stack(self):
+        return super(VODFetcher, self)._version_stack + [0]
+
+    @property
     def categories_enum(self):
         """
         Base site url.

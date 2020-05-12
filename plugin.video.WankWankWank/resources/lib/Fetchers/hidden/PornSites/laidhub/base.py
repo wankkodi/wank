@@ -488,6 +488,14 @@ class BaseClass(PornFetcher):
         """
         return self.object_urls[PornCategories.SEARCH_MAIN] + '{q}/'.format(q=quote_plus(query.replace(' ', '-')))
 
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(BaseClass, self)._version_stack + [self.__version]
+
 
 class BaseClass2(BaseClass):
     metaclass = ABCMeta
@@ -643,6 +651,14 @@ class BaseClass2(BaseClass):
             res.append(video_data)
         page_data.add_sub_objects(res)
         return res
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(BaseClass2, self)._version_stack + [self.__version]
 
 
 class BaseClass3(BaseClass):
@@ -867,3 +883,11 @@ class BaseClass3(BaseClass):
             res.append(video_data)
         page_data.add_sub_objects(res)
         return res
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(BaseClass3, self)._version_stack + [self.__version]

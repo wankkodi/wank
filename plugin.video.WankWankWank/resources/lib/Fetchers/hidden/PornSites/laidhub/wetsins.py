@@ -51,3 +51,11 @@ class WetSins(BaseClass):
             zip(*[(x.attrib['href'], x.text, int(re.findall(r'\d+', y.text)[0]))
                   for x, y in zip(raw_objects, raw_numbers)])
         return links, titles, number_of_videos
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(WetSins, self)._version_stack + [self.__version]

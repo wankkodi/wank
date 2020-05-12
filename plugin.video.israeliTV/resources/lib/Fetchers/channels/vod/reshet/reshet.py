@@ -1,16 +1,13 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.vod_fetcher import VODFetcher
+from ....fetchers.vod_fetcher import VODFetcher
 # Video catalog
-from ..catalogs.vod_catalog import VODCatalogNode, VODCategories, VideoNode, VideoSource, VideoTypes
+from ....catalogs.vod_catalog import VODCatalogNode, VODCategories, VideoNode, VideoSource, VideoTypes
 
 # Brightcove
-from ..tools.common_video_host import Brightcove
+from ....tools.common_video_host import Brightcove
 
 # Regex
 import re
-
-# # Warnings and exceptions
-# import warnings
 
 # JSON
 import json
@@ -22,11 +19,8 @@ import m3u8
 from datetime import datetime, timedelta
 import time
 
-# ID generator
-from ..id_generator import IdGenerator
-
 # Internet tools
-from .. import urljoin
+from .... import urljoin
 
 
 class Reshet(VODFetcher):
@@ -619,42 +613,10 @@ class Reshet(VODFetcher):
         assert req.ok
         self.site_user_id = re.findall(r'(?:"data-ccid":")(.*?)(?:")', req.text)[0]
 
+    @property
+    def __version(self):
+        return 0
 
-if __name__ == '__main__':
-    reshet = Reshet(store_dir='D:\\')
-    # search_word = u'דה וויס'
-    # show_id = IdGenerator.make_id(44)  # 'דה וויס The Voice ישראל'
-    # season_id = IdGenerator.make_id(44)  # 'THE VOICE עונה 5 פרקים מלאים'
-    # show_id = IdGenerator.make_id(387)  # 'שנות ה-80'
-    # season_id = IdGenerator.make_id(911111)  # 'עונה 4'
-    # show_id = IdGenerator.make_id(547608)  # 'הרמון'
-    # season_id = IdGenerator.make_id(547608)  # 'עונה 4'
-    # show_id = IdGenerator.make_id(381)  # 'המדרשה'
-    # season_id = IdGenerator.make_id(547608)  # 'עונה 1'
-    # show_id = IdGenerator.make_id(102451)  # 'קטמנדו'
-    show_id = IdGenerator.make_id(211)  # 'המערכת עם מיקי חייבומיץ''
-    # season_id = IdGenerator.make_id(553399)  # 'עונה 1'
-    # reshet.get_show_object(show_id, season_id)
-    season_id = IdGenerator.make_id((553399, 2))  # 'עונה page 2 1'
-    episode_id = IdGenerator.make_id(3640)
-    # reshet.get_show_object(show_id, season_id, episode_id)
-    #
-    # reshet.get_live_stream_info()
-    # reshet.get_live_stream_video_link()
-
-    # season_id = IdGenerator.make_id(553376)  # 'עונה 4'
-    # reshet.get_show_object(show_id, season_id)
-    # season_id = IdGenerator.make_id((553376, 2))  # 'עונה 4'
-    # show_id = IdGenerator.make_id(573517)  # 'The Wall'
-    # show_id = IdGenerator.make_id(103141)  # 'שירות חדרים'
-    # reshet.get_show_object(show_id)
-    # reshet.get_show_object(show_id, season_id, episode_id)
-    # reshet.fetch_video_from_episode_url('https://13tv.co.il/item/entertainment/the-voice/season-02/'
-    #                                   'episodes/episode1-25/')
-    # reshet.update_available_shows()
-    # reshet.get_video_links_from_video_data('https://13tv.co.il/item/vod/harmon/season-01/'
-    #                                         'episodes/harmon_exposed-612479/', verbose=1)
-    # reshet.get_video_links_from_video_data('https://13tv.co.il/item/news/the-system/season-01/'
-    #                                         'articles/chalomot-mitgashmim/', verbose=1)
-    # reshet.download_objects(show_id, verbose=1)
-    reshet.download_category_input_from_user()
+    @property
+    def _version_stack(self):
+        return super(Reshet, self)._version_stack + [self.__version]

@@ -1,32 +1,19 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.vod_fetcher import VODFetcher
+from ....fetchers.vod_fetcher import VODFetcher
 # Video catalog
-from ..catalogs.vod_catalog import VODCatalogNode, VODCategories, VideoNode, VideoSource, VideoTypes
+from ....catalogs.vod_catalog import VODCatalogNode, VODCategories, VideoNode, VideoSource, VideoTypes
 
 # Regex
 import re
 
-# System
-# from os import path
-# import pickle
-
 # datetime
 from datetime import datetime
-
-# Warnings and exceptions
-# import warnings
-
-# # JSON
-# import json
 
 # M3U8
 import m3u8
 
-# ID generator
-from ..id_generator import IdGenerator
-
 # Internet tools
-from .. import urljoin
+from .... import urljoin
 
 
 class Knesset(VODFetcher):
@@ -256,20 +243,10 @@ class Knesset(VODFetcher):
     def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         return NotImplemented
 
+    @property
+    def __version(self):
+        return 0
 
-if __name__ == '__main__':
-    loc_show_id = IdGenerator.make_id('/VOD/world-football/Premier-League')  # ליגה אנגלית
-    loc_show_id2 = IdGenerator.make_id('/world-football/Premier-League/Article-823624')
-    # video_url = u'https://sport1.maariv.co.il/world-football/Premier-League/Article-823625'
-    # loc_season_id = IdGenerator.make_id('9910')
-    kan = Knesset(store_dir='D:\\')
-    # kan.get_show_object(loc_show_id)
-    # kan.get_show_object(loc_show_id, loc_show_id2)
-    # kan.get_video_links_from_video_data(video_url)
-    # kan.fetch_video_from_episode_url('https://13tv.co.il/item/entertainment/the-voice/season-02/'
-    #                                   'episodes/episode1-25/')
-    # kan.update_available_shows()
-    # kan.download_objects(loc_show_id, verbose=1)
-    # kan.download_objects(cat_id, episode_id, episode_id=, verbose=1)
-    # kan._get_video_links_from_episode_url('https://www.kan.org.il/program/?catid=1464', verbose=1)
-    kan.download_category_input_from_user()
+    @property
+    def _version_stack(self):
+        return super(Knesset, self)._version_stack + [self.__version]

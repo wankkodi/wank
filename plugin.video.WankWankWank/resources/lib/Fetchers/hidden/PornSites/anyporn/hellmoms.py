@@ -177,3 +177,11 @@ class HellMoms(XBabe):
         """
         self._search_query = query
         return self.object_urls[PornCategories.SEARCH_MAIN] + '{q}/'.format(q=quote_plus(query))
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(HellMoms, self)._version_stack + [self.__version]

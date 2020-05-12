@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.vod_fetcher import VODFetcher
+from ....fetchers.vod_fetcher import VODFetcher
 # Video catalog
-from ..catalogs.vod_catalog import VODCatalogNode, VODCategories, VideoNode, VideoSource, VideoTypes
+from ....catalogs.vod_catalog import VODCatalogNode, VODCategories, VideoNode, VideoSource, VideoTypes
 
 # Regex
 import re
@@ -10,20 +10,11 @@ import re
 from os import path
 import pickle
 
-# datetime
-# from datetime import datetime
-
-# Warnings and exceptions
-# import warnings
-
 # # JSON
 import json
 
 # M3U8
 # import m3u8
-
-# ID generator
-from ..id_generator import IdGenerator
 
 
 class One(VODFetcher):
@@ -223,20 +214,10 @@ class One(VODFetcher):
         show_raw_data = json.loads(show_raw_data['d'])
         return show_raw_data['NumOfPages']
 
+    @property
+    def __version(self):
+        return 0
 
-if __name__ == '__main__':
-    loc_show_id = IdGenerator.make_id('one-vod-category-name-113')  # תקצירי הליגה הספרדית
-    loc_show_id2 = IdGenerator.make_id((IdGenerator.make_id('one-vod-category-name-113'), 2))  # תקצירי הליגה הספרדית
-    video_url = u'http://www.one.co.il/VOD/Play/67241/מאבק-עיקש-בין-בטיס-לאייבר-מסתיים-ב-1-1-'
-    # loc_season_id = IdGenerator.make_id('9910')
-    kan = One(store_dir='D:\\')
-    # kan.get_show_object(loc_show_id)
-    # kan.get_show_object(loc_show_id2)
-    # kan.get_video_links_from_video_data(video_url)
-    # kan.fetch_video_from_episode_url('https://13tv.co.il/item/entertainment/the-voice/season-02/'
-    #                                   'episodes/episode1-25/')
-    # kan.update_available_shows()
-    # kan.download_objects(loc_show_id, verbose=1)
-    # kan.download_objects(cat_id, episode_id, episode_id=, verbose=1)
-    # kan._get_video_links_from_episode_url('https://www.kan.org.il/program/?catid=1464', verbose=1)
-    kan.download_category_input_from_user()
+    @property
+    def _version_stack(self):
+        return super(One, self)._version_stack + [self.__version]

@@ -402,3 +402,11 @@ class PornFd(PervertSluts):
         :return: List of Video objects.
         """
         return super(PervertSluts, self)._prepare_new_search_query(query)
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(PornFd, self)._version_stack + [self.__version]

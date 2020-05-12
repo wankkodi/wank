@@ -2,7 +2,7 @@
 from ....fetchers.porn_fetcher import PornFetcher
 
 # Internet tools
-from .....Fetchers import urljoin, quote_plus
+from .... import urljoin, quote_plus
 
 # Regex
 import re
@@ -318,6 +318,14 @@ class AhMe(PornFetcher):
         :return: List of Video objects.
         """
         return self.object_urls[PornCategories.SEARCH_MAIN] + quote_plus(query) + '/'
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(AhMe, self)._version_stack + [self.__version]
 
 
 if __name__ == '__main__':

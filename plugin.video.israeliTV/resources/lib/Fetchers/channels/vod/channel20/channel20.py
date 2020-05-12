@@ -1,18 +1,15 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.vod_fetcher import VODFetcher
+from ....fetchers.vod_fetcher import VODFetcher
 # Video catalog
-from ..catalogs.vod_catalog import VODCatalogNode, VODCategories, VideoNode, VideoSource, VideoTypes
+from ....catalogs.vod_catalog import VODCatalogNode, VODCategories, VideoNode, VideoSource, VideoTypes
 
 # Regex
 
 # Warnings and exceptions
 # import warnings
 
-# # JSON
-# import json
-
 # JSON
-from ..tools.text_json_manioulations import prepare_json_from_not_formatted_text
+from ....tools.text_json_manioulations import prepare_json_from_not_formatted_text
 
 # regex
 import re
@@ -23,11 +20,8 @@ import m3u8
 # Math
 # import math
 
-# ID generator
-from ..id_generator import IdGenerator
-
 # Internet tools
-from .. import urljoin
+from .... import urljoin
 
 
 class Channel20(VODFetcher):
@@ -298,61 +292,10 @@ class Channel20(VODFetcher):
         req = self.session.get(fetch_base_url, headers=headers, params=params)
         return req
 
+    @property
+    def __version(self):
+        return 0
 
-if __name__ == '__main__':
-    loc_show_id = IdGenerator.make_id('https://www.20il.co.il/%d7%aa%d7%95%d7%9b%d7%a0%d7%99%d7%95%d7%aa/'
-                                      '%d7%94%d7%a4%d7%98%d7%a8%d7%99%d7%95%d7%98%d7%99%d7%9d/')  # The patriots
-    loc_season_id = IdGenerator.make_id((loc_show_id, 0, 2))
-    loc_episode_id = IdGenerator.make_id('https://www.20il.co.il/%d7%aa%d7%95%d7%9b%d7%a0%d7%99%d7%95%d7%aa/'
-                                         '%d7%94%d7%a4%d7%98%d7%a8%d7%99%d7%95%d7%98%d7%99%d7%9d/%d7%94%d7%'
-                                         'a4%d7%98%d7%a8%d7%99%d7%95%d7%98%d7%99%d7%9d-%d7%99%d7%95%d7%9d-%d7%'
-                                         '90-8-9-%d7%94%d7%aa%d7%9b%d7%a0%d7%99%d7%aa-%d7%94%d7%9e%d7%9c%d7%'
-                                         '90%d7%94/')
-    # loc_show_id = int('101794581731159521225600776059010804004283617640567403183725348334278765309790471239102578351'
-    #                   '101897538432381250175601909422303126600444225930591310075381831845841933360357488687026378783'
-    #                   '923019780637895461313164004435267537009540610351902754913042913454085479098729419210613865280'
-    #                   '0827279369263')
-    # loc_season_id = int('7102493508383351395849822970694131724042227119700339337087833700418730489463542749242250616'
-    #                     '4195955794759578253688617298036897689687041690409815855807827619906035151266957323464716989'
-    #                     '1984721718805220599704498147668606780903802362168938289460497290359598519723727822392560339'
-    #                     '1289469884057150732422432299984261102641928910393278729249647844751122419241043639110387265'
-    #                     '4967463853368825411598204128107695398529375688251261006022418714577309265626181100090165190'
-    #                     '6175296103758960412055112242158408401780049182430241880520222082205413846967069222865526119'
-    #                     '8502903299351732699361775703050200113571022030665514155248827228847933042174813508586698191'
-    #                     '36814694994855679483562447911027721177373827804687587793102647784143586557177897')
-    # loc_season_id = int('7102493508383351395849822970694131724042227119700339337087833700418730489463542749242250616'
-    #                     '4195955794759578253688617298036897689687041690409815855807827619906035151266957323464716989'
-    #                     '1984721718805220599704498147668606780903802362168938289460497290359598519723727822392560339'
-    #                     '1289469884057150732422432299984261102641928910393278729249647844751122419241043639110387265'
-    #                     '4967463853368825411598204128107695398529375688251261006022418714577309265626181100090165190'
-    #                     '6175296103758960412055112242158408401780049182430241880520222082205413846967069222865526119'
-    #                     '8502903299351732699361775703050200113571022030665514155248827228847933042174813508586698191'
-    #                     '36814694994855679483562447911027721177373827804687587793102647784143586557177897')
-    # loc_episode_id = int('752799497009087062736443045613640618329145588542836704144603012207569778386408420466144079'
-    #                      '035973119694593044441192534322147567331045159309325999703751307247934850183998256091665349'
-    #                      '936544702535962552464711336521882674874635646079880509138665782901445172952184104684197090'
-    #                      '344705592783518978996249632721877003137829904876035557730107827899188837133298367532620112'
-    #                      '442259928373895708719052745684570162345418447691130887993513658267361336239928341351939276'
-    #                      '303747771816427745343507890327034334054715022152947725745554678407022377793435874734775856'
-    #                      '909747848572011744301596411384127612378748883283927510821241772749289619325082139983041327'
-    #                      '30258089810164540533025426453551')
-
-    kan = Channel20(store_dir='D:\\')
-    # kan.get_video_links_from_video_data('https://vod.walla.co.il/movie/2969050')
-    # kan.fetch_video_from_episode_url('https://13tv.co.il/item/entertainment/the-voice/season-02/'
-    #                                   'episodes/episode1-25/')
-    # kan.update_available_shows()
-    # kan.get_show_object(*())
-    # kan.get_show_object(*(loc_show_id, ))
-    # kan.get_show_object(*(loc_show_id, loc_season_id))
-    # kan.get_show_object(*(loc_show_id, loc_season_id, loc_episode_id))
-    #
-    # kan.get_live_stream_info()
-    # kan.get_live_stream_video_link()
-
-    # kan.download_objects(loc_show_id, verbose=1)
-    # kan.download_objects(loc_show_id, loc_season_id, verbose=1)
-    # kan.download_objects(loc_show_id, loc_season_id, loc_episode_id, verbose=1)
-    # kan.download_objects(cat_id, episode_id, episode_id=, verbose=1)
-    # kan._get_video_links_from_episode_url('https://www.kan.org.il/program/?catid=1464', verbose=1)
-    kan.download_category_input_from_user()
+    @property
+    def _version_stack(self):
+        return super(Channel20, self)._version_stack + [self.__version]

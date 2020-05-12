@@ -3,21 +3,13 @@
 import re
 
 # Internet tools
-from .. import urljoin, unquote_plus
+from .... import urljoin, unquote_plus
 # Video catalog
-from ..catalogs.vod_catalog import VODCatalogNode, VODCategories, VideoNode, VideoSource, VideoTypes
-from ..fetchers.vod_fetcher import VODFetcher
-# ID generator
-from ..id_generator import IdGenerator
+from ....catalogs.vod_catalog import VODCatalogNode, VODCategories, VideoNode, VideoSource, VideoTypes
+from ....fetchers.vod_fetcher import VODFetcher
+
 # JSON manipulations
-from ..tools.text_json_manioulations import prepare_json_from_not_formatted_text
-
-
-# Warnings and exceptions
-# import warnings
-# # Datetime
-# from datetime import datetime, timedelta
-# import time
+from ....tools.text_json_manioulations import prepare_json_from_not_formatted_text
 
 
 class Channel9(VODFetcher):
@@ -431,24 +423,10 @@ class Channel9(VODFetcher):
         req = self.session.get(fetch_base_url, headers=headers, params=params)
         return req
 
+    @property
+    def __version(self):
+        return 0
 
-if __name__ == '__main__':
-    channel9 = Channel9()
-    # search_word = u'הרצועה'
-    # show_id = IdGenerator.make_id(1)  # 'סברי מרנן''
-    # season_id = IdGenerator.make_id((1, 1))  # 'עונה 3'
-    # channel9.get_show_object(show_id, season_id)
-    # season_id = IdGenerator.make_id((IdGenerator.make_id((1, 1)), 2))  # 'עונה 3'
-    # channel9.get_show_object(show_id, season_id)
-
-    episode_id = IdGenerator.make_id('http://9tv.co.il/video/2019/10/07/81000.html')  # 'עונה 3'
-    # channel9.get_show_object(show_id)
-    # channel9.get_show_object(show_id, season_id)
-    # channel9.get_show_object(show_id, season_id, episode_id)
-    # channel9.get_video_links_from_video_data('http://9tv.co.il/video/2019/10/07/81000.html')
-    # channel9.download_objects(show_id, season_id)
-    # channel9.get_show_object(show_id, verbose=1)
-
-    # channel9.get_live_stream_info()
-    # channel9.get_live_stream_video_link()
-    channel9.download_category_input_from_user()
+    @property
+    def _version_stack(self):
+        return super(Channel9, self)._version_stack + [self.__version]

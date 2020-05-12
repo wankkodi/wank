@@ -1,7 +1,8 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.vod_fetcher import VODFetcher
 # Video catalog
-from ..catalogs.vod_catalog import VODCatalogNode, VODCategories, VideoNode, VideoSource, VideoTypes
+from ....catalogs.vod_catalog import VODCatalogNode, VODCategories, VideoNode, VideoSource, VideoTypes
+from ....fetchers.vod_fetcher import VODFetcher
+
 # Playlist tools
 import m3u8
 
@@ -14,9 +15,6 @@ import json
 # Warnings and exceptions
 # import warnings
 
-# ID generator
-from ..id_generator import IdGenerator
-
 # OS
 from os import path
 
@@ -28,7 +26,7 @@ from datetime import datetime
 import math
 
 # Internet tools
-from .. import urljoin, urlparse, parse_qs
+from .... import urljoin, urlparse, parse_qs
 
 
 class Channel10(VODFetcher):
@@ -301,24 +299,10 @@ class Channel10(VODFetcher):
         req = self.session.get(fetch_base_url, headers=headers, params=params)
         return req
 
+    @property
+    def __version(self):
+        return 0
 
-if __name__ == '__main__':
-    channel10 = Channel10()
-    # search_word = u'הרצועה'
-    show_id = IdGenerator.make_id('http://10tv.nana10.co.il/Category/?CategoryID=600340&sid=169&pid=58')  # 'HADASHOT 10
-    season_id = IdGenerator.make_id('http://10tv.nana10.co.il/Section/?SectionId=2174')  # 'כתבות נבחרות'
-    # channel10.get_show_object(show_id, season_id)
-    # channel10.get_show_object(show_id, season_id)
-    # season_id2 = IdGenerator.make_id((IdGenerator.make_id('http://10tv.nana10.co.il/Section/?SectionId=2174'), 2))
-    # channel10.get_show_object(show_id, season_id2)
-    # channel10.get_show_object(show_id, season_id, episode_id)
-    # channel10.get_video_links_from_video_data('http://10tv.nana10.co.il/Video/?VideoID=270542&TypeID=13&'
-    #                                            'SectionID=2174&CategoryID=600340&pid=48&AutoPlay=1')
-    # channel10.get_video_links_from_video_data('http://10tv.nana10.co.il/Video/?VideoID=268017&TypeID=13&'
-    #                                            'SectionID=13178&CategoryID=600313&pid=48&AutoPlay=1')
-    # channel10.download_objects(show_id, season_id)
-    # channel10.get_show_object(show_id, verbose=1)
-
-    # channel10.get_live_stream_info()
-    # channel10.get_live_stream_video_link()
-    channel10.download_category_input_from_user()
+    @property
+    def _version_stack(self):
+        return super(Channel10, self)._version_stack + [self.__version]

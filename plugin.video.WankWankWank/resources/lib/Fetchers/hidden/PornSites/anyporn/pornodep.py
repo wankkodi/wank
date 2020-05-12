@@ -357,3 +357,11 @@ class PornoDep(AnyPorn):
         :return:
         """
         return super(AnyPorn, self)._format_duration(raw_duration)
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(PornoDep, self)._version_stack + [self.__version]

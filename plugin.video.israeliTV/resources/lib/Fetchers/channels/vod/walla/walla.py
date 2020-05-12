@@ -1,12 +1,9 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.vod_fetcher import VODFetcher
+from ....fetchers.vod_fetcher import VODFetcher
 # Video catalog
-from ..catalogs.vod_catalog import VODCatalogNode, Enum, VideoNode, VideoSource, VideoTypes
+from ....catalogs.vod_catalog import VODCatalogNode, Enum, VideoNode, VideoSource, VideoTypes
 # Regex
 import re
-
-# Warnings and exceptions
-# import warnings
 
 # # JSON
 import json
@@ -14,11 +11,10 @@ import json
 # M3U8
 import m3u8
 
-# ID generator
-from ..id_generator import IdGenerator
-
 # Internet tools
-from .. import urljoin, urlparse
+from .... import urljoin, urlparse
+
+# todo: implement search
 
 
 class WallaCategories(Enum):
@@ -63,7 +59,6 @@ class WallaCatalogNode(VODCatalogNode):
         return WallaCategories.PAGE, WallaCategories.VIDEO_PAGE, WallaCategories.SEARCH_PAGE
 
 
-# todo: implement search
 class Walla(VODFetcher):
     _catalog_node_object = WallaCatalogNode
 
@@ -874,40 +869,10 @@ class Walla(VODFetcher):
     def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url):
         raise NotImplementedError
 
+    @property
+    def __version(self):
+        return 0
 
-if __name__ == '__main__':
-    # loc_show_id = IdGenerator.make_id('/movies')
-    # loc_season_id = IdGenerator.make_id('/movies/6256')
-    # loc_episode_id = IdGenerator.make_id('/movie/2968988')
-    # loc_show_id = IdGenerator.make_id('/tvshows')
-    # loc_season_id = IdGenerator.make_id('/tvshows/7752')
-    # loc_episode_id = IdGenerator.make_id('2855819')  # Shtisel
-    # loc_season_id = IdGenerator.make_id('/tvshows/9006')
-    # loc_episode_id = IdGenerator.make_id('2928982')  # Rincón de Luz
-    # loc_season_id = IdGenerator.make_id('/tvshows/9006')
-    # loc_show_id = IdGenerator.make_id('/kids')
-    # loc_season_id = IdGenerator.make_id('/kids/8524')  # כוכב הצפון
-    # loc_episode_id = IdGenerator.make_id('2855972')  # כוכב הצפון
-    # loc_show_id = IdGenerator.make_id('/channels')
-    # loc_season_id = IdGenerator.make_id('/yes')  # כוכב הצפון
-    # loc_episode_id = IdGenerator.make_id('/tvshows/8523/drama')  # כוכב הצפון
-    # loc_episode_id2 = IdGenerator.make_id('3211034')  # כוכב הצפון
-    loc_show_id = IdGenerator.make_id('/channels')
-    loc_season_id = IdGenerator.make_id('http://viva.walla.co.il')  # ויוה
-    loc_episode_id = IdGenerator.make_id('/fullepisodes')  # פרקים מלאים
-    loc_episode_id2 = IdGenerator.make_id('3206104')  # הכלה מאיסטנבול
-    loc_episode_id3 = IdGenerator.make_id((u'3206104', 2))  # הכלה מאיסטנבול
-    kan = Walla(store_dir='D:\\')
-    # todo: to run test on viva
-    # kan.get_show_object(loc_show_id, )
-    # kan.get_show_object(loc_show_id, loc_season_id)
-    # kan.get_show_object(loc_show_id, loc_season_id, loc_episode_id)
-    # kan.get_show_object(loc_show_id, loc_season_id, loc_episode_id, loc_episode_id2)
-    # kan.get_show_object(loc_show_id, loc_season_id, loc_episode_id, loc_episode_id2)
-    # kan.get_show_object(loc_show_id, loc_season_id, loc_episode_id, loc_episode_id3)
-    # kan.update_available_shows()
-    # kan.download_objects(loc_show_id, verbose=1)
-    # kan.download_objects(loc_show_id, loc_season_id, verbose=1)
-    # kan.download_objects(loc_show_id, loc_season_id, loc_episode_id, verbose=1)
-    # kan.download_objects(cat_id, episode_id, episode_id=, verbose=1)
-    kan.download_category_input_from_user()
+    @property
+    def _version_stack(self):
+        return super(Walla, self)._version_stack + [self.__version]

@@ -122,7 +122,7 @@ class SexyPorn(PornFetcher):
         except IndexError:
             server_data = PornErrorModule(self.data_server, 0, self.source_name, self.main_js,
                                           'Cannot fetch the server number from {u}'.format(u=self.main_js),
-                                          None, None)
+                                          None, None, self.version)
             raise PornValueError('Wrong server number', error_module=server_data)
 
     def _update_available_categories(self, category_data):
@@ -487,3 +487,11 @@ class SexyPorn(PornFetcher):
         :return: List of Video objects.
         """
         return self.object_urls[PornCategories.SEARCH_MAIN] + '{q}.html'.format(q=re.sub(r'[;/?:@&=+$]+', '-', query))
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(SexyPorn, self)._version_stack + [self.__version]

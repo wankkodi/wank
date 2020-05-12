@@ -679,3 +679,11 @@ class TnaFlix(PornFetcher):
         :return: List of Video objects.
         """
         return self.object_urls[PornCategories.SEARCH_MAIN] + '?what={q}&tab='.format(q=quote(query))
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(TnaFlix, self)._version_stack + [self.__version]

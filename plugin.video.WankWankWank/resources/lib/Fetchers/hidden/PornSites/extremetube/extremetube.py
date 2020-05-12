@@ -411,10 +411,6 @@ class ExtremeTube(PornFetcher):
 
         return url, params
 
-    def _get_page_request_logic(self, page_data, params, page_number, true_object,
-                                page_filter, fetch_base_url):
-        raise NotImplemented
-
     def get_object_request(self, page_data, override_page_number=None, override_params=None, override_url=None,
                            page_type='regular'):
         """
@@ -435,15 +431,47 @@ class ExtremeTube(PornFetcher):
             raise PornFetchUrlError(res, error_module)
         return res
 
-    def _get_object_request_no_exception_check(self, page_data, override_page_number=None, override_params=None,
+    def _get_object_request_no_exception_check(self, object_data, override_page_number=None, override_params=None,
                                                override_url=None, page_type='regular'):
         """
         Fetches the page number with respect to base url.
-        :param page_data: Page data.
+        :param object_data: Page data.
         :param override_page_number: Override page number.
         :param override_params: Override params.
         :param override_url: Override url.
         :param page_type: Indicates whether we want to have 'regular' or 'json' page.
+        :return: Page request
+        """
+        true_object = object_data.true_object
+
+        page_filter = self.get_proper_filter(object_data).current_filters
+
+        program_fetch_url = object_data.url.split('?')[0]
+        if len(object_data.url.split('?')) > 1:
+            params = object_data.url.split('?')[1]
+            params = parse_qs(params, keep_blank_values=True)
+        else:
+            params = {}
+        page_number = object_data.page_number if override_page_number is None else override_page_number
+        if override_params is not None:
+            params.update(override_params)
+        if override_url is not None:
+            program_fetch_url = override_url
+
+        return self._get_page_request_logic(object_data, params, page_number, true_object,
+                                            page_filter, program_fetch_url, page_type)
+
+    def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url,
+                                page_type='regular'):
+        """
+        Fetches the page number with respect to base url.
+        :param page_data: Page data.
+        :param params: Page params.
+        :param page_number: Page number.
+        :param true_object: True object.
+        :param page_filter: Page filter.
+        :param fetch_base_url: Page base url.
+        :param page_type: Page type.
         :return: Page request
         """
         if page_type == 'json':
@@ -508,7 +536,6 @@ class ExtremeTube(PornFetcher):
                 additional_params['o'] = [page_filters.sort_order.value]
 
         params.update({k: v for k, v in additional_params.items() if k not in params})
-        page_number = page_data.page_number if override_page_number is None else override_page_number
         if page_number is not None and page_number != 1:
             params['page'] = [page_number]
         try:
@@ -529,3 +556,11 @@ class ExtremeTube(PornFetcher):
         :return: List of Video objects.
         """
         return self.object_urls[PornCategories.SEARCH_MAIN] + '?search={q}'.format(q=quote_plus(query))
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(ExtremeTube, self)._version_stack + [self.__version]

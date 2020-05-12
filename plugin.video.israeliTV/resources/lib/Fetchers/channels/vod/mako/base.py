@@ -1,32 +1,28 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.vod_fetcher import VODFetcher
+from ....fetchers.vod_fetcher import VODFetcher
 # Video catalog
-from ..catalogs.vod_catalog import VODCatalogNode, VODCategories, VideoNode, VideoSource, VideoTypes
+from ....catalogs.vod_catalog import VODCatalogNode, VODCategories, VideoNode, VideoSource, VideoTypes
 
 # Playlist tools
 import m3u8
 
-# Regex
-import re
-
-# JSON
-import json
-
 # Warnings and exceptions
 # import warnings
-
-# ID generator
-from ..id_generator import IdGenerator
 
 # Datetime
 from datetime import datetime, timedelta
 import time
 
 # Internet tools
-from .. import urljoin, urlparse, unquote_plus, parse_qs, quote
+from .... import urljoin, urlparse, unquote_plus, quote
+
+# Abstract
+from abc import abstractmethod, ABCMeta
 
 
-class Mako(VODFetcher):
+class Base(VODFetcher):
+    metaclass = ABCMeta
+
     time_format = '%H:%M:%S'
     time_format_2 = '%M:%S'
     video_fetch_url = 'https://www.mako.co.il/AjaxPage'
@@ -60,35 +56,20 @@ class Mako(VODFetcher):
         """
         return 'https://www.mako.co.il/'
 
-    def __init__(self, vod_name='Mako', vod_id=-1, store_dir='.', data_dir='../../Data', source_type='VOD',
-                 use_web_server=False, session_id=None):
+    def __init__(self, vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id):
         """
         C'tor
         :param vod_name: save directory
         """
-        super(Mako, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
+        super(Base, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
 
+    @abstractmethod
     def _update_base_categories(self, base_object):
         """
         Fetches all the available shows.
         :return: Object of all available shows (JSON).
         """
-        req = self.get_object_request(base_object)
-        raw_data = req.json()
-        base_object.add_sub_objects([VODCatalogNode(catalog_manager=self.catalog_manager,
-                                                    obj_id=x['guid'],
-                                                    title=x['title'],
-                                                    url=urljoin(self.base_url, x['url']),
-                                                    image_link=x['logoPicVOD'],
-                                                    super_object=base_object,
-                                                    subtitle=x['subtitle'],
-                                                    description=x['brief'],
-                                                    object_type=VODCategories.SHOW,
-                                                    raw_data=x)
-                                     for x in raw_data['root']['allPrograms']])
-
-        # with open(self.available_shows_data_filename, 'wb') as fl:
-        #     pickle.dump(self.available_categories, fl)
+        raise NotImplementedError
 
     def fetch_sub_objects(self, element_object):
         """
@@ -191,7 +172,7 @@ class Mako(VODFetcher):
         :param channel_id: Channel id.
         :return: Video page data (JSON).
         """
-        video_fetch_url = Mako.video_fetch_url
+        video_fetch_url = self.video_fetch_url
         params = {
             'jspName': 'FlashVODMoreOnChannel.jsp',
             'type': 'service',
@@ -233,10 +214,10 @@ class Mako(VODFetcher):
         :param gallery_channel_id: Gallery channel id.
         :return: Video page data (JSON).
         """
-        video_fetch_url = Mako.video_token_url
+        video_fetch_url = self.video_token_url
         params = {
             'et': 'ngt',
-            'lp': Mako._get_playlist_request_url_suffix(video_url),
+            'lp': self._get_playlist_request_url_suffix(video_url),
             'rv': video_type,
             'dv': gallery_channel_id,
             # 'dac': '4CD25596-EF6F-4E88-97FD-B92B1B2432FE',
@@ -271,7 +252,7 @@ class Mako(VODFetcher):
             # 'Sec-Fetch-Site': 'same-origin',
             'User-Agent': self.user_agent
         }
-        params = Mako._get_request_params_from_token(video_token)
+        params = self._get_request_params_from_token(video_token)
 
         req = self.session.get(video_link, params=params, headers=headers)
         if not req.ok:
@@ -420,7 +401,7 @@ class Mako(VODFetcher):
                                     raw_data=x,
                                     )
             season_sub_objects = []
-            for y in x['vods']:
+            for y in x['vods'][::-1]:
                 episode = VODCatalogNode(catalog_manager=self.catalog_manager,
                                          obj_id=y['guid'],
                                          title=y['title'],
@@ -512,28 +493,13 @@ class Mako(VODFetcher):
         video_links = self._fetch_best_video_links_from_channel_data(channel_id, gallery_channel_id, guid)
         return VideoNode(video_sources=video_links, raw_data=self.live_data['live_show_data'])
 
+    @abstractmethod
     def _update_live_page_data(self):
         """
         Updates the live page data.
         :return:
         """
-        video_fetch_url = self.video_fetch_url
-        params = {
-            'jspName': 'FlashVODMakolivePopup.jsp',
-            'type': 'service',
-            'device': 'desktop',
-            'orderingName': 'VODPopup24/7',
-            'contentTypeName': 'RelLinks',
-        }
-        req = self.session.get(video_fetch_url, params=params)
-        res = req.json()
-        self.live_data['raw_data'] = res
-        # We check whether the page has the right structure.
-        if (
-                'makolive' not in self.live_data['raw_data'] or 'list' not in self.live_data['raw_data']['makolive'] or
-                len(self.live_data['raw_data']['makolive']['list']) == 0
-        ):
-            raise RuntimeError('The structure of the live page has changed. Recheck the code!')
+        raise NotImplementedError
 
     def _update_live_schedule_data(self):
         """
@@ -584,348 +550,18 @@ class Mako(VODFetcher):
         req = self.session.get(url, headers=headers, params=params)
         return req
 
+    @abstractmethod
     def _update_live_show_data(self):
         """
         Updates the live page data.
         :return:
         """
-        if 'raw_data' not in self.live_data:
-            # We update the live page
-            self._update_live_page_data()
-
-        link = urljoin(self.base_url, self.live_data['raw_data']['makolive']['list'][0]['link'])
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                      'q=0.8,application/signed-exchange;v=b3',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Cache-Control': 'max-age=0',
-            'Referer': 'https://www.mako.co.il/mako-vod?partner=NavBar',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': self.user_agent
-        }
-        params = {
-            'partner': 'headerNav',
-        }
-        req = self.session.get(link, headers=headers, params=params)
-        data = re.findall(r'(?:var videoJson =\')(.*?)(?:\';)', req.text)
-        self.live_data['live_show_data'] = json.loads(data[0])
-
-
-class Bip(Mako):
-    time_format = '%M:%S'
-    season1_title = 'עונה 1'
-
-    def __init__(self, vod_name='Mako', vod_id=-1, store_dir='.', data_dir='../../Data', source_type='VOD',
-                 use_web_server=False, session_id=None):
-        super(Bip, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
-
-    @property
-    def object_urls(self):
-        return {
-            VODCategories.CHANNELS_MAIN: 'https://www.mako.co.il/bip-programs',
-        }
-
-    def _update_base_categories(self, base_object):
-        """
-        Fetches all the available shows.
-        :return: Object of all available shows (JSON).
-        """
-        req = self.get_object_request(base_object)
-        # tree = etree.fromstring(req.text, self.parser)
-        tree = self.parser.parse(req.text)
-        xpath = './/div[@class="cards main category"]/ol/li'
-        show_trees = tree.xpath(xpath)
-        sub_objects = []
-        for tree in show_trees:
-
-            url = urljoin(self.base_url, tree.xpath('./a')[0].attrib['href'])
-            title = tree.xpath('./a/b/strong/text()')[0]
-            image_link = urljoin(base_object.url, tree.xpath('./img/@src')[0])
-
-            # obj = {'title': title, 'url': url, 'guid': i}
-            obj = VODCatalogNode(catalog_manager=self.catalog_manager,
-                                 obj_id=url,
-                                 title=title,
-                                 url=urljoin(base_object.url, url),
-                                 super_object=base_object,
-                                 image_link=image_link,
-                                 object_type=VODCategories.SHOW,
-                                 )
-
-            sub_objects.append(obj)
-
-        base_object.add_sub_objects(sub_objects)
-
-    def get_video_links_from_video_data(self, video_data):
-        """
-        Extracts episode link from episode data.
-        :param video_data: Video data (dict).
-        :return:
-        """
-        # We get the data of the page
-        # req = self.session.get(video_data.url)
-        req = self.get_object_request(video_data)
-        # tree = etree.fromstring(req.text, self.parser)
-        tree = self.parser.parse(req.text)
-        xpath = './/div[@id="main_player"]/ul/li/script/text()'
-        script = tree.xpath(xpath)
-        assert len(script) == 1
-        params = re.findall(r'(?:params=)({.*})(?:;)', script[0], flags=re.DOTALL)
-        assert len(params) == 1
-        params = [re.sub(r'[\s\']', '', x) for x in params[0].split('\n')][1:-1]
-        params = [re.sub('^,', '', x) for x in params]
-        params = dict((x.split(':')[0], ':'.join(x.split(':')[1:])) for x in params)
-
-        # print(params)
-        channel_id = params['videoChannelId']
-        gallery_channel_id = params['galleryChannelId']
-        guid = gallery_channel_id
-        video_links = self._fetch_best_video_links_from_channel_data(channel_id, gallery_channel_id, guid)
-        return VideoNode(video_sources=video_links, raw_data=req)
-
-    def _get_show_from_show_object(self, show_object):
-        """
-        Fetches the show seasons from show object.
-        :param show_object: Show object.
-        :return: list of Season objects.
-        """
-        # In case we have it in our db, we fetch it from, there
-        if show_object.id in self.show_data:
-            return self.show_data[show_object.id]
-
-        req = self.get_object_request(show_object)
-        # Show's data
-        # tree = etree.fromstring(req.text, self.parser)
-        tree = self.parser.parse(req.text)
-        show_data = {'seasons': []}
-        # Main info
-        xpath = './/div[@class="mako_main_portlet_container"]/div[@id="program_info"]'
-        main_program_info_tree = tree.xpath(xpath)[0]
-        xpath = './img/@src'
-        image_url = main_program_info_tree.xpath(xpath)
-        xpath = './div[@id="desc"]/h4/text()'
-        program_title = main_program_info_tree.xpath(xpath)
-        xpath = './div[@id="desc"]/p/text()'
-        program_description = main_program_info_tree.xpath(xpath)
-        xpath = './div[@id="desc"]/span/text()'
-        program_additional_info = main_program_info_tree.xpath(xpath)
-
-        show_data['imageUrl'] = urljoin(self.base_url, image_url[0])
-        show_data['title'] = program_title[0]
-        show_data['description'] = program_description[0]
-        show_data['additionalInfo'] = program_additional_info[0]
-
-        # Update the missed values
-        if show_object.title is None:
-            show_object.title = show_data['title']
-        if show_object.image_link is None:
-            show_object.image_link = show_data['imageUrl']
-        if show_object.subtitle is None:
-            show_object.subtitle = show_data['description']
-        if show_object.description is None:
-            show_object.description = show_data['additionalInfo']
-        # Mandatory update the new fields
-        show_object.raw_data = show_data
-
-        # Episode info
-        show_trees = []
-        for x in ('cards main category', 'cards main program'):
-            for y in ('ol', 'ul'):
-                show_trees.extend(tree.xpath('.//div[@class="{x}"]/{y}/li'.format(x=x, y=y)))
-        sub_objects = []
-        for tree in show_trees:
-            url = urljoin(show_object.url, tree.xpath('./a')[0].attrib['href'])
-            image_link = urljoin(show_object.url, tree.xpath('./img')[0].attrib['src'])
-            title = tree.xpath('./a/b/strong/text()')[0]
-            split_title = title.split(' - ')
-            description = tree.xpath('./a/b/span/text()')[0]
-            duration = self._format_duration(tree.xpath('./a/u/text()')[0]) \
-                if len(tree.xpath('./a/u/text()')) > 0 else None
-            episode_obj = VODCatalogNode(catalog_manager=self.catalog_manager,
-                                         obj_id=url,
-                                         title=title,
-                                         number=split_title[1],
-                                         url=url,
-                                         image_link=image_link,
-                                         duration=duration,
-                                         super_object=show_object,
-                                         description=description,
-                                         object_type=VODCategories.VIDEO,
-                                         )
-            sub_objects.append(episode_obj)
-
-        sub_objects.sort(key=lambda z: int(re.findall(r'\d+', z.title)[0])
-                         if len(re.findall(r'\d+', z.title)) > 0 else 1000)
-        show_object.add_sub_objects(sub_objects)
-        # Stores the new fetched data.
-        self.show_data[show_object.id] = show_object
-        # with open(self.shows_data_filename, 'wb') as fl:
-        #     pickle.dump(self.category_data, fl)
-        return show_data
-
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         raise NotImplementedError
 
-    def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url):
-        pass
-
-    def get_object_request(self, page_data, override_page_number=None, override_params=None, override_url=None):
-        """
-        Fetches the page number with respect to base url.
-        :param page_data: Page data.
-        :param override_page_number: Override page number.
-        :param override_params: Override params.
-        :param override_url: Override url.
-        :return: Page request
-        """
-        url = page_data.url
-        req = self.session.get(url)
-
-        return req
-
-
-class Channel24(Mako):
-    def __init__(self, vod_name='Channel 24', vod_id=-1, store_dir='.', data_dir='../../Data', source_type='VOD',
-                 use_web_server=False, session_id=None):
-        """
-        C'tor
-        :param vod_name: save directory
-        """
-        super(Mako, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
-
-    def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url):
-        return NotImplementedError
-
-    def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
-        return NotImplementedError
+    @property
+    def __version(self):
+        return 0
 
     @property
-    def object_urls(self):
-        res = super(Channel24, self).object_urls.copy()
-        res[VODCategories.CHANNELS_MAIN] = 'https://www.mako.co.il/mako-vod-music24'
-        return res
-
-    def _update_base_categories(self, base_object):
-        """
-        Fetches all the available shows.
-        :return: Object of all available shows (JSON).
-        """
-        req = self.get_object_request(base_object)
-        raw_data = req.json()
-        base_object.add_sub_objects([VODCatalogNode(catalog_manager=self.catalog_manager,
-                                                    obj_id=x['guid'],
-                                                    title=x['title'],
-                                                    url=urljoin(self.base_url, x['link']),
-                                                    image_link=x['picUrl'],
-                                                    subtitle=x['subtitle'],
-                                                    object_type=VODCategories.SHOW,
-                                                    super_object=base_object,
-                                                    raw_data=x)
-                                     for x in raw_data['root']['specialArea']['items'][1:]])
-        # Update live shows
-        self.live_data['raw_pre_data'] = raw_data['root']['specialArea']['items'][0]
-
-    def _update_live_page_data(self):
-        """
-        Updates the live page data.
-        :return:
-        """
-        if 'raw_pre_data' not in self.live_data:
-            self._update_base_categories(self.objects[VODCategories.CHANNELS_MAIN])
-
-        video_fetch_url = urljoin(self.object_urls[VODCategories.CHANNELS_MAIN], self.live_data['raw_pre_data']['link'])
-        program_fetch_url = video_fetch_url.split('?')[0]
-        if len(video_fetch_url.split('?')) > 1:
-            params = video_fetch_url.split('?')[1]
-            params = parse_qs(params)
-        else:
-            params = {}
-        params.update({'type': ['service'], 'device': ['desktop']})
-
-        req = self.session.get(program_fetch_url, params=params)
-        res = req.json()
-        self.live_data['raw_data'] = res
-        # We check whether the page has the right structure.
-        if (
-                'root' not in self.live_data['raw_data'] or 'video' not in self.live_data['raw_data']['root'] or
-                len(self.live_data['raw_data']['root']['video']) == 0
-        ):
-            raise RuntimeError('The structure of the live page has changed. Recheck the code!')
-
-    def _update_live_show_data(self):
-        """
-        Updates the live page data.
-        :return:
-        """
-        if 'raw_data' not in self.live_data:
-            # We update the live page
-            self._update_live_page_data()
-
-        link = self.object_urls[VODCategories.LIVE_VIDEO]
-        params = {
-            'jspName': 'FlashVODMoreOnChannel.jsp',
-            'type': 'service',
-            'channelId': self.live_data['raw_data']['root']['channelId'],
-            'device': 'desktop',
-            'strto': 'true',
-        }
-        req = self.session.get(link, params=params)
-        raw_data = req.json()
-        live_data = [x for x in raw_data['moreOnChannel']
-                     if 'Title' in x and x['Title'] == self.live_data['raw_data']['root']['video']['title']]
-        assert len(live_data) == 1
-        self.live_data['live_show_data'] = live_data[0]
-
-
-if __name__ == '__main__':
-    # search_word = u'הרצועה'
-    # show_id = IdGenerator.make_id('27125ce1412d1310VgnVCM2000002a0c10acRCRD')  # 'אנשים'
-    # season_id = IdGenerator.make_id('527569a1dde08610VgnVCM2000002a0c10acRCRD')  # 'עונה 14'
-    # show_id = IdGenerator.make_id('c651dcc6d62b3210VgnVCM100000290c10acRCRD')  # 'ארץ נהדרת'
-    # season_id = IdGenerator.make_id('943afc01ace08610VgnVCM2000002a0c10acRCRD')  # 'עונה 16'
-    # show_id = IdGenerator.make_id('264ae4aff97c4610VgnVCM2000002a0c10acRCRD')  # 'נינג\'ה ישראל'
-    # season_id = IdGenerator.make_id('31586b9fd3ffb610VgnVCM100000700a10acRCRD')  # 'עונה 1'
-    # show_id = IdGenerator.make_id('e509f3a834444210VgnVCM2000002a0c10acRCRD')  # 'חדשות'
-    # season_id = IdGenerator.make_id('894b9e66738b3210VgnVCM100000290c10acRCRD')  # 'המהדורה המרכזית'
-    # show_id = IdGenerator.make_id('1edca11b694bf510VgnVCM2000002a0c10acRCRD')  # 'עופירה וברקוביץ''
-    # season_id = IdGenerator.make_id('8409e40312d28610VgnVCM2000002a0c10acRCRD')  # 'עונה 3'
-    # base_id = IdGenerator.make_id('-1')  # 'סברי מרנן''
-    # show_id = IdGenerator.make_id('000840913b661310VgnVCM2000002a0c10acRCRD')  # 'סברי מרנן''
-    # season_id = IdGenerator.make_id('3b59279dac836610VgnVCM2000002a0c10acRCRD')  # 'עונה 3'
-    # show_id = IdGenerator.make_id('000840913b661310VgnVCM2000002a0c10acRCRD')  # 'סברי מרנן''
-    # season_id = IdGenerator.make_id('3b59279dac836610VgnVCM2000002a0c10acRCRD')  # 'עונה 3'
-    show_id = IdGenerator.make_id('265bf93b38db3210VgnVCM2000002a0c10acRCRD')  # 'הרצועה'
-    mako = Mako()
-    # mako.get_show_object(base_id, show_id)
-    # mako.get_show_object(show_id)
-    # mako.get_show_object(show_id, season_id)
-    # mako.download_objects(show_id, season_id)
-    # mako.get_show_object(show_id, verbose=1)
-
-    # mako.get_live_stream_info()
-    # mako.get_live_stream_video_link()
-
-    # mako.search_query('הרצועה')
-    # episode_id = IdGenerator.make_id('51105affa847b110VgnVCM100000290c10acRCRD')
-    # mako.get_show_object(episode_id)
-
-    mako.download_category_input_from_user()
-
-    # # Manually download the files
-    # ch_id = IdGenerator.make_id('7d0254828d49e210VgnVCM2000002a0c10acRCRD')
-    # gal_id = IdGenerator.make_id('aac0055d9a59e210VgnVCM2000002a0c10acRCRD')
-    # guid = IdGenerator.make_id('aac0055d9a59e210VgnVCM2000002a0c10acRCRD')
-    # print('bla')
-
-    # cat_id = IdGenerator.make_id('https://www.mako.co.il/bip-programs/the-strip')  # 'הרצועה'
-    # bip = Bip()
-    # bip.get_show_object(cat_id)
-
-    # url = 'https://www.mako.co.il/mako-vod-bip/the_strip-s1/VOD-42425affa847b11004.htm?' \
-    #       'sCh=09e73675d6be3210&pId=957463908'
-    # bip.download_video_from_episode_url(url)
-
-    # bip.download_category_input_from_user()
+    def _version_stack(self):
+        return super(Base, self)._version_stack + [self.__version]

@@ -69,3 +69,11 @@ class PinFlix(PornHD):
         tmp_res = [int(x.attrib['data-last-page']) for x in tree.xpath('.//div[@class="button-wrapper text-center"]/a')
                    if 'data-last-page' in x.attrib]
         return tmp_res
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(PinFlix, self)._version_stack + [self.__version]

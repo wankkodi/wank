@@ -27,3 +27,11 @@ class TheGay(TubePornClassic):
                                                ],
                            }
         return general_filters, video_filters, video_filters, categories_filters, porn_stars_filters, channels_filters
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(TheGay, self)._version_stack + [self.__version]

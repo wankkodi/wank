@@ -42,7 +42,7 @@ from ..fetchers.base_fetcher import BaseFetcher
 
 
 class PornErrorModule(object):
-    def __init__(self, server, error_mode, site_name, url, message, page_filters, general_filters):
+    def __init__(self, server, error_mode, site_name, url, message, page_filters, general_filters, version):
         self.server = server
         self.error_mode = error_mode
         self.site_name = site_name
@@ -50,6 +50,7 @@ class PornErrorModule(object):
         self.message = site_name + ': ' + message
         self.page_filters = page_filters
         self.general_filters = general_filters
+        self.version = version
 
 
 class PornError(ValueError):
@@ -58,7 +59,8 @@ class PornError(ValueError):
         if error_module is not None and error_module.server is not None:
             error_module.server.push_error(error_module.error_mode, error_module.site_name, error_module.url,
                                            error_module.message,
-                                           error_module.page_filters, error_module.general_filters)
+                                           error_module.page_filters, error_module.general_filters,
+                                           error_module.version)
 
 
 class PornFetchUrlError(PornError):
@@ -93,6 +95,14 @@ class PornFetcher(BaseFetcher):
     metaclass = ABCMeta
     __time_format = '%H:%M:%S'
     __time_format_2 = '%M:%S'
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(PornFetcher, self)._version_stack + [self.__version]
 
     @property
     def categories_enum(self):
@@ -751,11 +761,11 @@ class PornFetcher(BaseFetcher):
             time.sleep(1)
             res = self._get_object_request_no_exception_check(object_data, override_page_number, override_params,
                                                               override_url)
-            if not self._check_is_available_page(object_data, res):
-                error_module = self._prepare_porn_error_module(
-                    object_data, 0, res.url,
-                    'Could not fetch {url} in object {obj}'.format(url=res.url, obj=object_data.title))
-                raise PornFetchUrlError(res, error_module)
+        if not self._check_is_available_page(object_data, res):
+            error_module = self._prepare_porn_error_module(
+                object_data, 0, res.url,
+                'Could not fetch {url} in object {obj}'.format(url=res.url, obj=object_data.title))
+            raise PornFetchUrlError(res, error_module)
         return res
 
     def _prepare_porn_error_module(self, object_data, error_mode, url, title):
@@ -767,7 +777,8 @@ class PornFetcher(BaseFetcher):
                                        url,
                                        title,
                                        current_page_filters,
-                                       general_filters
+                                       general_filters,
+                                       self.version
                                        )
         return error_module
 
@@ -776,7 +787,7 @@ class PornFetcher(BaseFetcher):
             title = 'Cannot fetch video links from the url {u}'.format(u=url)
         if url is None:
             url = video_data.url
-        error_module = PornErrorModule(self.data_server, 0, self.source_name, url, title, None, None)
+        error_module = PornErrorModule(self.data_server, 0, self.source_name, url, title, None, None, self.version)
         return error_module
 
     def _format_duration(self, raw_duration):

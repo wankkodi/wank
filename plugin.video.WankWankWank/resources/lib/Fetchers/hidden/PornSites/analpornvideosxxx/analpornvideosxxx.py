@@ -2,7 +2,7 @@
 from ....fetchers.porn_fetcher import PornFetcher, PornNoVideoError
 
 # Internet tools
-from .....Fetchers import urljoin, quote_plus
+from .... import urljoin, quote_plus
 
 # Regex
 import re
@@ -322,6 +322,14 @@ class AnalPornVideosXXX(PornFetcher):
         :return: List of Video objects.
         """
         return self.object_urls[PornCategories.SEARCH_MAIN] + '?q={q}'.format(q=quote_plus(query))
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(AnalPornVideosXXX, self)._version_stack + [self.__version]
 
 
 if __name__ == '__main__':

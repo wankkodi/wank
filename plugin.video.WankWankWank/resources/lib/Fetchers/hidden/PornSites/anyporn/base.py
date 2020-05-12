@@ -290,3 +290,11 @@ class Base(PornFetcher):
         """
         self._search_query = query
         return self.object_urls[PornCategories.SEARCH_MAIN] + '{q}/'.format(q=quote_plus(query.replace(' ', '-')))
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(Base, self)._version_stack + [self.__version]

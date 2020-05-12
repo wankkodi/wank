@@ -323,3 +323,11 @@ class SexVid(HDTubePorn):
         fetch_base_url = '/'.join(split_url)
         page_request = self.session.get(fetch_base_url, headers=headers, params=params)
         return page_request
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(SexVid, self)._version_stack + [self.__version]

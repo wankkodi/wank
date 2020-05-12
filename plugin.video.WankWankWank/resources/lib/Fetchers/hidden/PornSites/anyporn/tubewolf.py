@@ -105,3 +105,11 @@ class TubeWolf(AlphaPorno):
             res = [x for x in res if x.is_hd is True]
         page_data.add_sub_objects(res)
         return res
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(TubeWolf, self)._version_stack + [self.__version]

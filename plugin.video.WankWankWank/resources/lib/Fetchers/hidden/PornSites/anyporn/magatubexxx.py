@@ -241,3 +241,11 @@ class MegaTubeXXX(PervertSluts):
         res = super(MegaTubeXXX, self)._prepare_new_search_query(query.replace(' ', '-'))
         self._search_query = query
         return res
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(MegaTubeXXX, self)._version_stack + [self.__version]

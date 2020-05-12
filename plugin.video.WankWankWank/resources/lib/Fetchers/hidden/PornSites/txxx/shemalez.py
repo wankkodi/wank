@@ -305,3 +305,11 @@ class Shemalez(UPornia):
         program_fetch_url = '/'.join(split_url)
         page_request = self.session.get(program_fetch_url, headers=headers, params=params)
         return page_request
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(Shemalez, self)._version_stack + [self.__version]

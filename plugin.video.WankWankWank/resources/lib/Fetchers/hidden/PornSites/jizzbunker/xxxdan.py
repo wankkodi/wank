@@ -33,3 +33,11 @@ class XXXDan(JizzBunker):
         video_links = re.findall(r'(?:src: *\')(.*?)(?:\')', video_data[0])
         video_links = [VideoSource(link=x) for x in video_links]
         return VideoNode(video_sources=video_links)
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(XXXDan, self)._version_stack + [self.__version]

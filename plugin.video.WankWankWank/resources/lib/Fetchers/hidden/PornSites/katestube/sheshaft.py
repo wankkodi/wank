@@ -113,3 +113,11 @@ class SheShaft(PornWhite):
             res.append(video_data)
         page_data.add_sub_objects(res)
         return res
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(SheShaft, self)._version_stack + [self.__version]

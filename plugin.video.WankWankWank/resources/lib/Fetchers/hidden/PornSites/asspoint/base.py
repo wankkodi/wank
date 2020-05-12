@@ -1,5 +1,6 @@
 import re
 from abc import ABCMeta, abstractmethod
+
 from .... import urljoin, quote_plus
 from ....fetchers.porn_fetcher import PornFetcher
 from ....catalogs.porn_catalog import PornCategories, PornFilterTypes, PornFilter, PornCatalogCategoryNode, \
@@ -369,6 +370,14 @@ class Base1(PornFetcher):
         """
         return self.object_urls[PornCategories.SEARCH_MAIN] + '{q}'.format(q=quote_plus(query))
 
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(Base1, self)._version_stack + [self.__version]
+
 
 class Base2(Base1):
     metaclass = ABCMeta
@@ -562,6 +571,14 @@ class Base2(Base1):
             res.append(video_data)
         page_data.add_sub_objects(res)
         return res
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(Base2, self)._version_stack + [self.__version]
 
 
 class Base3(Base1):
@@ -816,3 +833,11 @@ class Base3(Base1):
             res.append(video_data)
         page_data.add_sub_objects(res)
         return res
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(Base3, self)._version_stack + [self.__version]

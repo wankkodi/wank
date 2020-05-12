@@ -212,3 +212,11 @@ class VoyeurHit(UPornia):
         else:
             return super(VoyeurHit, self)._get_page_request_logic(page_data, params, page_number, true_object,
                                                                   page_filter, fetch_base_url)
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(VoyeurHit, self)._version_stack + [self.__version]

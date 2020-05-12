@@ -326,3 +326,11 @@ class PornoMovies(PornFetcher):
         :return: List of Video objects.
         """
         return self.object_urls[PornCategories.SEARCH_MAIN] + '{q}/'.format(q=quote(query.replace(' ', '-')))
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(PornoMovies, self)._version_stack + [self.__version]

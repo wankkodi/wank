@@ -463,3 +463,11 @@ class DrTuber(PornFetcher):
                                            for x in elements
                                            if 'for' in x.attrib and x.attrib['for'].split('_')[-4] == 'trans'],
              }
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(DrTuber, self)._version_stack + [self.__version]

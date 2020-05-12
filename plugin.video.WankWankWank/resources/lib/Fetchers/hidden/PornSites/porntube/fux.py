@@ -24,3 +24,11 @@ class Fux(PornTube):
         :param source_name: save directory
         """
         super(Fux, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server, session_id)
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(Fux, self)._version_stack + [self.__version]

@@ -76,3 +76,11 @@ class BoundHub(PornFd):
         tree = self.parser.parse(page_request.text)
         pages = self._get_available_pages_from_tree(tree)
         return max(pages) if len(pages) > 0 else 1
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(BoundHub, self)._version_stack + [self.__version]

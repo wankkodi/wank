@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 # Internet tools
-from .....Fetchers import urljoin
+from .... import urljoin
 
 # Nodes
 from ....catalogs.porn_catalog import PornCatalogCategoryNode, PornCatalogVideoPageNode
@@ -246,6 +246,14 @@ class SunPorno(AhMe):
             res.append(video_data)
         page_data.add_sub_objects(res)
         return res
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(AhMe, self)._version_stack + [self.__version]
 
 
 if __name__ == '__main__':

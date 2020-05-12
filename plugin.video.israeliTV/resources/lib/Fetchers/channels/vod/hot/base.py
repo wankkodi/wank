@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.vod_fetcher import VODFetcher
+from ....fetchers.vod_fetcher import VODFetcher
 # Video catalog
-from ..catalogs.vod_catalog import VODCatalogNode, VODCategories, VideoNode, VideoSource, VideoTypes
+from ....catalogs.vod_catalog import VODCatalogNode, VODCategories, VideoNode, VideoSource, VideoTypes
 
 # Regex
 import re
@@ -15,15 +15,17 @@ import json
 # M3U8
 import m3u8
 
-# ID generator
-from ..id_generator import IdGenerator
-
 # Internet tools
-from .. import urljoin, parse_qs, urlparse
+from .... import urljoin, parse_qs, urlparse
 # from urllib.parse import urljoin, urlsplit, urlunsplit, parse_qs, urlencode
 
+# Abstract
+from abc import abstractmethod, ABCMeta
 
-class Hot(VODFetcher):
+
+class Base(VODFetcher):
+    metaclass = ABCMeta
+
     episode_request_url_template = 'http://hot.ynet.co.il/Ext/Comp/Hot/TopSeriesPlayer_Hot/' \
                                    'CdaTopSeriesPlayer_VidItems_Hot/0,13031,L-{shid}-{sid}-0-0,00.html'
     video_link_template = 'http://hot.ynet.co.il/home/0,7340,L-{sid}-{vid},00.html'
@@ -34,10 +36,9 @@ class Hot(VODFetcher):
     dummy_id_key = 'dummy_id'
 
     @property
+    @abstractmethod
     def object_urls(self):
-        return {
-            VODCategories.CHANNELS_MAIN: 'http://hot.ynet.co.il/home/0,7340,L-7250,00.html',
-        }
+        raise NotImplementedError
 
     @property
     def base_url(self):
@@ -55,7 +56,7 @@ class Hot(VODFetcher):
         """
         # self.episodes_to_data = {}
         self.season_to_show = {}
-        super(Hot, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
+        super(Base, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
         self.available_shows = [x for x in self.dummy_super_object.sub_objects
                                 if x.object_type == VODCategories.CHANNELS_MAIN][0]
 
@@ -438,76 +439,10 @@ class Hot(VODFetcher):
 
         return req
 
+    @property
+    def __version(self):
+        return 0
 
-class HotEight(Hot):
-    shows_url = 'http://hot.ynet.co.il/home/0,7340,L-7461,00.html'
-
-    def __init__(self, vod_name='Channel8', vod_id=-7, store_dir='.\\Hot\\', data_dir='../../Data', source_type='VOD',
-                 use_web_server=False, session_id=None):
-        """
-        C'tor
-        :param vod_name: save directory
-        """
-        super(HotEight, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
-
-
-class HotThree(Hot):
-    shows_url = 'http://hot.ynet.co.il/home/0,7340,L-7456,00.html'
-
-    def __init__(self, vod_name='Channel3', vod_id=-8, store_dir='.\\Hot\\', data_dir='../../Data', source_type='VOD',
-                 use_web_server=False, session_id=None):
-        """
-        C'tor
-        :param vod_name: save directory
-        """
-        super(HotThree, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
-
-
-class HotBidur(Hot):
-    shows_url = 'http://hot.ynet.co.il/home/0,7340,L-7261,00.html'
-
-    def __init__(self, vod_name='HotBidur', vod_id=-9, store_dir='.\\Hot\\', data_dir='../../Data', source_type='VOD',
-                 use_web_server=False, session_id=None):
-        """
-        C'tor
-        :param vod_name: save directory
-        """
-        super(HotBidur, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
-
-
-class HotYoung(Hot):
-    shows_url = 'http://hot.ynet.co.il/home/0,7340,L-7449,00.html'
-
-    def __init__(self, vod_name='HotYoung', vod_id=-10, store_dir='.\\Hot\\', data_dir='../../Data', source_type='VOD',
-                 use_web_server=False, session_id=None):
-        """
-        C'tor
-        :param vod_name: save directory
-        """
-        super(HotYoung, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
-
-
-class HotZoom(Hot):
-    shows_url = 'http://hot.ynet.co.il/home/0,7340,L-11527,00.html'
-
-    def __init__(self, vod_name='HotZoom', vod_id=-11, store_dir='.\\Hot\\', data_dir='../../Data', source_type='VOD',
-                 use_web_server=False, session_id=None):
-        """
-        C'tor
-        :param vod_name: save directory
-        """
-        super(HotZoom, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
-
-
-if __name__ == '__main__':
-    # loc_show_id = IdGenerator.make_id('12425')
-    # loc_season_id = IdGenerator.make_id('12425')
-    loc_show_id = IdGenerator.make_id('26414')
-    loc_season_id = IdGenerator.make_id('525')
-    hot = HotThree()
-    # hot.get_show_object(loc_show_id)
-    # hot.get_show_object(loc_show_id, loc_season_id)
-    # hot.get_video_links_from_video_data('http://hot.ynet.co.il/home/0,7340,L-26414-340808,00.html')
-    # hot.update_available_shows()
-    # hot.download_objects(loc_show_id, verbose=1)
-    hot.download_category_input_from_user()
+    @property
+    def _version_stack(self):
+        return super(Base, self)._version_stack + [self.__version]

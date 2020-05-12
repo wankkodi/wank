@@ -68,6 +68,14 @@ class BaseFetcher(object):
         """
         raise NotImplementedError
 
+    @property
+    def _version_stack(self):
+        return [0]
+
+    @property
+    def version(self):
+        return '.'.join((str(x) for x in self._version_stack))
+
     def __init__(self, source_name, source_id, store_dir, data_dir, source_type, use_web_server=False,
                  session_id=None):
         self.source_name = source_name

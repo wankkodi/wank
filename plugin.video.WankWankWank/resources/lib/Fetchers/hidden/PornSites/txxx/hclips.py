@@ -85,3 +85,11 @@ class HClips(Txxx):
             super(HClips, self)._prepare_json_params_from_request(page_data, url, page_filter, conditions)
         length = page_filter.length.value if page_filter.length.value != 'all' else ''
         return obj_id, gender_value, sort, length, quality, period
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(HClips, self)._version_stack + [self.__version]

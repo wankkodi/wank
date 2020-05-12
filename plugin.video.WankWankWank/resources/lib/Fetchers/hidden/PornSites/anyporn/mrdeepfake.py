@@ -67,3 +67,11 @@ class MrDeepFake(BoundHub):
                 for x in tree.xpath(xpath)
                 if 'href' in x.attrib and len(re.findall(r'(?:from.*?:)(\d+)', x.attrib['href'])) > 0]
                 )
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(MrDeepFake, self)._version_stack + [self.__version]

@@ -1,26 +1,17 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.vod_fetcher import VODFetcher
+from ....fetchers.vod_fetcher import VODFetcher
 # Video catalog
-from ..catalogs.vod_catalog import VODCatalogNode, VODCategories, VideoNode, VideoSource, VideoTypes
-
-# Regex
-# import re
+from ....catalogs.vod_catalog import VODCatalogNode, VODCategories, VideoNode, VideoSource, VideoTypes
 
 # System
 from os import path
 import pickle
 
-# Warnings and exceptions
-# import warnings
-
-# # JSON
+# JSON
 import json
 
 # M3U8
 import m3u8
-
-# ID generator
-from ..id_generator import IdGenerator
 
 
 class Sport5(VODFetcher):
@@ -246,10 +237,10 @@ class Sport5(VODFetcher):
     def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url):
         raise NotImplementedError
 
+    @property
+    def __version(self):
+        return 0
 
-if __name__ == '__main__':
-    loc_show_id = IdGenerator.make_id('2770')  # יציע העיתונות
-    loc_season_id = IdGenerator.make_id('9910')
-    sport5 = Sport5(store_dir='D:\\')
-    # sport5.download_objects(loc_show_id, verbose=1)
-    sport5.download_category_input_from_user()
+    @property
+    def _version_stack(self):
+        return super(Sport5, self)._version_stack + [self.__version]

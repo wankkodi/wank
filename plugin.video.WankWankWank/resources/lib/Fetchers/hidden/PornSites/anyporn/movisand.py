@@ -118,3 +118,11 @@ class MoviesAnd(AdultCartoons):
                                                   './/div[@class="thumbs models_list"]/'
                                                   'div[@class="thumb grid item"]/a',
                                                   PornCategories.PORN_STAR)
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(MoviesAnd, self)._version_stack + [self.__version]

@@ -1,8 +1,9 @@
 import re
-from .... import urljoin, parse_qs
+from .... import urljoin
 
-from ....catalogs.base_catalog import VideoNode
-from ....catalogs.porn_catalog import PornCatalogCategoryNode, PornCatalogVideoPageNode
+from ....catalogs.base_catalog import VideoNode, VideoSource
+from ....catalogs.porn_catalog import PornCategories, PornCatalogCategoryNode, PornCatalogVideoPageNode, \
+    PornFilter, PornFilterTypes
 
 from .extremetube import ExtremeTube
 
@@ -21,15 +22,25 @@ class KeezMoovies(ExtremeTube):
     @property
     def object_urls(self):
         return {
-            CategoryMain: urljoin(self.base_url, '/categories'),
-            TagMain: urljoin(self.base_url, '/tags'),
-            PornStarMain: urljoin(self.base_url, '/pornstar'),
-            LatestVideo: urljoin(self.base_url, '/videos'),
-            BeingWatchedVideo: urljoin(self.base_url, '/videos?o=bw'),
-            MostViewedVideo: urljoin(self.base_url, '/videos?o=mv'),
-            TopRatedVideo: urljoin(self.base_url, '/videos?o=tr'),
-            LongestVideo: urljoin(self.base_url, '/videos?o=lg'),
-            SearchMain: urljoin(self.base_url, '/video'),
+            PornCategories.CATEGORY_MAIN: urljoin(self.base_url, '/categories'),
+            PornCategories.TAG_MAIN: urljoin(self.base_url, '/tags'),
+            PornCategories.PORN_STAR_MAIN: urljoin(self.base_url, '/pornstar'),
+            PornCategories.LATEST_VIDEO: urljoin(self.base_url, '/videos'),
+            PornCategories.BEING_WATCHED_VIDEO: urljoin(self.base_url, '/videos?o=bw'),
+            PornCategories.MOST_VIEWED_VIDEO: urljoin(self.base_url, '/videos?o=mv'),
+            PornCategories.TOP_RATED_VIDEO: urljoin(self.base_url, '/videos?o=tr'),
+            PornCategories.LONGEST_VIDEO: urljoin(self.base_url, '/videos?o=lg'),
+            PornCategories.SEARCH_MAIN: urljoin(self.base_url, '/video'),
+        }
+
+    @property
+    def _default_sort_by(self):
+        return {
+            PornCategories.LATEST_VIDEO: PornFilterTypes.DateOrder,
+            PornCategories.BEING_WATCHED_VIDEO: PornFilterTypes.BeingWatchedOrder,
+            PornCategories.MOST_VIEWED_VIDEO: PornFilterTypes.ViewsOrder,
+            PornCategories.TOP_RATED_VIDEO: PornFilterTypes.RatingOrder,
+            PornCategories.LONGEST_VIDEO: PornFilterTypes.LengthOrder,
         }
 
     @property
@@ -45,25 +56,49 @@ class KeezMoovies(ExtremeTube):
         Sets the video filters and the default values of the current filters
         :return:
         """
-        self._video_filters = VideoFilter(data_dir=self.fetcher_data_dir,
-                                          sort_order=((RelevanceOrder, 'Most relevant', ''),
-                                                      (DateOrder, 'Most recent', 'mr'),
-                                                      (ViewsOrder, 'Most viewed', 'mv'),
-                                                      (RatingOrder, 'Top rated', 'tr'),
-                                                      (LengthOrder, 'Longest', 'lg'),
-                                                      ),
-                                          period_filter=((AllDate, 'All time', ''),
-                                                         (OneDate, 'This week', 'w'),
-                                                         (TwoDate, 'This month', 'm'),
-                                                         ),
-                                          )
+        video_filters = {'sort_order': [(PornFilterTypes.DateOrder, 'Most recent', 'mr'),
+                                        (PornFilterTypes.ViewsOrder, 'Most viewed', 'mv'),
+                                        (PornFilterTypes.RatingOrder, 'Top rated', 'tr'),
+                                        (PornFilterTypes.LengthOrder, 'Longest', 'lg'),
+                                        ],
+                         'period_filters': ([(PornFilterTypes.AllDate, 'All time', None),
+                                             (PornFilterTypes.OneDate, 'This Week', 'week'),
+                                             (PornFilterTypes.TwoDate, 'This Month', 'month'),
+                                             ],
+                                            [('sort_order', [PornFilterTypes.RatingOrder,
+                                                             PornFilterTypes.ViewsOrder])]
+                                            ),
 
-    def __init__(self, source_name='KeezMoovies', source_id=0, store_dir='.', data_dir='../Data'):
+                         }
+        porn_stars_filter = {'sort_order': [(PornFilterTypes.RatingOrder, 'Top ranked', None),
+                                            (PornFilterTypes.AlphabeticOrder, 'Alphabetic', 'name'),
+                                            ],
+                             }
+
+        search_filters = {'sort_order': [(PornFilterTypes.RelevanceOrder, 'Most relevant', None),
+                                         (PornFilterTypes.DateOrder, 'Most recent', 'mr'),
+                                         (PornFilterTypes.ViewsOrder, 'Most viewed', 'mv'),
+                                         (PornFilterTypes.RatingOrder, 'Top rated', 'tr'),
+                                         (PornFilterTypes.LengthOrder, 'Longest', 'lg'),
+                                         ],
+                          }
+
+        self._video_filters = PornFilter(data_dir=self.fetcher_data_dir,
+                                         porn_stars_args=porn_stars_filter,
+                                         single_category_args=video_filters,
+                                         single_tag_args=video_filters,
+                                         search_args=search_filters,
+                                         video_args=video_filters,
+                                         )
+
+    def __init__(self, source_name='KeezMoovies', source_id=0, store_dir='.', data_dir='../Data',
+                 source_type='Porn', use_web_server=True, session_id=None):
         """
         C'tor
         :param source_name: save directory
         """
-        super(KeezMoovies, self).__init__(source_name, source_id, store_dir, data_dir)
+        super(KeezMoovies, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                          session_id)
 
     def _update_available_categories(self, category_data):
         """
@@ -98,7 +133,7 @@ class KeezMoovies(ExtremeTube):
                                                   title=title,
                                                   image_link=image,
                                                   number_of_videos=number_of_videos,
-                                                  object_type=Category,
+                                                  object_type=PornCategories.CATEGORY,
                                                   super_object=category_data,
                                                   )
             res.append(object_data)
@@ -141,12 +176,15 @@ class KeezMoovies(ExtremeTube):
                                                   number_of_videos=number_of_videos,
                                                   number_of_photos=number_of_photos,
                                                   number_of_views=number_of_views,
-                                                  object_type=PornStar,
+                                                  object_type=PornCategories.PORN_STAR,
                                                   super_object=porn_star_data,
                                                   )
             res.append(object_data)
         porn_star_data.add_sub_objects(res)
         return res
+
+    def _add_tag_sub_pages(self, tag_data, sub_object_type):
+        return super(ExtremeTube, self)._add_tag_sub_pages(tag_data, sub_object_type)
 
     def _get_tag_properties(self, page_request):
         """
@@ -186,10 +224,9 @@ class KeezMoovies(ExtremeTube):
         if video_data is False:
             raise RuntimeError('Could not fetch video from page {p}!'.format(p=video_data.url))
 
-        video_sources = sorted(((int(re.findall(r'(?:quality_)(\d*)(?:p)', k)[0]), v)
-                              for k, v in video_data['videos'].items()),
-                             key=lambda y: int(y[0]), reverse=True)
-        video_sources = [x[1] for x in video_sources]
+        video_sources = sorted((VideoSource(link=v, quality=int(re.findall(r'(?:quality_)(\d*)(?:p)', k)[0]))
+                                for k, v in video_data['videos'].items()),
+                               key=lambda y: y.quality, reverse=True)
         return VideoNode(video_sources=video_sources)
 
     def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
@@ -211,14 +248,6 @@ class KeezMoovies(ExtremeTube):
             return max_page
         else:
             return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
-
-    def _check_is_available_page(self, page_request):
-        """
-        In binary search performs test whether the current page is available.
-        :param page_request: Page request.
-        :return:
-        """
-        return page_request.ok
 
     def _get_available_pages_from_tree(self, tree):
         """
@@ -245,8 +274,7 @@ class KeezMoovies(ExtremeTube):
         """
         page_request = self.get_object_request(object_data)
         tree = self.parser.parse(page_request.text)
-        videos = [x for x in tree.xpath('.//ul[@class="ul_video_block"]/li') if 'id' in x.attrib] + \
-                 [x for x in tree.xpath('.//ul[@class="ul_ps_video_block videos-pagination"]/li') if 'id' in x.attrib]
+        videos = [x for x in tree.xpath('.//ul/li') if 'id' in x.attrib and 'video' in x.attrib['id']]
         res = []
         for video_tree_data in videos:
             link_data = video_tree_data.xpath('./div[@class="hoverab"]/a')
@@ -292,28 +320,33 @@ class KeezMoovies(ExtremeTube):
                                                   rating=rating,
                                                   number_of_views=viewers,
                                                   additional_data=additional_data,
-                                                  object_type=Video,
+                                                  object_type=PornCategories.VIDEO,
                                                   super_object=object_data,
                                                   )
             res.append(video_data)
         object_data.add_sub_objects(res)
         return res
 
-    def get_object_request(self, object_data, override_page_number=None, page_type='regular'):
+    def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url,
+                                page_type='regular'):
         """
         Fetches the page number with respect to base url.
-        :param object_data: Page data.
-        :param override_page_number: Override page number.
-        :param page_type: Indicates whether we want to have 'regular' or 'json' page.
+        :param page_data: Page data.
+        :param params: Page params.
+        :param page_number: Page number.
+        :param true_object: True object.
+        :param page_filter: Page filter.
+        :param fetch_base_url: Page base url.
+        :param page_type: Page type.
         :return: Page request
         """
         if page_type == 'json':
-            url, additional_params = self._prepare_request_params(object_data)
+            url, additional_params = self._prepare_request_params(page_data)
             headers = {
                 'Accept': '*/*',
                 'Cache-Control': 'max-age=0',
                 # 'Host': self.host_name,
-                'Referer': object_data.url,
+                'Referer': page_data.url,
                 # 'Sec-Fetch-Mode': 'navigate',
                 # 'Sec-Fetch-Site': 'same-origin',
                 'Sec-Fetch-User': '?1',
@@ -322,40 +355,53 @@ class KeezMoovies(ExtremeTube):
                 'X-Requested-With': 'XMLHttpRequest',
             }
         else:
-            url = object_data.url
+            url = page_data.url
             additional_params = {}
             headers = {
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
                           'q=0.8,application/signed-exchange;v=b3',
                 'Cache-Control': 'max-age=0',
                 # 'Host': self.host_name,
-                'Referer': object_data.url,
+                'Referer': page_data.url,
                 'Sec-Fetch-Mode': 'navigate',
                 'Sec-Fetch-Site': 'same-origin',
                 'Sec-Fetch-User': '?1',
                 'Upgrade-Insecure-Requests': '1',
                 'User-Agent': self.user_agent
             }
+        params.update(additional_params)
 
-        if len(object_data.url.split('?')) > 1:
-            url = object_data.url.split('?')[0]
-            params = object_data.url.split('?')[1]
-            params = parse_qs(params)
+        if true_object.object_type == PornCategories.VIDEO:
+            page_request = self.session.get(url, headers=headers, params=params)
+            return page_request
+
+        conditions = self.get_proper_filter(page_data).conditions
+        true_sort_filter_id = self._default_sort_by[true_object.object_type] \
+            if true_object.object_type in self._default_sort_by \
+            else page_filter.sort_order.filter_id
+
+        if true_object.object_type in (PornCategories.PORN_STAR_MAIN,):
+            if page_filter.sort_order.value is not None:
+                params['sort'] = page_filter.sort_order.value
         else:
-            params = {}
+            if page_filter.sort_order.value is not None:
+                params['o'] = page_filter.sort_order.value
+            if (
+                    page_filter.period.value is not None and
+                    (conditions.period.sort_order is None or true_sort_filter_id in conditions.period.sort_order)
+            ):
+                params['t'] += page_filter.period.value
 
-        if all(x not in (LatestVideo, BeingWatchedVideo, LongestVideo)
-               for x in (object_data.object_type, object_data.super_object.object_type)):
-            if all(x not in (MostViewedVideo, TopRatedVideo,)
-                   for x in (object_data.object_type, object_data.super_object.object_type)):
-                additional_params['o'] = self._video_filters.current_filter_values['sort_order'].value
-            additional_params['t'] = self._video_filters.current_filter_values['period'].value
-
-        if object_data.object_type != Video:
-            params.update({k: [v] for k, v in additional_params.items() if k not in params})
-        page_number = object_data.page_number if override_page_number is None else override_page_number
         if page_number is not None and page_number != 1:
             params['page'] = [page_number]
 
         page_request = self.session.get(url, headers=headers, params=params)
         return page_request
+
+    @property
+    def __version(self):
+        return 0
+
+    @property
+    def _version_stack(self):
+        return super(KeezMoovies, self)._version_stack + [self.__version]

@@ -2,19 +2,19 @@
 # import sys
 from os import path
 
-from ..channels.mako import Mako, Bip, Channel24
-from ..channels.reshet import Reshet
-from ..channels.sport5 import Sport5
-from ..channels.sport1 import Sport1
-from ..channels.one import One
-from ..channels.kan import Kan, KanEducation, Makan
-from ..channels.hot import Hot, HotBidur, HotEight, HotThree, HotYoung, HotZoom
-from ..channels.walla import Walla
-from ..channels.channel20 import Channel20
-from ..channels.channel9 import Channel9
-# from ..channels.channel10_obsolete import Channel10
-from ..channels.iba_archive import IBA
-from ..channels.knesset import Knesset
+from ..channels.vod.mako import Mako, Bip, Channel24
+from ..channels.vod.reshet import Reshet
+from ..channels.vod.sport5 import Sport5
+from ..channels.vod.sport1 import Sport1
+from ..channels.vod.one import One
+from ..channels.vod.kan import Kan, Makan, KanEducation
+# from ..channels.vod.hot import Hot, HotThree, HotZoom, HotYoung, HotBidur, HotEight
+from ..channels.vod.walla import Walla
+from ..channels.vod.channel20 import Channel20
+from ..channels.vod.channel9 import Channel9
+# from ..channels.vod.channel10_obsolete import Channel10
+from ..channels.vod.iba_archive import IBA
+from ..channels.vod.knesset import Knesset
 
 
 class SourceHandler(object):
@@ -39,30 +39,30 @@ class SourceHandler(object):
             self.title = 'kan_education'
             self.main_module = KanEducation
             self.image = path.join(logo_dir, 'lan1084_img.jpg')
-        elif source_id == -6:
-            self.title = 'hot'
-            self.main_module = Hot
-            self.image = path.join(logo_dir, '1200px-HotNewLogo.svg.png')
-        elif source_id == -7:
-            self.title = 'hot_three'
-            self.main_module = HotThree
-            self.image = path.join(logo_dir, '250px-HOT3_logo_2010.svg.png')
-        elif source_id == -8:
-            self.title = 'hot_bidur'
-            self.main_module = HotBidur
-            self.image = path.join(logo_dir, 'hot-bidur.png')
-        elif source_id == -9:
-            self.title = 'hot_eight'
-            self.main_module = HotEight
-            self.image = path.join(logo_dir, 'hot8.jpg')
-        elif source_id == -10:
-            self.title = 'hot_young'
-            self.main_module = HotYoung
-            self.image = path.join(logo_dir, 'unnamed.jpg')
-        elif source_id == -11:
-            self.title = 'hot_zoom'
-            self.main_module = HotZoom
-            self.image = path.join(logo_dir, 'H69111167_logos_510X1478.jpg')
+        # elif source_id == -6:
+        #     self.title = 'hot'
+        #     self.main_module = Hot
+        #     self.image = path.join(logo_dir, '1200px-HotNewLogo.svg.png')
+        # elif source_id == -7:
+        #     self.title = 'hot_three'
+        #     self.main_module = HotThree
+        #     self.image = path.join(logo_dir, '250px-HOT3_logo_2010.svg.png')
+        # elif source_id == -8:
+        #     self.title = 'hot_bidur'
+        #     self.main_module = HotBidur
+        #     self.image = path.join(logo_dir, 'hot-bidur.png')
+        # elif source_id == -9:
+        #     self.title = 'hot_eight'
+        #     self.main_module = HotEight
+        #     self.image = path.join(logo_dir, 'hot8.jpg')
+        # elif source_id == -10:
+        #     self.title = 'hot_young'
+        #     self.main_module = HotYoung
+        #     self.image = path.join(logo_dir, 'unnamed.jpg')
+        # elif source_id == -11:
+        #     self.title = 'hot_zoom'
+        #     self.main_module = HotZoom
+        #     self.image = path.join(logo_dir, 'H69111167_logos_510X1478.jpg')
         elif source_id == -12:
             self.title = 'walla'
             self.main_module = Walla

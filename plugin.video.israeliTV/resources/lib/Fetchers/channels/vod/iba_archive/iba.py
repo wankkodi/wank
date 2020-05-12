@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.vod_fetcher import VODFetcher
+from ....fetchers.vod_fetcher import VODFetcher
 # Video catalog
-from ..catalogs.vod_catalog import VODCatalogNode, VODCategories, VideoNode, VideoSource, VideoTypes
+from ....catalogs.vod_catalog import VODCatalogNode, VODCategories, VideoNode, VideoSource, VideoTypes
 
 # Internet tools
 # from urllib.parse import urljoin
@@ -37,11 +37,8 @@ import json
 # M3U8
 import m3u8
 
-# ID generator
-from ..id_generator import IdGenerator
-
 # Internet tools
-from .. import urljoin
+from .... import urljoin
 
 
 class IBA(VODFetcher):
@@ -471,22 +468,10 @@ class IBA(VODFetcher):
 
         return req
 
+    @property
+    def __version(self):
+        return 0
 
-if __name__ == '__main__':
-    loc_show_id = IdGenerator.make_id('16523')  # מבט
-    loc_season_id = IdGenerator.make_id('16524')  # מהדורות מלאות
-    # loc_show_id = IdGenerator.make_id('137678')  # 'היום זה אנחנו'
-    # loc_season_id = IdGenerator.make_id('4937532')
-    kan = IBA(store_dir='D:\\')
-    # kan.get_show_object(loc_show_id, loc_season_id)
-    # kan.get_video_links_from_video_data('http://admin.applicaster.com/v12/accounts/120/broadcasters/132/vod_items/'
-    #                                      '4937532.json')
-    # kan.get_seasons(loc_show_id)
-    # kan.get_episodes(loc_show_id, loc_season_id)
-    # kan.fetch_video_from_episode_url('https://13tv.co.il/item/entertainment/the-voice/season-02/'
-    #                                   'episodes/episode1-25/')
-    # kan.update_available_shows()
-    # kan.download_objects(loc_show_id, verbose=1)
-    # kan.download_objects(cat_id, episode_id, episode_id=, verbose=1)
-    # kan._get_video_links_from_episode_url('https://www.kan.org.il/program/?catid=1464', verbose=1)
-    kan.download_category_input_from_user()
+    @property
+    def _version_stack(self):
+        return super(IBA, self)._version_stack + [self.__version]

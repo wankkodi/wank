@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
-from ..fetchers.vod_fetcher import VODFetcher
+from ....fetchers.vod_fetcher import VODFetcher
 # Video catalog
-from ..catalogs.vod_catalog import VODCatalogNode, VODCategories, VideoNode, VideoSource, VideoTypes
+from ....catalogs.vod_catalog import VODCatalogNode, VODCategories, VideoNode, VideoSource, VideoTypes
 
 # Regex
 import re
@@ -26,22 +26,25 @@ import m3u8
 # Math
 import math
 
-# ID generator
-from ..id_generator import IdGenerator
-
 # Internet tools
-from .. import urljoin, urlparse, parse_qs
+from .... import urljoin, urlparse, parse_qs
+
+# Abstract
+from abc import abstractmethod, ABCMeta
 
 
-class Kan(VODFetcher):
+class Base(VODFetcher):
+    metaclass = ABCMeta
+
     # video_fetch_url = 'https://secure.brightcove.com/services/mobile/streaming/index/master.m3u8'
-    # live_tv_url = 'https://www.kan.org.il/live/tv.aspx?stationid=2'
     schedule_url = 'https://www.kan.org.il/tv-guide/tv_guidePrograms.ashx'
     additional_content_page = 'https://www.kan.org.il/program/getMoreProgram.aspx'
 
+    number_of_results_per_page = 6
+
+    # Obsolete
     # search_url = 'https://cse.google.com/cse/element/v1'
     # search_params_url = 'https://cse.google.com/cse.js'
-    number_of_results_per_page = 6
     # search_default_params = {
     #     'rsz': 'filtered_cse',
     #     'num': number_of_results_per_page,
@@ -65,19 +68,39 @@ class Kan(VODFetcher):
     kan_raw_hostname = ('www.kan.org.il', )
     kan_download_hostname = ('kanvod.media.kan.org.il', 'kanapi.media.kan.org.il')
 
-    schedule_index = 1
     schedule_date_format = '%d/%m/%Y'
     season_prefix = u"עונה"
     episode_prefix = u"פרק"
     dummy_id_key = 'dummy_id'
 
     @property
+    @abstractmethod
+    def schedule_index(self):
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def main_channel_page(self):
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def station_id(self):
+        raise NotImplementedError
+
+    @property
     def object_urls(self):
         return {
-            VODCategories.CHANNELS_MAIN: 'https://www.kan.org.il/page.aspx?landingPageId=1039',
-            VODCategories.LIVE_VIDEO: 'https://www.kan.org.il/live/tv.aspx?stationid=2',
+            VODCategories.CHANNELS_MAIN: 'https://www.kan.org.il/page.aspx?landingPageId={cid}'
+                                         ''.format(cid=self.main_channel_page),
+            VODCategories.LIVE_VIDEO: 'https://www.kan.org.il/live/tv.aspx?stationid={sid}'
+                                      ''.format(sid=self.station_id),
             VODCategories.SEARCH_MAIN: 'https://cogito3.com/kansearch/',
         }
+
+    @property
+    def special_show_parsing(self):
+        return {}
 
     @property
     def base_url(self):
@@ -87,20 +110,13 @@ class Kan(VODFetcher):
         """
         return 'https://www.kan.org.il/'
 
-    def __init__(self, vod_name='Kan', vod_id=-4, store_dir='.', data_dir='../../Data', source_type='VOD',
-                 use_web_server=False, session_id=None):
+    def __init__(self, vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id):
         """
         C'tor
         :param vod_name: save directory
         """
         # self.season_to_show = {}
-        self.special_show_parsing = {
-            'https://www.kan.org.il/page.aspx?landingpageid=1135': self._fetch_show_data_1135,
-            'https://www.kan.org.il/page.aspx?landingPageId=1135': self._fetch_show_data_1135,
-            'https://www.kan.org.il/program/?catId=1274': self._fetch_show_data_1135,
-            'https://www.kan.org.il/page.aspx?landingPageId=1274': self._fetch_show_data_1135,
-        }
-        super(Kan, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
+        super(Base, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
 
     def fetch_sub_objects(self, element_object):
         """
@@ -647,6 +663,96 @@ class Kan(VODFetcher):
 
         return videos
 
+    def _fetch_show_data_1113(self, show_object):
+        """
+        Fetches the raw data about the page https://www.kan.org.il/page.aspx?landingpageid=1113.
+        :param show_object: Show object.
+        :return: JSON data of the page.
+        """
+        headers = {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
+                      'q=0.8,application/signed-exchange;v=b3',
+            # 'Accept-Encoding': 'gzip, deflate, br',
+            'Cache-Control': 'max-age=0',
+            'Referer': self.object_urls[VODCategories.CHANNELS_MAIN],
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'User-Agent': self.user_agent
+        }
+        req = self.session.get(show_object.url, headers=headers)
+        tree = self.parser.parse(req.text)
+        videos = []
+        season_episode_page_urls = [urljoin(self.base_url, x)
+                                    for x in tree.xpath('.//a[@class="magazine_info_link w-inline-block "]/@href')]
+        # season_episode_images = [urljoin(self.base_url, re.findall(r'(?:url\(\')(.*)(?:\'\))', x)[0])
+        #                          for x in tree.xpath('.//div[@class="magazine_info_link w-inline-block "]/'
+        #                                              'div[class="magazine_pict grayScaleImg"]/@style')]
+        season_episode_images = [urljoin(self.base_url, re.findall(r'(?:url\(\')(.*)(?:\'\))', x)[0])
+                                 for x in tree.xpath('.//a[@class="magazine_info_link w-inline-block "]/'
+                                                     'div[@style]/@style')]
+        season_episode_info_tree = tree.xpath('.//a[@class="magazine_info_link w-inline-block "]/'
+                                              'div[@class="magazine_info_group"]')
+        assert len(season_episode_page_urls) == len(season_episode_images)
+        assert len(season_episode_page_urls) == len(season_episode_info_tree)
+        sub_objects = []
+        for i, (url, image_url, info_tree) in enumerate(zip(season_episode_page_urls, season_episode_images,
+                                                            season_episode_info_tree)):
+            # Fetching id
+            episode_id = self._get_page_id_from_page_url(url)
+
+            # Fetching link
+            # Old implementation:
+            # episode_req = self.session.get(url, headers=headers)
+            # episode_tree = self.parser.parse(episode_req.text)
+            # link = episode_tree.xpath('.//iframe/@src')
+            # assert len(link) > 0
+            # episode_link = link[0]
+            # New implementation: we moved the logic to the video fetcher.
+            episode_link = url
+
+            # Fetching title
+            title = info_tree.xpath('./h2[@class="magazine_info_title"]/text()')
+            assert len(title) == 1
+            title = title[0]
+            # episode_number, episode_title = self._parse_episode_title_and_season(title[0], i)
+            # Fetching description
+            episode_description = info_tree.xpath('./div[@class="magazine_txt_inner "]/'
+                                                  'div[@class="magazine_info_txt"]/text()')
+            assert len(episode_description) == 1
+            episode_description = re.sub(r'^[ \n]*|[ \n]*$', '', episode_description[0])
+
+            episode_data = VODCatalogNode(catalog_manager=self.catalog_manager,
+                                          obj_id=episode_id,
+                                          title=title,
+                                          # title=episode_title,
+                                          # number=episode_number,
+                                          url=episode_link,
+                                          image_link=image_url,
+                                          super_object=show_object,
+                                          description=episode_description,
+                                          object_type=VODCategories.VIDEO,
+                                          raw_data=None,
+                                          )
+
+            videos.append(episode_data)
+            sub_objects.append(episode_data)
+
+        show_object.add_sub_objects(sub_objects)
+        return videos
+
+        # # Same format as 1137
+        # return self._fetch_season_data_1135(show_object)
+
+    def _fetch_show_data_1137(self, show_object):
+        """
+        Fetches the raw data about the page https://www.kan.org.il/page.aspx?landingpageid=1113.
+        :param show_object: Show object.
+        :return: JSON data of the page.
+        """
+        # Have the same structure as show 1113
+        return self._fetch_show_data_1113(show_object)
+
     def _fetch_season_objects(self, season_object):
         """
         Fetches season Episodes.
@@ -1074,7 +1180,7 @@ class Kan(VODFetcher):
         """
         if page_data.object_type == VODCategories.SHOW_SEASON:
             override_url = self.additional_content_page
-        return super(Kan, self).get_object_request(page_data, override_page_number, override_params, override_url)
+        return super(Base, self).get_object_request(page_data, override_page_number, override_params, override_url)
 
     def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url):
         headers = {
@@ -1099,273 +1205,10 @@ class Kan(VODFetcher):
     #     :return: List of VODCatalogNode Objects.
     #     """
 
-
-class KanEducation(Kan):
-    schedule_index = 19
+    @property
+    def __version(self):
+        return 0
 
     @property
-    def object_urls(self):
-        return {
-            VODCategories.CHANNELS_MAIN: 'https://www.kan.org.il/page.aspx?landingPageId=1083',
-            VODCategories.LIVE_VIDEO: 'https://www.kan.org.il/live/tv.aspx?stationid=20',
-            VODCategories.SEARCH_MAIN: 'https://cogito3.com/kansearch/',
-        }
-
-    def __init__(self, vod_name='KanEducation', vod_id=-5, store_dir='.', data_dir='../../Data', source_type='VOD',
-                 use_web_server=False, session_id=None):
-        """
-        C'tor
-        :param vod_name: save directory
-        """
-        super(KanEducation, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server,
-                                           session_id)
-        self.special_show_parsing = {
-            'https://www.kan.org.il/page.aspx?landingpageid=1113': self._fetch_show_data_1113,
-            'https://www.kan.org.il/page.aspx?landingpageid=1137': self._fetch_show_data_1137,
-        }
-
-    # def _update_base_categories(self, dummy=None):
-    #     """
-    #     Fetches all the available shows.
-    #     :return: Object of all available shows (JSON).
-    #     """
-    #     program_fetch_url = self.shows_url
-    #     headers = {
-    #         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-    #                   'q=0.8,application/signed-exchange;v=b3',
-    #         # 'Accept-Encoding': 'gzip, deflate, br',
-    #         'Cache-Control': 'max-age=0',
-    #         'Referer': self.base_url,
-    #         'Sec-Fetch-Mode': 'navigate',
-    #         'Sec-Fetch-Site': 'none',
-    #         'Sec-Fetch-User': '?1',
-    #         'User-Agent': self.user_agent
-    #     }
-    #
-    #     req = self.session.get(program_fetch_url, headers=headers)
-    #     tree = self.parser.parse(req.text)
-    #     xpath = './/div[@class="component_section no_padding w-clearfix"]//' \
-    #             'div[@class="component_big_item podcast w-clearfix"]/a'
-    #     shows = tree.xpath(xpath)
-    #     sub_objects1 = self._get_show_objects_from_show_main_component_trees(shows)
-    #
-    #     xpath = './/div[@class="component_sm_group"]//div[@class="component_sm_item w-clearfix"]/a'
-    #     shows = tree.xpath(xpath)
-    #     sub_objects2 = self._get_show_objects_from_show_small_component_trees(shows)
-    #
-    #     xpath = './/div[@class="component_section magazine"]/div[@class="magazine_item"]/' \
-    #             'a[@class="magazine_info_link w-inline-block "]'
-    #     shows = tree.xpath(xpath)
-    #     sub_objects3 = self._get_show_objects_from_show_magazine_trees(shows)
-    #
-    #     self.available_shows.add_sub_objects(sub_objects1 + sub_objects2 + sub_objects3)
-    #     # with open(self.available_shows_data_filename, 'wb') as fl:
-    #     #     pickle.dump(self.available_categories, fl)
-
-    def _fetch_show_data_1113(self, show_object):
-        """
-        Fetches the raw data about the page https://www.kan.org.il/page.aspx?landingpageid=1113.
-        :param show_object: Show object.
-        :return: JSON data of the page.
-        """
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                      'q=0.8,application/signed-exchange;v=b3',
-            # 'Accept-Encoding': 'gzip, deflate, br',
-            'Cache-Control': 'max-age=0',
-            'Referer': self.object_urls[VODCategories.CHANNELS_MAIN],
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1',
-            'User-Agent': self.user_agent
-        }
-        req = self.session.get(show_object.url, headers=headers)
-        tree = self.parser.parse(req.text)
-        videos = []
-        season_episode_page_urls = [urljoin(self.base_url, x)
-                                    for x in tree.xpath('.//a[@class="magazine_info_link w-inline-block "]/@href')]
-        # season_episode_images = [urljoin(self.base_url, re.findall(r'(?:url\(\')(.*)(?:\'\))', x)[0])
-        #                          for x in tree.xpath('.//div[@class="magazine_info_link w-inline-block "]/'
-        #                                              'div[class="magazine_pict grayScaleImg"]/@style')]
-        season_episode_images = [urljoin(self.base_url, re.findall(r'(?:url\(\')(.*)(?:\'\))', x)[0])
-                                 for x in tree.xpath('.//a[@class="magazine_info_link w-inline-block "]/'
-                                                     'div[@style]/@style')]
-        season_episode_info_tree = tree.xpath('.//a[@class="magazine_info_link w-inline-block "]/'
-                                              'div[@class="magazine_info_group"]')
-        assert len(season_episode_page_urls) == len(season_episode_images)
-        assert len(season_episode_page_urls) == len(season_episode_info_tree)
-        sub_objects = []
-        for i, (url, image_url, info_tree) in enumerate(zip(season_episode_page_urls, season_episode_images,
-                                                            season_episode_info_tree)):
-            # Fetching id
-            episode_id = self._get_page_id_from_page_url(url)
-
-            # Fetching link
-            # Old implementation:
-            # episode_req = self.session.get(url, headers=headers)
-            # episode_tree = self.parser.parse(episode_req.text)
-            # link = episode_tree.xpath('.//iframe/@src')
-            # assert len(link) > 0
-            # episode_link = link[0]
-            # New implementation: we moved the logic to the video fetcher.
-            episode_link = url
-
-            # Fetching title
-            title = info_tree.xpath('./h2[@class="magazine_info_title"]/text()')
-            assert len(title) == 1
-            title = title[0]
-            # episode_number, episode_title = self._parse_episode_title_and_season(title[0], i)
-            # Fetching description
-            episode_description = info_tree.xpath('./div[@class="magazine_txt_inner "]/'
-                                                  'div[@class="magazine_info_txt"]/text()')
-            assert len(episode_description) == 1
-            episode_description = re.sub(r'^[ \n]*|[ \n]*$', '', episode_description[0])
-
-            episode_data = VODCatalogNode(catalog_manager=self.catalog_manager,
-                                          obj_id=episode_id,
-                                          title=title,
-                                          # title=episode_title,
-                                          # number=episode_number,
-                                          url=episode_link,
-                                          image_link=image_url,
-                                          super_object=show_object,
-                                          description=episode_description,
-                                          object_type=VODCategories.VIDEO,
-                                          raw_data=None,
-                                          )
-
-            videos.append(episode_data)
-            sub_objects.append(episode_data)
-
-        show_object.add_sub_objects(sub_objects)
-        return videos
-
-        # # Same format as 1137
-        # return self._fetch_season_data_1135(show_object)
-
-    def _fetch_show_data_1137(self, show_object):
-        """
-        Fetches the raw data about the page https://www.kan.org.il/page.aspx?landingpageid=1113.
-        :param show_object: Show object.
-        :return: JSON data of the page.
-        """
-        # Have the same structure as show 1113
-        return self._fetch_show_data_1113(show_object)
-
-
-class Makan(Kan):
-    schedule_url = 'https://www.kan.org.il/tv-guide/tv_guidePrograms.ashx'
-    additional_content_page = 'https://www.makan.org.il/program/getMoreProgram.aspx'
-
-    @property
-    def object_urls(self):
-        return {
-            VODCategories.CHANNELS_MAIN: 'https://www.makan.org.il/video/programs.aspx',
-            VODCategories.LIVE_VIDEO: 'https://www.makan.org.il/live/tv.aspx?stationid=3',
-            VODCategories.SEARCH_MAIN: 'https://cogito3.com/kansearch/',
-        }
-    schedule_index = 2
-
-    def __init__(self, vod_name='Makan', vod_id=-20, store_dir='.', data_dir='../../Data', source_type='VOD',
-                 use_web_server=False, session_id=None):
-        """
-        C'tor
-        :param vod_name: save directory
-        """
-        super(Makan, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
-
-    @property
-    def base_url(self):
-        """
-        Base site url.
-        :return:
-        """
-        return 'https://www.makan.org.il/'
-
-    def _update_base_categories(self, base_object):
-        """
-        Fetches all the available shows.
-        :return: Object of all available shows (JSON).
-        """
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                      'q=0.8,application/signed-exchange;v=b3',
-            # 'Accept-Encoding': 'gzip, deflate, br',
-            'Cache-Control': 'max-age=0',
-            'Referer': self.base_url,
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1',
-            'User-Agent': self.user_agent
-        }
-
-        req = self.session.get(base_object.url, headers=headers)
-        tree = self.parser.parse(req.text)
-        xpath = './/div[@id="moreProgram"]/div[@class="items sm_it_section"]/div[@class="it_small"]/' \
-                'div[@class="it_small_pictgroup programs"]'
-        shows = tree.xpath(xpath)
-        sub_objects = self._get_show_objects_from_it_small_component_trees(shows, base_object)
-
-        base_object.add_sub_objects(sub_objects)
-        # with open(self.available_shows_data_filename, 'wb') as fl:
-        #     pickle.dump(self.available_categories, fl)
-
-
-if __name__ == '__main__':
-    # search_word = u'היהודים באים'
-    # show_id = IdGenerator.make_id('47')
-    # season_id = IdGenerator.make_id(('47', '212'))
-    # search_word = u'כאן דוקו'
-    # show_id = IdGenerator.make_id('1076')
-    # search_word = u'חנו על המפית'
-    show_id = IdGenerator.make_id('1274')
-    # season_id = IdGenerator.make_id('1135')
-    # search_word = u'ימי בגין'
-    # show_id = IdGenerator.make_id('1433')
-    # search_word = u'והארץ הייתה תוהו ובוהו'
-    # show_id = IdGenerator.make_id('64')
-    # search_word = u'Tiul Shorashim'
-    # show_id = IdGenerator.make_id('1472')
-    # show_id = IdGenerator.make_id('1494')
-    # search_word = u'Geula and London'
-    # show_id = IdGenerator.make_id('1480')
-    # search_word = u'Once in a week with Tom Aharon'
-    # show_id = IdGenerator.make_id('1206')
-    # kan = Kan(store_dir='D:\\')
-    # kan = Kan(store_dir='.')
-    # kan.get_show_object(show_id)
-    # kan.get_show_object(show_id, season_id)
-    # kan.download_objects(show_id, verbose=1)
-
-    # kan.get_video_links_from_video_data('https://www.kan.org.il/item/?itemId=34710')
-    # kan._prepare_new_search_query('זמן אמת')
-
-    # kan.get_live_stream_info()
-    # kan.get_live_stream_video_link()
-
-    # search_word = u'חיות רשת'
-    # show_id = IdGenerator.make_id('1113')
-    # search_word = u'להציל את חיות הבר'
-    # show_id = IdGenerator.make_id('1137')
-    # kan = KanEducation(store_dir='.')
-    # kan.get_show_object(show_id)
-    # kan.get_show_object(show_id, season_id)
-    # kan.get_video_links_from_video_data('https://www.kan.org.il/item?itemId=49346')
-    # kan.get_video_links_from_video_data('https://www.kan.org.il/item/?itemId=38922')
-    # kan.download_objects(show_id, verbose=1)
-
-    # search_word = u'شو عَ النت مع سمر قبطي'
-    # show_id = IdGenerator.make_id('3082')
-    # kan = Makan(store_dir='..')
-    # kan.get_show_object(show_id)
-    # kan.get_video_links_from_video_data('https://kanapi.media.kan.org.il/Players/ByPlayer/V1/ipbc/S0282563_1/hls')
-    # # kan.get_show_object(show_id, season_id)
-    # kan.download_objects(show_id, verbose=1)
-
-    # kan.get_live_stream_info()
-    # kan.get_live_stream_video_link()
-
-    kan = Kan(store_dir='.')
-    # kan = KanEducation(store_dir='.')
-    # kan = Makan(store_dir='.')
-    kan.download_category_input_from_user()
+    def _version_stack(self):
+        return super(Base, self)._version_stack + [self.__version]
