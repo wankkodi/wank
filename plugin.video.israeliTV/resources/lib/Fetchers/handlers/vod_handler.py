@@ -118,8 +118,11 @@ class HandlerManager(object):
         source_ids = range(-1, -22, -1)
         # xbmc.log('Preparing handlers for source ids {s}'.format(s=source_ids))
         for _x in source_ids:
-            _h = SourceHandler(_x, logo_dir)
-            self.handlers[_h.handler_id] = _h
+            try:
+                _h = SourceHandler(_x, logo_dir)
+                self.handlers[_h.handler_id] = _h
+            except ValueError:
+                continue
 
     def get_handler(self, handler_id):
         handler = self.handlers[handler_id]
