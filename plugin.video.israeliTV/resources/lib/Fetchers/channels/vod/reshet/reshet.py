@@ -33,6 +33,8 @@ class Reshet(VODFetcher):
     brightcove_external_request_url = 'https://13tv.co.il/Services/getVideoItem.php'
     brightcove_external_request_by_id_url = 'https://13tv-api.oplayer.io/api/getlink/getVideoById'
     cast_time_data_url = 'https://13tv.co.il/wp-content/themes/reshet_tv/build/static/js/main.d89ffc8b.js'
+    live_video_request_url_template = 'https://13tv-api.oplayer.io/api/getlink/?userId={uid}&' \
+                                      'serverType=web&ch=1&cdnName=casttime'
 
     bref = 'ref%3Astream_reshet_live1_dvr'
     schedule_url = 'https://13tv.co.il/tv-guide/'
@@ -477,12 +479,12 @@ class Reshet(VODFetcher):
                                                  datetime.strptime(x['start_time'], '%H:%M').time()) < now_time]
         except TypeError:
             current_program = [x for x in prev_day_schedule['shows']
-                               if x['show_date'] == 0 and
+                               if x['show_date'] == 0 and x['start_time'] is not None and
                                datetime.combine(now_time.date(),
                                                 datetime(*(time.strptime(x['start_time'], '%H:%M')[0:6])).time()) <
                                now_time]
             current_program += [x for x in day_schedule['shows']
-                                if x['show_date'] > 0 and
+                                if x['show_date'] > 0 and x['start_time'] is not None and
                                 datetime.combine(now_time.date(),
                                                  datetime(*(time.strptime(x['start_time'], '%H:%M')[0:6])).time()) <
                                 now_time]
@@ -506,7 +508,8 @@ class Reshet(VODFetcher):
         if 'raw_data' not in self.live_data:
             self._fetch_live_video_raw_data()
 
-        video_urls = self.live_data['raw_data']['sources']
+        # video_urls = self.live_data['raw_data']['sources']
+        video_urls = self.live_data['raw_data']
         res = []
         headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
@@ -519,13 +522,13 @@ class Reshet(VODFetcher):
             'User-Agent': self.user_agent
         }
         for video_url in video_urls:
-            new_req = self.session.get(video_url['src'], headers=headers)
+            new_req = self.session.get(video_url['Link'], headers=headers)
             video_m3u8 = m3u8.loads(new_req.text)
             video_playlists = video_m3u8.playlists
             if all(vp.stream_info.bandwidth is not None for vp in video_playlists):
                 video_playlists.sort(key=lambda k: k.stream_info.bandwidth, reverse=True)
 
-            res.extend([VideoSource(link=urljoin(video_url['src'], x.uri), video_type=VideoTypes.VIDEO_SEGMENTS,
+            res.extend([VideoSource(link=urljoin(video_url['Link'], x.uri), video_type=VideoTypes.VIDEO_SEGMENTS,
                                     quality=x.stream_info.bandwidth, codec=x.stream_info.codecs)
                         for x in video_playlists])
         request_headers = {'Origin': self.base_url,
@@ -541,13 +544,35 @@ class Reshet(VODFetcher):
         Fetches live video raw data.
         :return:
         """
-        if 'raw_data' not in self.live_data:
-            self.live_data['raw_data'] = \
-                self.brightcove.fetch_live_video_raw_data(live_url=self.object_urls[VODCategories.LIVE_VIDEO],
-                                                          referer=self.object_urls[VODCategories.CHANNELS_MAIN],
-                                                          bref=self.bref)
+        # Old impleentation, now obsolete
+        # if 'raw_data' not in self.live_data:
+        #     self.live_data['raw_data'] = \
+        #         self.brightcove.fetch_live_video_raw_data(live_url=self.object_urls[VODCategories.LIVE_VIDEO],
+        #                                                   referer=self.object_urls[VODCategories.CHANNELS_MAIN],
+        #                                                   bref=self.bref)
+        #
+        # if 'sources' not in self.live_data['raw_data'] or len(self.live_data['raw_data']['sources']) == 0:
+        #     raise RuntimeError('Wrong format of the live video raw data. Recheck it!')
 
-        if 'sources' not in self.live_data['raw_data'] or len(self.live_data['raw_data']['sources']) == 0:
+        if self.site_user_id is None:
+            self._update_site_user_id()
+        url = self.live_video_request_url_template.format(uid=self.site_user_id)
+        headers = {
+            'Accept': '*/*',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Cache-Control': 'max-age=0',
+            'Host': '13tv.co.il',
+            'Referer': self.base_url,
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'User-Agent': self.user_agent
+        }
+        req = self.session.get(url, headers=headers)
+        assert req.ok
+        self.live_data['raw_data'] = req.json()
+
+        if len(self.live_data['raw_data']) == 0 or 'Link' not in self.live_data['raw_data'][0]:
             raise RuntimeError('Wrong format of the live video raw data. Recheck it!')
 
     def get_object_request(self, page_data, override_page_number=None, override_params=None, override_url=None):

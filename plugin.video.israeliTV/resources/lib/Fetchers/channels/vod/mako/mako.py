@@ -36,7 +36,10 @@ class Mako(Base):
                                                     obj_id=x['guid'],
                                                     title=x['title'],
                                                     url=urljoin(self.base_url, x['url']),
-                                                    image_link=x['logoPicVOD'],
+                                                    image_link=x['logoPicVOD']
+                                                    if (x['logoPicVOD'] is not None and len(x['logoPicVOD']) > 0
+                                                        and x['logoPicVOD'] != 'null')
+                                                    else x['logoPic'],
                                                     super_object=base_object,
                                                     subtitle=x['subtitle'],
                                                     description=x['brief'],

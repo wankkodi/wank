@@ -164,6 +164,7 @@ class PornHandlerIndicator(object):
         self.shemale = False
         self.cartoon = False
         self.amateur = False
+        self.anal = False
         self.lesbian = False
         self.interracial = False
         self.black = False
@@ -178,6 +179,8 @@ class PornHandlerIndicator(object):
 
 
 class SourceHandler(object):
+    source_range = range(-1, -2101, -1)
+
     def __init__(self, source_id, logo_dir):
         unsupported_dir = path.join(logo_dir, 'Unsupported')
         self.is_active = True
@@ -1149,76 +1152,34 @@ class SourceHandler(object):
         elif positive_source_id in range(501, 601):
             self.flags.amateur = True
         elif positive_source_id in range(601, 701):
-            self.flags.teens = True
+            self.flags.anal = True
         elif positive_source_id in range(701, 801):
-            self.flags.mature = True
+            self.flags.teens = True
         elif positive_source_id in range(801, 901):
-            self.flags.deep_fake = True
+            self.flags.mature = True
         elif positive_source_id in range(901, 1001):
-            self.flags.interracial = True
+            self.flags.deep_fake = True
         elif positive_source_id in range(1001, 1101):
-            self.flags.black = True
+            self.flags.interracial = True
         elif positive_source_id in range(1101, 1201):
-            self.flags.asian = True
+            self.flags.black = True
         elif positive_source_id in range(1201, 1301):
-            self.flags.vintage = True
+            self.flags.asian = True
         elif positive_source_id in range(1301, 1401):
-            self.flags.lesbian = True
+            self.flags.vintage = True
         elif positive_source_id in range(1401, 1501):
-            self.flags.gay = True
+            self.flags.lesbian = True
         elif positive_source_id in range(1501, 1601):
-            self.flags.shemale = True
+            self.flags.gay = True
         elif positive_source_id in range(1601, 1701):
-            self.flags.cartoon = True
+            self.flags.shemale = True
         elif positive_source_id in range(1701, 1801):
-            self.flags.fetish = True
+            self.flags.cartoon = True
         elif positive_source_id in range(1801, 1901):
-            self.flags.search = True
+            self.flags.fetish = True
         elif positive_source_id in range(1901, 2001):
+            self.flags.search = True
+        elif positive_source_id in range(2001, 2101):
             self.flags.database = True
         self.handler_id = source_id
         self.initialized_module = None
-
-
-class HandlerManager(object):
-    def __init__(self, logo_dir, user_data_dir, session_id):
-        self.handlers = {}
-        self.logo_dir = logo_dir
-        self.user_data_dir = user_data_dir
-        self.session_id = session_id
-        source_ids = range(-1, -2100, -1)
-        # xbmc.log('Preparing handlers for source ids {s}'.format(s=source_ids))
-        for _x in source_ids:
-            try:
-                _h = SourceHandler(_x, logo_dir)
-                if _h.main_module is None:
-                    continue
-                self.handlers[_h.handler_id] = _h
-            except ValueError:
-                continue
-
-    def get_handler(self, handler_id, use_web_server=True):
-        handler = self.handlers[handler_id]
-        if handler.initialized_module is None:
-            handler.initialized_module = handler.main_module(source_id=handler_id, data_dir=self.user_data_dir,
-                                                             session_id=self.session_id, use_web_server=use_web_server,
-                                                             )
-        return handler.initialized_module
-
-    def store_data_for_all_handlers(self):
-        """
-        Saves tthe data for all handlers.
-        :return:
-        """
-        for handler_id in self.handlers:
-            self.store_data_for_handler(handler_id)
-
-    def store_data_for_handler(self, handler_id):
-        """
-        Saves the data for all handlers.
-        :param handler_id: Handler id.
-        :return:
-        """
-        handler = self.handlers[handler_id]
-        if handler.initialized_module is not None:
-            handler.initialized_module.catalog_manager.save_store_data()

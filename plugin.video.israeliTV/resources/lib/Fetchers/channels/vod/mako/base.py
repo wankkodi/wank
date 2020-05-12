@@ -382,7 +382,9 @@ class Base(VODFetcher):
         if show_object.title is None:
             show_object.title = show_raw_data['root']['programData']['title']
         if show_object.image_link is None:
-            show_object.image_link = show_raw_data['root']['programData']['picVOD']
+            show_object.image_link = show_raw_data['root']['programData']['picVOD'] \
+                if len(show_raw_data['root']['programData']['picVOD']) > 0 \
+                else show_raw_data['root']['programData']['logoPicE4']
         # Mandatory update the new fields
         show_object.raw_data = show_raw_data
         show_sub_objects = []

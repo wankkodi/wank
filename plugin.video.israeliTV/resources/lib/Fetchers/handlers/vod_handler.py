@@ -18,6 +18,8 @@ from ..channels.vod.knesset import Knesset
 
 
 class SourceHandler(object):
+    source_range = range(-1, -22, -1)
+
     def __init__(self, source_id, logo_dir):
         if source_id == -1:
             self.title = 'mako'
@@ -107,44 +109,3 @@ class SourceHandler(object):
             raise ValueError('Wrong source type {s}'.format(s=source_id))
         self.handler_id = source_id
         self.initialized_module = None
-
-
-class HandlerManager(object):
-    def __init__(self, logo_dir, user_data_dir, session_id):
-        self.handlers = {}
-        self.logo_dir = logo_dir
-        self.user_data_dir = user_data_dir
-        self.session_id = session_id
-        source_ids = range(-1, -22, -1)
-        # xbmc.log('Preparing handlers for source ids {s}'.format(s=source_ids))
-        for _x in source_ids:
-            try:
-                _h = SourceHandler(_x, logo_dir)
-                self.handlers[_h.handler_id] = _h
-            except ValueError:
-                continue
-
-    def get_handler(self, handler_id):
-        handler = self.handlers[handler_id]
-        if handler.initialized_module is None:
-            handler.initialized_module = handler.main_module(vod_id=handler_id, data_dir=self.user_data_dir,
-                                                             session_id=self.session_id)
-        return handler.initialized_module
-
-    def store_data_for_all_handlers(self):
-        """
-        Saves tthe data for all handlers.
-        :return:
-        """
-        for handler_id in self.handlers:
-            self.store_data_for_handler(handler_id)
-
-    def store_data_for_handler(self, handler_id):
-        """
-        Saves the data for all handlers.
-        :param handler_id: Handler id.
-        :return:
-        """
-        handler = self.handlers[handler_id]
-        if handler.initialized_module is not None:
-            handler.initialized_module.catalog_manager.save_store_data()

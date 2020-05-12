@@ -14,7 +14,8 @@ import xbmc
 from .plugin_porn_settings import Settings
 
 # handlers
-from Fetchers.handlers.porn_handler import HandlerManager
+from Fetchers.handlers.porn_handler import SourceHandler
+from Fetchers.handlers.handler_manager import HandlerManager
 
 # Types
 from Fetchers.catalogs.porn_catalog import PornCategories
@@ -568,7 +569,7 @@ def run():
         with open(search_history_path, 'rb') as fl:
             search_history.extend(pickle.load(fl))
 
-    handler_wrapper.handlers = HandlerManager(logo_dir, user_data_dir, session_id)
+    handler_wrapper.handlers = HandlerManager(logo_dir, user_data_dir, session_id, SourceHandler)
 
     plugin.run()
     handler_wrapper.handlers.store_data_for_all_handlers()
