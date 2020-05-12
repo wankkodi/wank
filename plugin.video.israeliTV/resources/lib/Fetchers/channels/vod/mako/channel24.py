@@ -1,4 +1,4 @@
-from urllib.parse import urljoin, parse_qs
+from .... import urljoin, parse_qs
 
 from ....catalogs.vod_catalog import VODCategories, VODCatalogNode
 from .base import Base
