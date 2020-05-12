@@ -901,6 +901,7 @@ class Base(VODFetcher):
                     break
                 except ValueError as err:
                     err_cnt += 1
+                    self.user_agent = self.user_agents_manager.get_user_agent()
                     time.sleep(1)
                     if err_cnt == max_err_cnt:
                         raise err
