@@ -118,7 +118,8 @@ def choose_live():
     items = []
     handlers = sorted(handler_wrapper.handlers.handlers.items(), key=lambda x: -x[0])
     for handler_id, handler_data in handlers:
-        handler = handler_wrapper.handlers.get_handler(int(handler_id))
+        handler = handler_wrapper.handlers.get_handler(handler_id=int(handler_id),
+                                                       use_web_server=False)
         if handler.categories_enum.LIVE_VIDEO not in handler.object_urls:
             continue
 
@@ -174,7 +175,8 @@ def choose_search():
     items = []
     handlers = sorted(handler_wrapper.handlers.handlers.items(), key=lambda x: -x[0])
     for handler_id, handler_data in handlers:
-        handler = handler_wrapper.handlers.get_handler(int(handler_id))
+        handler = handler_wrapper.handlers.get_handler(handler_id=int(handler_id),
+                                                       use_web_server=False)
         if handler.categories_enum.SEARCH_MAIN not in handler.object_urls:
             continue
 
@@ -198,7 +200,8 @@ def choose_search():
 def show_vod_programs(handler_id, args, page_number):
     if args == '_first_run':
         args = ''
-    handler = handler_wrapper.handlers.get_handler(int(handler_id))
+    handler = handler_wrapper.handlers.get_handler(handler_id=int(handler_id),
+                                                   use_web_server=False)
     log('Showing programs for handler {i} and ids: {ids}'.format(i=handler_id, ids=args))
     if len(args) > 0:
         # log(str([int(x) for x in args.split(separator)]))
@@ -276,7 +279,8 @@ def perform_search(handler_id, search_flag):
     else:
         query = search_history[int(search_flag)]
 
-    handler = handler_wrapper.handlers.get_handler(int(handler_id))
+    handler = handler_wrapper.handlers.get_handler(handler_id=int(handler_id),
+                                                   use_web_server=False)
     search_results = handler.search_query(query)
     return show_search_programs(handler_id, str(search_results.id), str(1))
 
@@ -285,7 +289,8 @@ def perform_search(handler_id, search_flag):
 def show_search_programs(handler_id, args, page_number):
     if args == '_first_run':
         args = ''
-    handler = handler_wrapper.handlers.get_handler(int(handler_id))
+    handler = handler_wrapper.handlers.get_handler(handler_id=int(handler_id),
+                                                   use_web_server=False)
     log('Showing programs for handler {i} and ids: {ids}'.format(i=handler_id, ids=args))
     if len(args) > 0:
         # log(str([int(x) for x in args.split(separator)]))
@@ -325,7 +330,8 @@ def page_search_input_window(handler_id, args, page_number, start_page, end_page
 # Play routing
 @plugin.route('/play_episode/<handler_id>/<args>')
 def play_episode(handler_id, args):
-    handler = handler_wrapper.handlers.get_handler(int(handler_id))
+    handler = handler_wrapper.handlers.get_handler(handler_id=int(handler_id),
+                                                   use_web_server=False)
     log('Playing videos for handler {i} and ids: {ids}'.format(i=handler_id, ids=args))
     episode = handler.get_show_object(*(int(x) for x in args.split(separator)))
     log('Site video links {0}.'.format(episode.url if type(episode.url) == str else episode.url.encode('utf-8')))
@@ -339,7 +345,8 @@ def play_episode(handler_id, args):
 
 @plugin.route('/play_live_stream/<handler_id>')
 def play_live_stream(handler_id):
-    handler = handler_wrapper.handlers.get_handler(int(handler_id))
+    handler = handler_wrapper.handlers.get_handler(handler_id=int(handler_id),
+                                                   use_web_server=False)
     log('Playing live stream for handler {i}'.format(i=handler_id))
 
     video_data = handler.get_live_stream_video_link()
@@ -398,7 +405,8 @@ def prepare_list_items(show_list, handler_id):
     # import web_pdb
     # web_pdb.set_trace()
 
-    handler = handler_wrapper.handlers.get_handler(int(handler_id))
+    handler = handler_wrapper.handlers.get_handler(handler_id=int(handler_id),
+                                                   use_web_server=False)
     for x in show_list.sub_objects:
         if x.object_type in (handler.categories_enum.VIDEO, ):
             func_call = play_episode
