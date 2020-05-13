@@ -145,9 +145,9 @@ class Channel9(VODFetcher):
                     'video_link' in episode_data.additional_data and
                     episode_data.additional_data['video_link'] is not None
             ):
-                video_objects = VideoSource(link=episode_data.additional_data['video_link'],
-                                            video_type=VideoTypes.VIDEO_REGULAR)
-                return VideoNode(video_sources=[video_objects], raw_data=episode_data)
+                video_objects = [VideoSource(link=episode_data.additional_data['video_link'],
+                                             video_type=VideoTypes.VIDEO_REGULAR)]
+                return VideoNode(video_sources=video_objects, raw_data=episode_data)
 
         req = self.get_object_request(video_data)
         tree = self.parser.parse(req.content.decode('utf-8'))
@@ -155,27 +155,27 @@ class Channel9(VODFetcher):
         raw_source = re.findall(r'(?:source: )({.*})(?:,)', raw_script)[0]
         raw_video_data = prepare_json_from_not_formatted_text(raw_source)
         if 'src' in raw_video_data:
-            video_objects = VideoSource(link=[raw_video_data['src']], video_type=VideoTypes.VIDEO_REGULAR)
-            return VideoNode(video_sources=[video_objects])
+            video_objects = [VideoSource(link=raw_video_data['src'], video_type=VideoTypes.VIDEO_REGULAR)]
+            return VideoNode(video_sources=video_objects)
 
         videos = [x for x in tree.xpath('.//script') if x.text is not None and 'source' in x.text]
         if len(videos) > 0:
             videos = re.findall(r'(?:src: \')(.*?)(?:\')', videos[0].text)
-            video_objects = VideoSource(link=videos, video_type=VideoTypes.VIDEO_REGULAR)
-            return VideoNode(video_sources=[video_objects])
+            video_objects = [VideoSource(link=x, video_type=VideoTypes.VIDEO_REGULAR) for x in videos]
+            return VideoNode(video_sources=video_objects)
 
         # We try another method...
         videos = [urljoin(video_data.url, x) for x in tree.xpath('.//source[@type="video/mp4"]/@src')]
         if len(videos) > 0:
-            video_objects = VideoSource(link=videos, video_type=VideoTypes.VIDEO_REGULAR)
-            return VideoNode(video_sources=[video_objects])
+            video_objects = [VideoSource(link=x, video_type=VideoTypes.VIDEO_REGULAR) for x in videos]
+            return VideoNode(video_sources=video_objects)
 
         # We try another method...
         videos = [x for x in tree.xpath('.//script') if x.text is not None and 'file' in x.text]
         if len(videos) > 0:
             videos = re.findall(r'(?:file: *["\'])(.*?)(?:["\'])', videos[0].text)
-            video_objects = VideoSource(link=videos, video_type=VideoTypes.VIDEO_REGULAR)
-            return VideoNode(video_sources=[video_objects])
+            video_objects = [VideoSource(link=x, video_type=VideoTypes.VIDEO_REGULAR) for x in videos]
+            return VideoNode(video_sources=video_objects)
 
         raise RuntimeError('Cannot fetch video link. Check thee url {u}'.format(u=video_data.url))
 

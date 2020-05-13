@@ -367,6 +367,18 @@ class FreeOnes(PornFetcher):
             correct_url = re.sub(r'\\u.{4}', lambda x: x[0].encode('utf-8').decode('unicode-escape'), correct_url)
             if src['type'] == 'application/x-mpegURL':
                 # We have segments
+                headers = {
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
+                              'q=0.8,application/signed-exchange;v=b3',
+                    'Cache-Control': 'max-age=0',
+                    'Referer': video_data.url,
+                    # 'Host': urlparse(object_data.url).hostname,
+                    'Sec-Fetch-Mode': 'navigate',
+                    'Sec-Fetch-Site': 'same-origin',
+                    'Sec-Fetch-User': '?1',
+                    'Upgrade-Insecure-Requests': '1',
+                    'User-Agent': self.user_agent
+                }
                 segment_request = self.session.get(correct_url, headers=headers)
                 video_m3u8 = m3u8.loads(segment_request.text)
                 video_playlists = video_m3u8.playlists
