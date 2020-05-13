@@ -40,8 +40,8 @@ class VODFetcher(BaseFetcher):
         """
         return VODCategories
 
-    def __init__(self, vod_name, vod_id, store_dir, data_dir, source_type, use_web_server=False, session_id=None):
-        super(VODFetcher, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server,
+    def __init__(self, source_name, source_id, store_dir, data_dir, source_type, use_web_server=False, session_id=None):
+        super(VODFetcher, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
                                          session_id)
         self.available_shows_id = (self.source_id, 'available_shows')
         self.search_id = (self.source_id, 'search')
