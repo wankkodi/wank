@@ -108,4 +108,5 @@ class SourceHandler(object):
         else:
             raise ValueError('Wrong source type {s}'.format(s=source_id))
         self.handler_id = source_id
+        self.is_active = True
         self.initialized_module = None

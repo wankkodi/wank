@@ -108,6 +108,12 @@ class PornFilterTypes(CategoryEnum):
     SixProfession = (FilterTypes.PROFESSION_TYPE, 6)
     SevenProfession = (FilterTypes.PROFESSION_TYPE, 7)
     EightProfession = (FilterTypes.PROFESSION_TYPE, 8)
+    NineProfession = (FilterTypes.PROFESSION_TYPE, 8)
+    TenProfession = (FilterTypes.PROFESSION_TYPE, 8)
+    ElevenProfession = (FilterTypes.PROFESSION_TYPE, 8)
+    TwelveProfession = (FilterTypes.PROFESSION_TYPE, 8)
+    ThirteenProfession = (FilterTypes.PROFESSION_TYPE, 8)
+    FourteenProfession = (FilterTypes.PROFESSION_TYPE, 8)
     # Video length filters
     AllLength = (FilterTypes.LENGTH_TYPE, 0)
     OneLength = (FilterTypes.LENGTH_TYPE, 1)
@@ -197,6 +203,7 @@ class PornFilterTypes(CategoryEnum):
     HDOrder = (FilterTypes.SORT_ORDER_TYPE, 36)
     LiveOrder = (FilterTypes.SORT_ORDER_TYPE, 37)
     LoginOrder = (FilterTypes.SORT_ORDER_TYPE, 38)
+    ResolutionOrder = (FilterTypes.SORT_ORDER_TYPE, 39)
     # Country filters
     AfghanistanCountry = (FilterTypes.COUNTRY_TYPE, 0)
     AlbaniaCountry = (FilterTypes.COUNTRY_TYPE, 1)
@@ -419,6 +426,7 @@ class PornFilterTypes(CategoryEnum):
     SportsmenProfession = SixProfession
     SupermodelProfession = SevenProfession
     TVHostProfession = EightProfession
+    CamGirlProfession = NineProfession
 
 
 class PornCatalogNode(CatalogNode):

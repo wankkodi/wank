@@ -109,14 +109,6 @@ class PornPine(LaidHub):
                  if x.isdigit()]
         return pages
 
-    def _check_is_available_page(self, page_request):
-        """
-        In binary search performs test whether the current page is available.
-        :param page_request: Page request.
-        :return:
-        """
-        return page_request.ok
-
     @property
     def _binary_search_page_threshold(self):
         """

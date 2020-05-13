@@ -4,6 +4,19 @@ from os import path
 import pickle
 from datetime import datetime, timedelta
 
+SELECT_MESSAGE_HEADING = 40001
+SELECT_MESSAGE = 40002
+BLOCK_HEADING = 42004
+PIN_CODE_INPUT = 42011
+PIN_CODE_INPUT2 = 42012
+PIN_CODE_ERROR_HEADING = 42013
+PIN_CODE_LENGTH_ERROR_MESSAGE = 42014
+PIN_CODE_WRONG_VALIDATION_ERROR_MESSAGE = 42016
+PIN_CODE_INCONSISTENT_VALIDATION_ERROR_MESSAGE = 42017
+PIN_CODE_USER_WRONG_ERROR_MESSAGE = 42015
+SEND_DATA_SELECT_MESSAGE_HEADING = 42031
+SEND_DATA_SELECT_MESSAGE = 42032
+
 
 class SettingStructure(object):
     is_pin_code = None
@@ -14,38 +27,6 @@ class SettingStructure(object):
 
 
 class Settings(object):
-    # # Pin code select
-    # pin_code_select_message_heading = 'Welcome to WANK! WANK! WANK! add-on!'
-    # pin_code_select_message = 'In the following screens we will set-up the initial settings.\r\n' \
-    #                           'Remember that you always can change them in the setting section in the future... ' \
-    #                           'Do you want to set up the children protection PIN code?\r\n'\
-    #                           'In case of 5 incorrect attempts, the login screen add-on be blocked for half an ' \
-    #                           'hour.\r\n' \
-    #                           'It will be impossible to restore that PIN code, so in case you forget the code, ' \
-    #                           'you will must reinstall the add-on...'
-    #
-    # # Pin code input
-    # pin_code_input = 'Please enter the page PIN code (4 digits).'
-    # pin_code_input2 = 'Please validate the PIN code (4 digits).'
-    # pin_code_error_heading = 'Wrong PIN code'
-    # pin_code_length_error_message = 'The PIN code must have the length 4!'
-    # pin_code_wrong_validation_error_message = 'The validated PIN code does not match the one stored in the system!'
-    # pin_code_inconsistent_validation_error_message = 'The validated PIN code does not match the initial one! ' \
-    #                                                  'lease re-enter.'
-    # pin_code_user_wrong_error_message = 'The Entered PIN code is incorrect. Please re-enter. ' \
-    #                                     'You have {n} attempts left.'
-    #
-    # # Pin code block
-    # block_heading = 'You got blocked!'
-    #
-    # # Pin code select
-    # send_data_select_message_heading = 'Do You want to send anonymous data?'
-    # send_data_select_message = 'Do you want to anonymously send data to our server.\r\n' \
-    #                            'This will allow us to fix any bugs ASAP and provide you quicker response, ' \
-    #                            'as some of the sites settings changes dynamically and such data will improve ' \
-    #                            'the overall user experience.\r\n' \
-    #                            'NO PERSONAL DATA, NOR YOUR IP, WILL BE STORED IN OUR SERVERS! '
-
     @property
     def block_message(self):
         time_diff = self.__settings.last_blocked_time - datetime.now() + self.__block_period
@@ -99,25 +80,27 @@ class Settings(object):
 
     def _initialize_strings(self):
         # Pin code select
-        self.pin_code_select_message_heading = self.__localized_strings(40001)
-        self.pin_code_select_message = self.__localized_strings(40002)
+        self.pin_code_select_message_heading = self.__localized_strings(SELECT_MESSAGE_HEADING)
+        self.pin_code_select_message = self.__localized_strings(SELECT_MESSAGE)
 
         # Pin code input
-        self.pin_code_input = self.__localized_strings(42011)
-        self.pin_code_input2 = self.__localized_strings(42012)
-        self.pin_code_error_heading = self.__localized_strings(42013)
-        self.pin_code_length_error_message = self.__localized_strings(42014)
-        self.pin_code_wrong_validation_error_message = self.__localized_strings(42016)
-        self.pin_code_inconsistent_validation_error_message = self.__localized_strings(42017)
+        self.pin_code_input = self.__localized_strings(PIN_CODE_INPUT)
+        self.pin_code_input2 = self.__localized_strings(PIN_CODE_INPUT2)
+        self.pin_code_error_heading = self.__localized_strings(PIN_CODE_ERROR_HEADING)
+        self.pin_code_length_error_message = self.__localized_strings(PIN_CODE_LENGTH_ERROR_MESSAGE)
+        self.pin_code_wrong_validation_error_message = \
+            self.__localized_strings(PIN_CODE_WRONG_VALIDATION_ERROR_MESSAGE)
+        self.pin_code_inconsistent_validation_error_message = \
+            self.__localized_strings(PIN_CODE_INCONSISTENT_VALIDATION_ERROR_MESSAGE)
         self.pin_code_user_wrong_error_message = \
-            self.__localized_strings(42015).replace('%s', '{!s}')
+            self.__localized_strings(PIN_CODE_USER_WRONG_ERROR_MESSAGE).replace('%s', '{!s}')
 
         # Pin code block
-        self.block_heading = self.__localized_strings(42004)
+        self.block_heading = self.__localized_strings(BLOCK_HEADING)
 
         # Pin code select
-        self.send_data_select_message_heading = self.__localized_strings(42031)
-        self.send_data_select_message = self.__localized_strings(42032)
+        self.send_data_select_message_heading = self.__localized_strings(SEND_DATA_SELECT_MESSAGE_HEADING)
+        self.send_data_select_message = self.__localized_strings(SEND_DATA_SELECT_MESSAGE)
 
     def _check_user_pin_code(self):
         number_of_wrong_attempts = 0

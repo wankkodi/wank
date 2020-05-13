@@ -80,7 +80,7 @@ class DataServer(object):
             raise ConnectionRefusedError(request_result.text())
         return result_json
 
-    def push_error(self, report_type_id, site_name, url, message, page_filters, general_filters):
+    def push_error(self, report_type_id, site_name, url, message, page_filters, general_filters, version):
         """
         Sends new number of pages.
         :param report_type_id: Report type id. 0 for error, 1 for warning.
@@ -89,6 +89,7 @@ class DataServer(object):
         :param message: Error message.
         :param page_filters: Page filters.
         :param general_filters: General filters.
+        :param version: Module version.
         :return: dictionary with status, value of the data and error in case such occurred.
         """
         params = {'action': 'push_error',
@@ -98,6 +99,7 @@ class DataServer(object):
                   'message': message,
                   'page_filters': page_filters,
                   'general_filters': general_filters,
+                  'version': version,
                   }
         request_result = self.session.get(self.send_url, params=params)
         if not request_result.ok:

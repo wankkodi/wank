@@ -329,7 +329,8 @@ class PornFetcher(BaseFetcher):
                                                                ''.format(obj=element_object.title))
                 self.data_server.push_error(error_module.error_mode, error_module.site_name, error_module.url,
                                             error_module.message,
-                                            error_module.page_filters, error_module.general_filters)
+                                            error_module.page_filters, error_module.general_filters,
+                                            error_module.version)
 
             return element_object.sub_objects
         except (ValueError, IndexError) as err:

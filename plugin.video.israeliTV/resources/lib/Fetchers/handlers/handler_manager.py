@@ -8,15 +8,17 @@ class HandlerManager(object):
         for _x in source_handler.source_range:
             try:
                 _h = source_handler(_x, logo_dir)
+                if _h.is_active is False:
+                    continue
                 self.handlers[_h.handler_id] = _h
             except ValueError:
                 continue
 
-    def get_handler(self, handler_id):
+    def get_handler(self, handler_id, use_web_server):
         handler = self.handlers[handler_id]
         if handler.initialized_module is None:
-            handler.initialized_module = handler.main_module(vod_id=handler_id, data_dir=self.user_data_dir,
-                                                             session_id=self.session_id)
+            handler.initialized_module = handler.main_module(source_id=handler_id, data_dir=self.user_data_dir,
+                                                             session_id=self.session_id, use_web_server=use_web_server)
         return handler.initialized_module
 
     def store_data_for_all_handlers(self):
