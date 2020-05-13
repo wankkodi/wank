@@ -56,7 +56,7 @@ class Base(VODFetcher):
         """
         # self.episodes_to_data = {}
         self.season_to_show = {}
-        super(Base, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
+        super(Base, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server, session_id)
         self.available_shows = [x for x in self.dummy_super_object.sub_objects
                                 if x.object_type == VODCategories.CHANNELS_MAIN][0]
 

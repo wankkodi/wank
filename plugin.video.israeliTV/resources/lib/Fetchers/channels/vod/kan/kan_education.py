@@ -21,13 +21,13 @@ class KanEducation(Base):
             'https://www.kan.org.il/page.aspx?landingpageid=1137': self._fetch_show_data_1137,
         }
 
-    def __init__(self, source_name='KanEducation', source_id=-5, store_dir='.', data_dir='../../Data', source_type='VOD',
-                 use_web_server=False, session_id=None):
+    def __init__(self, source_name='KanEducation', source_id=-5, store_dir='.', data_dir='../../Data',
+                 source_type='VOD', use_web_server=False, session_id=None):
         """
         C'tor
         :param vod_name: save directory
         """
-        super(KanEducation, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server,
+        super(KanEducation, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
                                            session_id)
 
     @property

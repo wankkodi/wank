@@ -59,7 +59,8 @@ class Channel10(VODFetcher):
         :param vod_name: save directory
         """
         # self.episodes_to_data = {}
-        super(Channel10, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
+        super(Channel10, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                        session_id)
         self.show_names_filename = path.join(self.fetcher_data_dir, 'show_names.json.py')
         with open(self.show_names_filename, 'rb') as fl:
             self.show_names = json.load(fl)

@@ -11,7 +11,8 @@ class Channel24(Base):
         C'tor
         :param vod_name: save directory
         """
-        super(Channel24, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
+        super(Channel24, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                        )
 
     def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url):
         return NotImplementedError

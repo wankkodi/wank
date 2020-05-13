@@ -169,7 +169,8 @@ class FreeOnes(PornFetcher):
 
             image_data = link_data[0].xpath('./img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src']
+            image = image_data[0].attrib['data-src'] \
+                if 'data-src' in image_data[0].attrib else image_data[0].attrib['src']
 
             title = link_data[0].xpath('./span')
             assert len(title) == 1
@@ -213,7 +214,8 @@ class FreeOnes(PornFetcher):
             image_main_data = link_data[0].xpath('./div[@class="position-relative image-meta d-block image-link"]')
             image_data = image_main_data[0].xpath('./img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src']
+            image = image_data[0].attrib['data-src'] \
+                if 'data-src' in image_data[0].attrib else image_data[0].attrib['src']
 
             title = link_data[0].xpath('./div/div/p')
             assert len(title) == 1
@@ -273,7 +275,8 @@ class FreeOnes(PornFetcher):
 
             image_data = link_data[0].xpath('./div[@class="position-relative image-meta d-block image-link"]/img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src']
+            image = image_data[0].attrib['data-src'] \
+                if 'data-src' in image_data[0].attrib else image_data[0].attrib['src']
 
             title = link_data[0].xpath('./div[@class="teaser-abstract px-2 pt-2 pb-0 font-size-sm"]/div/p')
             assert len(title) == 1
@@ -351,18 +354,7 @@ class FreeOnes(PornFetcher):
         :param video_data: Video data (dict).
         :return:
          """
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                      'q=0.8,application/signed-exchange;v=b3*',
-            'Cache-Control': 'max-age=0',
-            'Host': self.host_name,
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'same-origin',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': self.user_agent
-        }
-        tmp_request = self.session.get(video_data.url, headers=headers)
+        tmp_request = self.get_object_request(video_data)
         request_data = re.findall(r'(?:loadFOPlayer\(\'foplayer\', )({.*?})(?:\);)', tmp_request.text, re.DOTALL)
         assert len(request_data) == 1
         request_data = prepare_json_from_not_formatted_text(request_data[0])
@@ -442,7 +434,8 @@ class FreeOnes(PornFetcher):
 
             image_data = video_tree_data.xpath('./div/img')
             assert len(image_data) == 1
-            image = image_data[0].attrib['src']
+            image = image_data[0].attrib['data-src'] \
+                if 'data-src' in image_data[0].attrib else image_data[0].attrib['src']
             preview = image_data[0].attrib['data-media'] if 'data-media' in image_data[0].attrib else None
             title = image_data[0].attrib['title'] if 'title' in image_data[0].attrib else None
 
@@ -485,7 +478,7 @@ class FreeOnes(PornFetcher):
                                 page_filter, fetch_base_url):
         split_url = fetch_base_url.split('/')
         is_video_page = true_object.object_type not in (PornCategories.CHANNEL_MAIN, PornCategories.CATEGORY_MAIN,
-                                                        PornCategories.PORN_STAR_MAIN)
+                                                        PornCategories.PORN_STAR_MAIN, PornCategories.VIDEO)
         headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
                       'q=0.8,application/signed-exchange;v=b3',
@@ -532,6 +525,7 @@ class FreeOnes(PornFetcher):
         elif true_object.object_type in (PornCategories.SEARCH_MAIN,):
             params['v'] = 'teasers'
             params['m[canPreviewFeatures]'] = 0
+
         if page_filter.sort_order.value is not None and true_object.object_type not in self._default_sort_by:
             params.update(parse_qsl(page_filter.sort_order.value))
         if page_filter.length.value is not None:

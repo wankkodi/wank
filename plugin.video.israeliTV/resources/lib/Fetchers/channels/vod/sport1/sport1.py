@@ -42,7 +42,8 @@ class Sport1(VODFetcher):
         C'tor
         :param vod_name: save directory
         """
-        super(Sport1, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
+        super(Sport1, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                     session_id)
         self.brightcove = Brightcove(self.session, self.user_agent)
 
     def fetch_sub_objects(self, element_object):

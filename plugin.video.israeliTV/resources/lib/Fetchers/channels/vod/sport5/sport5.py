@@ -40,7 +40,8 @@ class Sport5(VODFetcher):
         C'tor
         :param vod_name: save directory
         """
-        super(Sport5, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
+        super(Sport5, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                     session_id)
         self.episodes_to_data_filename = path.join(self.fetcher_data_dir, 'sport5_episodes_to_data.dat')
         if not path.isfile(self.episodes_to_data_filename):
             self.episodes_to_data = {}

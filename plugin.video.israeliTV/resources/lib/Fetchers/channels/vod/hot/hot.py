@@ -16,7 +16,7 @@ class Hot(Base):
         C'tor
         :param vod_name: save directory
         """
-        super(Hot, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
+        super(Hot, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server, session_id)
 
     @property
     def __version(self):

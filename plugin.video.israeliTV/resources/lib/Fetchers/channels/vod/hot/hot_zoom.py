@@ -9,13 +9,14 @@ class HotZoom(Base):
             VODCategories.CHANNELS_MAIN: 'http://hot.ynet.co.il/home/0,7340,L-11527,00.html',
         }
 
-    def __init__(self, source_name='HotZoom', source_id=-11, store_dir='.\\Hot\\', data_dir='../../Data', source_type='VOD',
-                 use_web_server=False, session_id=None):
+    def __init__(self, source_name='HotZoom', source_id=-11, store_dir='.\\Hot\\', data_dir='../../Data',
+                 source_type='VOD', use_web_server=False, session_id=None):
         """
         C'tor
         :param vod_name: save directory
         """
-        super(HotZoom, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
+        super(HotZoom, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                      session_id)
 
     @property
     def __version(self):

@@ -13,7 +13,7 @@ class Bip(Base):
 
     def __init__(self, source_name='Bip', source_id=-2, store_dir='.', data_dir='../../Data', source_type='VOD',
                  use_web_server=False, session_id=None):
-        super(Bip, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
+        super(Bip, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server, session_id)
 
     @property
     def object_urls(self):

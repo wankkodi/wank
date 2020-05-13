@@ -110,13 +110,13 @@ class Base(VODFetcher):
         """
         return 'https://www.kan.org.il/'
 
-    def __init__(self, vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id):
+    def __init__(self, source_name, source_id, store_dir, data_dir, source_type, use_web_server, session_id):
         """
         C'tor
         :param vod_name: save directory
         """
         # self.season_to_show = {}
-        super(Base, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
+        super(Base, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server, session_id)
 
     def fetch_sub_objects(self, element_object):
         """

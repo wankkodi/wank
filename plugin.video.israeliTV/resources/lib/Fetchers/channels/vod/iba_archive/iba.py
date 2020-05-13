@@ -76,7 +76,7 @@ class IBA(VODFetcher):
         :param vod_name: save directory
         """
         self.episodes_to_data = {}
-        super(IBA, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
+        super(IBA, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server, session_id)
 
         self._properties = {
             'p_key': '9f220835e4cf51b79de811d271',

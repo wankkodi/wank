@@ -116,7 +116,8 @@ class Walla(VODFetcher):
         """
         self.episodes_to_data = {}
         self.season_to_show = {}
-        super(Walla, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
+        super(Walla, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
+                                    session_id)
 
     def _prepare_main_sub_objects(self):
         """
