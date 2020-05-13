@@ -50,7 +50,6 @@ class Channel20(VODFetcher):
                  use_web_server=False, session_id=None):
         """
         C'tor
-        :param vod_name: save directory
         """
         self.episodes_to_data = {}
         self.season_to_show = {}
@@ -184,45 +183,52 @@ class Channel20(VODFetcher):
         req = self.get_object_request(video_data)
         tree = self.parser.parse(req.text)
         scripts = [x.attrib['src'] for x in tree.xpath('.//iframe[@src]') if 'cdn' in x.attrib['src']]
-        assert len(scripts) == 1
-        headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
-                      'q=0.8,application/signed-exchange;v=b3',
-            # 'Accept-Encoding': 'gzip, deflate, br',
-            'Cache-Control': 'max-age=0',
-            'Referer': video_data.url,
-            'Sec-Fetch-Mode': 'nested-navigate',
-            'Sec-Fetch-Site': 'cross-site',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': self.user_agent
-        }
-        req = self.session.get(scripts[0], headers=headers)
-        new_url = re.findall(r'(?:player.src\()({.*}?)(?:\);)', req.text)
-        assert len(new_url) == 1
-        new_url = prepare_json_from_not_formatted_text(new_url[0])
+        if len(scripts) == 1:
+            headers = {
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
+                          'q=0.8,application/signed-exchange;v=b3',
+                # 'Accept-Encoding': 'gzip, deflate, br',
+                'Cache-Control': 'max-age=0',
+                'Referer': video_data.url,
+                'Sec-Fetch-Mode': 'nested-navigate',
+                'Sec-Fetch-Site': 'cross-site',
+                'Upgrade-Insecure-Requests': '1',
+                'User-Agent': self.user_agent
+            }
+            req = self.session.get(scripts[0], headers=headers)
+            new_url = re.findall(r'(?:player.src\()({.*}?)(?:\);)', req.text)
+            assert len(new_url) == 1
+            new_url = prepare_json_from_not_formatted_text(new_url[0])
 
-        headers = {
-            'Accept': '*/*',
-            # 'Accept-Encoding': 'gzip, deflate, br',
-            'Cache-Control': 'max-age=0',
-            # 'Referer': self.shows_url,
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'same-origin',
-            # 'Sec-Fetch-User': '?1',
-            'User-Agent': self.user_agent,
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-        req = self.session.get(new_url['src'], headers=headers)
-        video_m3u8 = m3u8.loads(req.text)
-        video_playlists = video_m3u8.playlists
-        if all(vp.stream_info.bandwidth is not None for vp in video_playlists):
-            video_playlists.sort(key=lambda k: k.stream_info.bandwidth, reverse=True)
+            headers = {
+                'Accept': '*/*',
+                # 'Accept-Encoding': 'gzip, deflate, br',
+                'Cache-Control': 'max-age=0',
+                # 'Referer': self.shows_url,
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-origin',
+                # 'Sec-Fetch-User': '?1',
+                'User-Agent': self.user_agent,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+            req = self.session.get(new_url['src'], headers=headers)
+            video_m3u8 = m3u8.loads(req.text)
+            video_playlists = video_m3u8.playlists
+            if all(vp.stream_info.bandwidth is not None for vp in video_playlists):
+                video_playlists.sort(key=lambda k: k.stream_info.bandwidth, reverse=True)
 
-        video_objects = [VideoSource(link=urljoin(new_url['src'], x.uri),
-                                     video_type=VideoTypes.VIDEO_SEGMENTS,
-                                     quality=x.stream_info.bandwidth,
-                                     codec=x.stream_info.codecs)
-                         for x in video_playlists]
+            video_objects = [VideoSource(link=urljoin(new_url['src'], x.uri),
+                                         video_type=VideoTypes.VIDEO_SEGMENTS,
+                                         quality=x.stream_info.bandwidth,
+                                         codec=x.stream_info.codecs)
+                             for x in video_playlists]
+        else:
+            # We have a youtube link
+            scripts = [x.attrib['src'] for x in tree.xpath('.//iframe[@src]') if 'youtube' in x.attrib['src']]
+            video_objects = [VideoSource(link=x,
+                                         video_type=VideoTypes.VIDEO_YOUTUBE)
+                             for x in scripts]
+
         return VideoNode(video_sources=video_objects, raw_data=req.text)
 
     def get_video_m3u8(self, video_link):
