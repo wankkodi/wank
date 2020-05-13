@@ -108,7 +108,7 @@ class Walla(VODFetcher):
         """
         return 'https://vod.walla.co.il/'
 
-    def __init__(self, vod_name='Walla', vod_id=-12, store_dir='.', data_dir='../../Data', source_type='VOD',
+    def __init__(self, source_name='Walla', source_id=-12, store_dir='.', data_dir='../../Data', source_type='VOD',
                  use_web_server=False, session_id=None):
         """
         C'tor

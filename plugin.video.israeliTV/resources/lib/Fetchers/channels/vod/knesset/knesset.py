@@ -36,7 +36,7 @@ class Knesset(VODFetcher):
         """
         return 'https://www.knesset.tv/'
 
-    def __init__(self, vod_name='Knesset', vod_id=-21, store_dir='.', data_dir='../../Data', source_type='VOD',
+    def __init__(self, source_name='Knesset', source_id=-21, store_dir='.', data_dir='../../Data', source_type='VOD',
                  use_web_server=False, session_id=None):
         """
         C'tor

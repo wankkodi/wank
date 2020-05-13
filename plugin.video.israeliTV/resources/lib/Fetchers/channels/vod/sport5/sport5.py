@@ -34,7 +34,7 @@ class Sport5(VODFetcher):
         """
         return 'https://vod.sport5.co.il/'
 
-    def __init__(self, vod_name='Sport5', vod_id=-13, store_dir='.', data_dir='../../Data', source_type='VOD',
+    def __init__(self, source_name='Sport5', source_id=-13, store_dir='.', data_dir='../../Data', source_type='VOD',
                  use_web_server=False, session_id=None):
         """
         C'tor

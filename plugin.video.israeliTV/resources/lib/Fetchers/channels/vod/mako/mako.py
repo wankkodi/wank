@@ -11,7 +11,7 @@ from .base import Base
 
 
 class Mako(Base):
-    def __init__(self, vod_name='Mako', vod_id=-1, store_dir='.', data_dir='../../Data', source_type='VOD',
+    def __init__(self, source_name='Mako', source_id=-1, store_dir='.', data_dir='../../Data', source_type='VOD',
                  use_web_server=False, session_id=None):
         """
         C'tor

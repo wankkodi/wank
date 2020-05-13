@@ -42,7 +42,7 @@ class One(VODFetcher):
         """
         return 'https://www.one.co.il/'
 
-    def __init__(self, vod_name='One', vod_id=-14, store_dir='.', data_dir='../../Data', source_type='VOD',
+    def __init__(self, source_name='One', source_id=-14, store_dir='.', data_dir='../../Data', source_type='VOD',
                  use_web_server=False, session_id=None):
         """
         C'tor

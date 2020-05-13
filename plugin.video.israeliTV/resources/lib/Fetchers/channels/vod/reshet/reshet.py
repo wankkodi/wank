@@ -63,7 +63,7 @@ class Reshet(VODFetcher):
         """
         return 'https://13tv.co.il/'
 
-    def __init__(self, vod_name='Reshet', vod_id=-3, store_dir='.', data_dir='../../Data', source_type='VOD',
+    def __init__(self, source_name='Reshet', source_id=-3, store_dir='.', data_dir='../../Data', source_type='VOD',
                  use_web_server=False, session_id=None):
         """
         C'tor

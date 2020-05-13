@@ -379,9 +379,9 @@ class Base(VODFetcher):
 
         show_raw_data = req.json()
         # Update the missed values
-        if show_object.title is None:
+        if show_object.title is None or show_object.title == 'null':
             show_object.title = show_raw_data['root']['programData']['title']
-        if show_object.image_link is None:
+        if show_object.image_link is None or show_object.image_link == 'null':
             show_object.image_link = show_raw_data['root']['programData']['picVOD'] \
                 if len(show_raw_data['root']['programData']['picVOD']) > 0 \
                 else show_raw_data['root']['programData']['logoPicE4']

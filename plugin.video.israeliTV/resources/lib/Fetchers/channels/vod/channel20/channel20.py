@@ -46,7 +46,7 @@ class Channel20(VODFetcher):
         """
         return 'https://www.20il.co.il/'
 
-    def __init__(self, vod_name='Channel20', vod_id=-16, store_dir='.', data_dir='../../Data', source_type='VOD',
+    def __init__(self, source_name='Channel20', source_id=-16, store_dir='.', data_dir='../../Data', source_type='VOD',
                  use_web_server=False, session_id=None):
         """
         C'tor

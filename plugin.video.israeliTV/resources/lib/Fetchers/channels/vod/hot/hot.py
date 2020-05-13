@@ -10,7 +10,7 @@ class Hot(Base):
             VODCategories.CHANNELS_MAIN: 'http://hot.ynet.co.il/home/0,7340,L-7250,00.html',
         }
 
-    def __init__(self, vod_name='Hot', vod_id=-6, store_dir='.', data_dir='../../Data', source_type='VOD',
+    def __init__(self, source_name='Hot', source_id=-6, store_dir='.', data_dir='../../Data', source_type='VOD',
                  use_web_server=False, session_id=None):
         """
         C'tor

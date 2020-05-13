@@ -36,7 +36,7 @@ class Sport1(VODFetcher):
         """
         return 'https://sport1.maariv.co.il/'
 
-    def __init__(self, vod_name='Sport1', vod_id=-15, store_dir='.', data_dir='../../Data', source_type='VOD',
+    def __init__(self, source_name='Sport1', source_id=-15, store_dir='.', data_dir='../../Data', source_type='VOD',
                  use_web_server=False, session_id=None):
         """
         C'tor

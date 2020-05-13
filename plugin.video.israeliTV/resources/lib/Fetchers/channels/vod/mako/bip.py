@@ -11,7 +11,7 @@ class Bip(Base):
     time_format = '%M:%S'
     season1_title = 'עונה 1'
 
-    def __init__(self, vod_name='Bip', vod_id=-2, store_dir='.', data_dir='../../Data', source_type='VOD',
+    def __init__(self, source_name='Bip', source_id=-2, store_dir='.', data_dir='../../Data', source_type='VOD',
                  use_web_server=False, session_id=None):
         super(Bip, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
 

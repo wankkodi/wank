@@ -52,7 +52,7 @@ class Channel10(VODFetcher):
         """
         return 'http://10tv.nana.co.il/'
 
-    def __init__(self, vod_name='Channel10', vod_id=-18, store_dir='.', data_dir='../../Data', source_type='VOD',
+    def __init__(self, source_name='Channel10', source_id=-18, store_dir='.', data_dir='../../Data', source_type='VOD',
                  use_web_server=False, session_id=None):
         """
         C'tor

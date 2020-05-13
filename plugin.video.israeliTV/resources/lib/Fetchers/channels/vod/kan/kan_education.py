@@ -21,7 +21,7 @@ class KanEducation(Base):
             'https://www.kan.org.il/page.aspx?landingpageid=1137': self._fetch_show_data_1137,
         }
 
-    def __init__(self, vod_name='KanEducation', vod_id=-5, store_dir='.', data_dir='../../Data', source_type='VOD',
+    def __init__(self, source_name='KanEducation', source_id=-5, store_dir='.', data_dir='../../Data', source_type='VOD',
                  use_web_server=False, session_id=None):
         """
         C'tor

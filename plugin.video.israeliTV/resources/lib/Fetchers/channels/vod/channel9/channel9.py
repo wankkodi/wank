@@ -31,14 +31,14 @@ class Channel9(VODFetcher):
         """
         return 'https://www.9tv.co.il/'
 
-    def __init__(self, vod_name='Channel9', vod_id=-17, store_dir='.', data_dir='../../Data', source_type='VOD',
+    def __init__(self, source_name='Channel9', source_id=-17, store_dir='.', data_dir='../../Data', source_type='VOD',
                  use_web_server=False, session_id=None):
         """
         C'tor
-        :param vod_name: save directory
+        :param source_name: save directory
         """
         self.episodes_to_data = {}
-        super(Channel9, self).__init__(vod_name, vod_id, store_dir, data_dir, source_type, use_web_server, session_id)
+        super(Channel9, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server, session_id)
 
     # # Obsolete
     # def _update_base_categories(self, base_object):

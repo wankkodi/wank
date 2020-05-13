@@ -69,7 +69,7 @@ class IBA(VODFetcher):
         """
         return 'http://admin.applicaster.com/'
 
-    def __init__(self, vod_name='IBA', vod_id=-19, store_dir='.', data_dir='../../Data', source_type='VOD',
+    def __init__(self, source_name='IBA', source_id=-19, store_dir='.', data_dir='../../Data', source_type='VOD',
                  use_web_server=False, session_id=None):
         """
         C'tor
