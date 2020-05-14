@@ -364,7 +364,7 @@ class FreeOnes(PornFetcher):
             if 'type' not in src:
                 raise ValueError('No video type')
             correct_url = re.sub(r'\\/', '/', src['src'])
-            correct_url = re.sub(r'\\u.{4}', lambda x: x[0].encode('utf-8').decode('unicode-escape'), correct_url)
+            correct_url = correct_url.encode('utf-8').decode('unicode-escape')
             if src['type'] == 'application/x-mpegURL':
                 # We have segments
                 headers = {
@@ -398,7 +398,7 @@ class FreeOnes(PornFetcher):
                 videos.extend([VideoSource(link=re.sub(r'\d+p.mp4$', '{q}.mp4'.format(q=q), correct_url),
                                            video_type=VideoTypes.VIDEO_REGULAR,
                                            resolution=re.findall(r'\d+', q)[0])
-                               for q in qualities])
+                               for q in qualities if len(re.findall(r'\d+', q)) > 0])
             else:
                 raise ValueError('Unsupported video format {vf}'.format(vf=src['type']))
         videos.sort(key=lambda x: x.resolution, reverse=True)
