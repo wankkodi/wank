@@ -35,6 +35,8 @@ class Reshet(VODFetcher):
     cast_time_data_url = 'https://13tv.co.il/wp-content/themes/reshet_tv/build/static/js/main.d89ffc8b.js'
     live_video_request_url_template = 'https://13tv-api.oplayer.io/api/getlink/?userId={uid}&' \
                                       'serverType=web&ch=1&cdnName=casttime'
+    stored_video_request_url_template = 'https://13tv-api.oplayer.io/api/getlink/getVideoByFileName?userId={uid}&' \
+                                        'videoName={vn}&serverType=web&callback=x'
 
     bref = 'ref%3Astream_reshet_live1_dvr'
     schedule_url = 'https://13tv.co.il/tv-guide/'
@@ -67,7 +69,6 @@ class Reshet(VODFetcher):
                  use_web_server=False, session_id=None):
         """
         C'tor
-        :param vod_name: save directory
         """
         super(Reshet, self).__init__(source_name, source_id, store_dir, data_dir, source_type, use_web_server,
                                      session_id)
@@ -122,8 +123,11 @@ class Reshet(VODFetcher):
         # We get the data of the page
         req = self.get_object_request(video_data)
         raw_data = self._find_page_raw_data(req)
-
         channel_id = raw_data['curItem']
+
+        cookies = None
+        if self.site_user_id is None:
+            self._update_site_user_id()
 
         raw_m3u8 = self.brightcove.get_video_links(vid=raw_data[u'items'][str(channel_id)][u'video'][u'videoID'],
                                                    secure=True)
@@ -136,9 +140,11 @@ class Reshet(VODFetcher):
                            quality=x.stream_info.bandwidth, codec=x.stream_info.codecs)
                for x in video_playlists]
 
-        cookies = None
         if len(res) == 0:
             # We use another method
+            raw_data = self._find_page_raw_data(req)
+            channel_id = raw_data['curItem']
+
             tree = self.parser.parse(req.text)
             script = [x for x in tree.xpath('.//script/text()') if 'accountID' in x]
             assert len(script) == 1
@@ -160,8 +166,6 @@ class Reshet(VODFetcher):
         if len(res) == 0:
             # We use another method
             video_ref = raw_data[u'items'][str(channel_id)][u'video']['videoRef']
-            if self.site_user_id is None:
-                self._update_site_user_id()
             new_data = self.get_video_links_alt2(vid=video_ref,
                                                  user_id=self.site_user_id,
                                                  external_request_url=self.brightcove_external_request_url,
@@ -187,7 +191,49 @@ class Reshet(VODFetcher):
             res = [VideoSource(link=urljoin(request_url, x.uri), video_type=VideoTypes.VIDEO_SEGMENTS,
                                quality=x.stream_info.bandwidth, codec=x.stream_info.codecs)
                    for x in video_playlists]
-            cookies = {k: v for k, v in self.session.cookies.items() if k == 'Ccookie'}
+            cookies = {k: v for k, v in self.session.cookies.items() if k == 'Cookie'}
+        if len(res) == 0:
+            url = self.stored_video_request_url_template.format(uid=self.site_user_id,
+                                                                vn=video_data.raw_data['video']['cst']['videoRef'])
+            headers = {
+                'Accept': '*/*',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Cache-Control': 'max-age=0',
+                'Host': '13tv.co.il',
+                'Referer': self.base_url,
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Sec-Fetch-User': '?1',
+                'User-Agent': self.user_agent
+            }
+            req = self.session.get(url, headers=headers)
+            assert req.ok
+
+            raw_data = req.json()
+            for new_data in raw_data:
+                request_url = (new_data['ProtocolType'] + new_data['ServerAddress'] + new_data['MediaRoot'] +
+                               new_data['MediaFile'][:-4] + new_data['Bitrates'] + new_data['MediaFile'][-4:] +
+                               new_data['StreamingType'] + new_data['Token'])
+                headers = {
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;'
+                              'q=0.8,application/signed-exchange;v=b3',
+                    'Accept-Encoding': 'gzip, deflate, br',
+                    'Cache-Control': 'max-age=0',
+                    'Origin': self.base_url,
+                    'Referer': self.object_urls[VODCategories.LIVE_VIDEO],
+                    'Sec-Fetch-Mode': 'cors',
+                    'User-Agent': self.user_agent
+                }
+                req = self.session.get(request_url, headers=headers)
+                assert req.ok
+
+                video_m3u8 = m3u8.loads(req.text)
+                video_playlists = video_m3u8.playlists
+                if all(vp.stream_info.bandwidth is not None for vp in video_playlists):
+                    video_playlists.sort(key=lambda k: k.stream_info.bandwidth, reverse=True)
+                res = [VideoSource(link=urljoin(request_url, x.uri), video_type=VideoTypes.VIDEO_SEGMENTS,
+                                   quality=x.stream_info.bandwidth, codec=x.stream_info.codecs)
+                       for x in video_playlists]
 
         return VideoNode(video_sources=res, raw_data=raw_data, cookies=cookies)
 

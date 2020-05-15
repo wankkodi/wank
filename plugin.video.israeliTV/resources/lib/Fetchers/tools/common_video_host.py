@@ -69,7 +69,8 @@ class Brightcove(object):
         assert req.ok
         params = re.findall(r'(?:initPlugin\([\n ].*\'catalog\'[\n ]*, )({.*?})(?:[\n ]*\);)', req.text,
                             flags=re.DOTALL)
-        assert len(params) == 1
+        if len(params) == 0:
+            return []
         params = json.loads(params[0])
 
         headers = {
@@ -125,7 +126,8 @@ class Brightcove(object):
         js_url = self.player_js_template.format(aid=account_id, pid=player_id)
         js_req = self.session.get(js_url, headers=headers)
         catalog_data = re.findall(r'(?:\'catalog\'\n *, )({.*})(?:\n)', js_req.text)
-        assert len(catalog_data) == 1
+        if len(catalog_data) == 0:
+            return []
         catalog_data = json.loads(catalog_data[0])
         headers = {
             'Accept': 'application/json;pk={pk}'.format(pk=catalog_data['policyKey']),
