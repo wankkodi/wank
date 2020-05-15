@@ -191,7 +191,7 @@ class Reshet(VODFetcher):
             res = [VideoSource(link=urljoin(request_url, x.uri), video_type=VideoTypes.VIDEO_SEGMENTS,
                                quality=x.stream_info.bandwidth, codec=x.stream_info.codecs)
                    for x in video_playlists]
-            cookies = {k: v for k, v in self.session.cookies.items() if k == 'Cookie'}
+            cookies = {k: v for k, v in self.session.cookies.items() if k == 'Ccookie'}
         if len(res) == 0:
             url = self.stored_video_request_url_template.format(uid=self.site_user_id,
                                                                 vn=video_data.raw_data['video']['cst']['videoRef'])
