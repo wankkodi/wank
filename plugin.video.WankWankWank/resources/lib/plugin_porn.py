@@ -217,7 +217,7 @@ def show_porn_programs(handler_id, args, page_number):
         # web_pdb.set_trace()
         show_list = handler.get_show_object(*())
 
-    if len(show_list.sub_objects) == 1:
+    if show_list.sub_objects is not None and len(show_list.sub_objects) == 1:
         # We go straight ahead to its subcategory
         new_id = separator.join([str(y) for y in show_list.sub_objects[0].get_full_id_path()])
         return show_porn_programs(handler_id, new_id,
