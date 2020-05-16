@@ -281,8 +281,6 @@ class VePorns(PornFetcher):
                                                     object_type=PornCategories.VIDEO,
                                                     super_object=page_data,
                                                     ))
-            page_data.add_sub_objects(res)
-            return res
         else:
             # Option 2
             videos = tree.xpath('.//ul[@class="listContent video size232"]/li/ul[@class="listContent video size232"]/'
@@ -313,8 +311,9 @@ class VePorns(PornFetcher):
                                                     object_type=PornCategories.VIDEO,
                                                     super_object=page_data,
                                                     ))
+        if len(res) > 0:
             page_data.add_sub_objects(res)
-            return res
+        return res
 
     def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url):
         """
@@ -365,7 +364,7 @@ class VePorns(PornFetcher):
 
     @property
     def __version(self):
-        return 0
+        return 1
 
     @property
     def _version_stack(self):
