@@ -61,7 +61,8 @@ class Ebony8(BoundHub):
                                                   './/div[@class="list-sponsors"]/div[@class="margin-fix"]/a',
                                                   PornCategories.CHANNEL)
 
-    def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url):
+    def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url,
+                                refetch_broken_page=True):
         headers = {
             'Accept': '*.*',
             'Cache-Control': 'max-age=0',
@@ -103,7 +104,7 @@ class Ebony8(BoundHub):
             return page_request
         else:
             return super(Ebony8, self)._get_page_request_logic(page_data, params, page_number, true_object,
-                                                               page_filter, fetch_base_url)
+                                                               page_filter, fetch_base_url, refetch_broken_page)
 
     @property
     def __version(self):

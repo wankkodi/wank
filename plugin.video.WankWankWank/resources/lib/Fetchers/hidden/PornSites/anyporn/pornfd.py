@@ -1,6 +1,6 @@
 import re
 import time
-from .... import urljoin, parse_qsl
+from .... import urljoin, parse_qsl, parse_qs
 
 from ....catalogs.porn_catalog import PornCategories, PornFilterTypes, PornFilter, PornCatalogCategoryNode, \
     PornCatalogVideoPageNode
@@ -321,7 +321,8 @@ class PornFd(PervertSluts):
         page_data.add_sub_objects(res)
         return res
 
-    def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url):
+    def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url,
+                                refetch_broken_page=True):
         headers = {
             'Accept': '*.*',
             'Cache-Control': 'max-age=0',
@@ -375,7 +376,7 @@ class PornFd(PervertSluts):
         page_request = self.session.get(fetch_base_url, headers=headers, params=params)
         max_number_of_retries = 5
         number_of_retries = 0
-        while number_of_retries < max_number_of_retries:
+        while refetch_broken_page is True and number_of_retries < max_number_of_retries:
             if len(page_request.text) == 0:
                 # We have some sort of empty page
                 time.sleep(1)
@@ -383,9 +384,40 @@ class PornFd(PervertSluts):
                 number_of_retries += 1
             else:
                 break
-        if len(page_request.text) == 0:
-            raise ValueError('Got empty page for url {u}'.format(u=page_request.url))
+        # if len(page_request.text) == 0:
+        #     raise ValueError('Got empty page for url {u}'.format(u=page_request.url))
         return page_request
+
+    def _get_object_request_no_exception_check(self, object_data, override_page_number=None, override_params=None,
+                                               override_url=None, refetch_broken_page=True):
+        """
+        Fetches the page number with respect to base url.
+        :param object_data: Page data.
+        :param override_page_number: Override page number.
+        :param override_params: Override params.
+        :param override_url: Override url.
+        :param refetch_broken_page: Indicates whether we re-fetch the broken page in case in wasn't fetched properly.
+        :return: Page request
+        """
+        # todo: add filter condition check!
+        true_object = object_data.true_object
+
+        page_filter = self.get_proper_filter(object_data).current_filters
+
+        program_fetch_url = object_data.url.split('?')[0]
+        if len(object_data.url.split('?')) > 1:
+            params = object_data.url.split('?')[1]
+            params = parse_qs(params, keep_blank_values=True)
+        else:
+            params = {}
+        page_number = object_data.page_number if override_page_number is None else override_page_number
+        if override_params is not None:
+            params.update(override_params)
+        if override_url is not None:
+            program_fetch_url = override_url
+
+        return self._get_page_request_logic(object_data, params, page_number, true_object,
+                                            page_filter, program_fetch_url, refetch_broken_page)
 
     def _format_duration(self, raw_duration):
         """

@@ -315,7 +315,8 @@ class Porn7(PornBimbo):
         page_data.add_sub_objects(res)
         return res
 
-    def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url):
+    def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url,
+                                refetch_broken_page=True):
         headers = {
             'Accept': '*.*',
             'Cache-Control': 'max-age=0',
@@ -369,7 +370,7 @@ class Porn7(PornBimbo):
 
         else:
             return super(Porn7, self)._get_page_request_logic(page_data, params, page_number, true_object,
-                                                              page_filter, fetch_base_url)
+                                                              page_filter, fetch_base_url, refetch_broken_page)
 
         page_request = self.session.get(fetch_base_url, headers=headers, params=params)
         return page_request

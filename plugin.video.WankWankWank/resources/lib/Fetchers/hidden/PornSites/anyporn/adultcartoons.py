@@ -224,7 +224,8 @@ class AdultCartoons(PornBimbo):
             assert len(image_data) == 1
             image = image_data[0].attrib['src']
             if 'data:image' in image:
-                image = image_data[0].attrib['data-original']
+                image = image_data[0].attrib['data-original'] \
+                    if 'data-original' in image_data[0].attrib else image_data[0].attrib['data-src']
             flip_images = [re.sub(r'\d+.jpg', '{d}.jpg'.format(d=d), image) for d in range(1, self.flip_number + 1)]
             if title is None:
                 title = image_data[0].attrib['alt']
@@ -270,7 +271,8 @@ class AdultCartoons(PornBimbo):
         page_data.add_sub_objects(res)
         return res
 
-    def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url):
+    def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url,
+                                refetch_broken_page=True):
         headers = {
             'Accept': '*.*',
             'Cache-Control': 'max-age=0',
@@ -299,7 +301,7 @@ class AdultCartoons(PornBimbo):
             params['ipp'] = self.videos_per_video_page
         else:
             return super(AdultCartoons, self)._get_page_request_logic(page_data, params, page_number, true_object,
-                                                                      page_filter, fetch_base_url)
+                                                                      page_filter, fetch_base_url, refetch_broken_page)
 
         page_request = self.session.get(fetch_base_url, headers=headers, params=params)
         return page_request

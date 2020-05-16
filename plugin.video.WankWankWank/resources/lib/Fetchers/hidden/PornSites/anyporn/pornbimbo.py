@@ -74,7 +74,8 @@ class PornBimbo(PornFd):
             if right_page == left_page:
                 return left_page
 
-            page_request = self._get_object_request_no_exception_check(category_data, override_page_number=page)
+            page_request = self._get_object_request_no_exception_check(category_data, override_page_number=page,
+                                                                       refetch_broken_page=False)
             if self._check_is_available_page(category_data, page_request):
                 tree = self.parser.parse(page_request.text)
                 pages = self._get_available_pages_from_tree(tree)
@@ -131,13 +132,14 @@ class PornBimbo(PornFd):
         """
         return 1
 
-    def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url):
+    def _get_page_request_logic(self, page_data, params, page_number, true_object, page_filter, fetch_base_url,
+                                refetch_broken_page=True):
         if true_object.object_type in (PornCategories.CATEGORY, PornCategories.PORN_STAR, PornCategories.CHANNEL,
                                        PornCategories.TAG) + \
                 tuple(self._default_sort_by.keys()):
             params['ipp'] = self.videos_per_video_page
         return super(PornBimbo, self)._get_page_request_logic(page_data, params, page_number, true_object,
-                                                              page_filter, fetch_base_url)
+                                                              page_filter, fetch_base_url, refetch_broken_page)
 
     @property
     def __version(self):
