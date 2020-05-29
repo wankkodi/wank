@@ -205,10 +205,12 @@ class EPorner(PornFetcher):
         :return:
         """
         tree = self.parser.parse(page_request.text)
-        raw_objects = tree.xpath('.//ul[@class="allcatslist"]/li/a')
-        links, titles, number_of_videos = zip(*[(x.attrib['href'], x.xpath('./b')[0].text,
-                                                 int(re.sub(r',', '', x.xpath('./span')[0].text)[0]))
-                                                for x in raw_objects])
+        link_objects = tree.xpath('.//ul[@class="allcatslist"]/li/a')
+        number_of_videos_objects = tree.xpath('.//ul[@class="allcatslist"]/li/span')
+        assert len(link_objects) == len(number_of_videos_objects)
+        links, titles, number_of_videos = zip(*[(x.attrib['href'], x.text,
+                                                 int(re.sub(r'[,+]', '', y.text)))
+                                                for x, y in zip(link_objects, number_of_videos_objects)])
         return links, titles, number_of_videos
 
     def _get_video_links_from_video_data_no_exception_check(self, video_data):
@@ -464,7 +466,7 @@ class EPorner(PornFetcher):
 
     @property
     def __version(self):
-        return 0
+        return 1
 
     @property
     def _version_stack(self):
