@@ -215,7 +215,7 @@ class Beeg(PornFetcher):
                                          title='{c} | Letter {p}'.format(c=tag_data.title, p=k),
                                          url=tag_data.url,
                                          # page_number=k,
-                                         raw_data=tag_data.raw_data,
+                                         raw_data={'letter': k},
                                          object_type=object_type,
                                          super_object=tag_data,
                                          )
@@ -229,7 +229,7 @@ class Beeg(PornFetcher):
                                                 object_type=PornCategories.TAG,
                                                 super_object=new_page,
                                                 )
-                        for link, title, number_of_videos in partitioned_data[new_page.page_number]]
+                        for link, title, number_of_videos in partitioned_data[new_page.raw_data['letter']]]
             new_page.add_sub_objects(sub_tags)
 
         tag_data.add_sub_objects(new_pages)
