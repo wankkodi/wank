@@ -214,7 +214,7 @@ class Beeg(PornFetcher):
                                          obj_id=(IdGenerator.id_to_original_str(tag_data.id), k),
                                          title='{c} | Letter {p}'.format(c=tag_data.title, p=k),
                                          url=tag_data.url,
-                                         page_number=k,
+                                         # page_number=k,
                                          raw_data=tag_data.raw_data,
                                          object_type=object_type,
                                          super_object=tag_data,
@@ -365,7 +365,7 @@ class Beeg(PornFetcher):
 
     @property
     def __version(self):
-        return 0
+        return 1
 
     @property
     def _version_stack(self):
