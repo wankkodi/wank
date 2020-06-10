@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addons>
-	<addon id="plugin.video.idanplus" name="עידן+ פלוס" version="2.6.2" provider-name="nil">
+	<addon id="plugin.video.idanplus" name="עידן+ פלוס" version="2.6.3" provider-name="nil">
 		<requires>
 			<import addon="script.module.requests"/>
 			<import addon="script.module.xmltodict"/>
@@ -13,14 +13,14 @@
 			<platform>all</platform>
 			<summary lang="en">צפיה בערוצי עידן פלוס ובתכניות מהאתרים הרשמיים.</summary>
 			<description lang="en">צפיה בערוצי עידן פלוס ובתכניות מהאתרים הרשמיים.[CR]אפשרויות שונות בהגדרות ההרחבה ובקליק ימני על פריט ברשימה.</description>
-			<news>- Fix playing 20-Channel Live and VOD links. (Changes in website).</news>
+			<news>- Fix playing some Kan VOD links.[CR]- Added an option to prefer site / youtube links.</news>
 			<supportedcontent>
 				<content>tvshows</content>
 			</supportedcontent>
 		</extension>
 	</addon>
 
-<addon id="plugin.video.israeliTV" name="Israeli TV" version="0.0.1" provider-name="Alexander Leibenzon">
+<addon id="plugin.video.israeliTV" name="Israeli TV" version="0.0.2" provider-name="Alexander Leibenzon">
     <requires>
         <import addon="xbmc.python" version="2.25.0"/>
         <import addon="script.module.routing"/>

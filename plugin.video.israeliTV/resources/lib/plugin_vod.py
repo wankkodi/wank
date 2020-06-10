@@ -196,6 +196,33 @@ def choose_search():
 
 
 # Vod routing
+@plugin.route('/show_search_menu/<handler_id>/<args>')
+def show_search_menu(handler_id, args):
+    # import web_pdb
+    # web_pdb.set_trace()
+    items = []
+    u = plugin.url_for(perform_search, handler_id=handler_id, search_flag='new_search')
+    item = xbmcgui.ListItem('New Search')
+    item.setArt({'icon': 'DefaultAddonsSearch.png'})
+    item.setProperty('IsPlayable', 'false')
+    items.append((u, item, True))
+    for i, q in enumerate(search_history):
+        u = plugin.url_for(perform_search, handler_id=handler_id, search_flag=i)
+        item = xbmcgui.ListItem(q)
+        item.setArt({'icon': 'DefaultAddonsSearch.png'})
+        item.setProperty('IsPlayable', 'false')
+        items.append((u, item, True))
+
+    status = xbmcplugin.addDirectoryItems(handle=plugin.handle, items=items, totalItems=len(items))
+    xbmcplugin.endOfDirectory(plugin.handle)
+
+    # xbmcplugin.setContent(plugin.handle, 'episodes')
+    # xbmc.executebuiltin("Container.SetViewMode(504)")
+
+    handler_wrapper.handlers.store_data_for_handler(int(handler_id))
+    return status
+
+
 @plugin.route('/show_vod_programs/<handler_id>/<args>/<page_number>')
 def show_vod_programs(handler_id, args, page_number):
     if args == '_first_run':
@@ -418,6 +445,11 @@ def prepare_list_items(show_list, handler_id):
             is_playable = 'true'
             is_folder = False
             icon = 'DefaultTVShows.png'
+        elif x.object_type in (handler.categories_enum.SEARCH_MAIN, ):
+            func_call = show_search_menu
+            is_playable = 'false'
+            is_folder = True
+            icon = 'DefaultAddonsSearch.png'
         else:
             func_call = show_vod_programs
             is_playable = 'false'

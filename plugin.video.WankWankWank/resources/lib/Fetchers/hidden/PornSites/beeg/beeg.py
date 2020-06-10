@@ -3,6 +3,9 @@ from ....fetchers.porn_fetcher import PornFetcher
 # Internet tools
 from .... import urljoin, urlparse, quote_plus
 
+# math
+import math
+
 # Regex
 import re
 
@@ -16,6 +19,14 @@ from ....id_generator import IdGenerator
 
 
 class Beeg(PornFetcher):
+    @property
+    def max_pages(self):
+        """
+        Most viewed videos page url.
+        :return:
+        """
+        return 100
+
     @property
     def base_url(self):
         """
@@ -258,6 +269,39 @@ class Beeg(PornFetcher):
                              key=lambda x: x.resolution, reverse=True)
         return VideoNode(video_sources=video_links)
 
+    def _binary_search_max_number_of_porn_star_pages(self, category_data, last_available_number_of_pages):
+        """
+        Performs binary search in order to find the last available page.
+        :param category_data: Category data.
+        :param last_available_number_of_pages: Last available number of pages. Will be the pivot for our next search.
+        By default is None, which mean the original pivot will be used...
+        :return: Page request
+        """
+        left_page = 1
+        right_page = self.max_pages
+        page = last_available_number_of_pages if last_available_number_of_pages is not None \
+            else int(math.ceil((right_page + left_page) / 2))
+        while 1:
+            if right_page == left_page:
+                return left_page
+
+            page_request = self._get_object_request_no_exception_check(category_data, override_page_number=page)
+            if self._check_is_available_page(category_data, page_request):
+                raw_data = page_request.json()
+                if len(raw_data['people']) == 0:
+                    # We also moved too far...
+                    right_page = page - 1
+                elif len(raw_data['people']) == 100:
+                    # We also moved too far...
+                    left_page = page
+                else:
+                    return page
+
+            else:
+                # We moved too far...
+                right_page = page - 1
+            page = int(math.ceil((right_page + left_page) / 2))
+
     def _get_number_of_sub_pages(self, category_data, fetched_request=None, last_available_number_of_pages=None):
         """
         Get number of pages from category data.
@@ -265,6 +309,8 @@ class Beeg(PornFetcher):
         :param category_data: Category data (dict).
         :return:
         """
+        if category_data.true_object.object_type == PornCategories.PORN_STAR_MAIN:
+            return self._binary_search_max_number_of_porn_star_pages(category_data, last_available_number_of_pages)
         page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
         raw_data = page_request.json()
         return raw_data['pages'] if 'pages' in raw_data else 1
@@ -345,12 +391,15 @@ class Beeg(PornFetcher):
             'User-Agent': self.user_agent,
             'X-Requested-With': 'XMLHttpRequest',
         }
-
-        parsed_url = urlparse(page_data.url)
-        split_url_path = parsed_url.path.split('/')
-        if len(split_url_path) > 6 and page_number is not None and page_number > 1:
-            split_url_path[6] = str(page_data.page_number-1)
-            fetch_base_url = urljoin(page_data.url, '/'.join(split_url_path))
+        if page_data.true_object.object_type == PornCategories.PORN_STAR_MAIN:
+            if page_number > 1:
+                params['offset'] = 100 * (page_number-1)
+        else:
+            parsed_url = urlparse(page_data.url)
+            split_url_path = parsed_url.path.split('/')
+            if len(split_url_path) > 6 and page_number is not None and page_number > 1:
+                split_url_path[6] = str(page_data.page_number-1)
+                fetch_base_url = urljoin(page_data.url, '/'.join(split_url_path))
 
         page_request = self.session.get(fetch_base_url, headers=headers, params=params)
         return page_request

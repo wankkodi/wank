@@ -39,7 +39,7 @@ RadioChannels = [
 	{'ch':'rd_glglz', 'index': 1, 'nameID': 30702, 'channelID':'glglz', 'mode': 11, 'image':'glglz.jpg', 'module':'glz', 'tvgID':'glglz', 'type':'radio'}, 
 	{'ch':'rd_88', 'index': 2, 'nameID': 30703, 'channelID':'88', 'mode': 11, 'image':'88.png', 'module':'kan', 'tvgID':'88', 'type':'radio'}, 
 	{'ch':'rd_90', 'index': 3, 'nameID': 30724, 'channelID':'90fm', 'mode': 11, 'image':'90fm.jpg', 'module':'radio', 'tvgID':'90fm', 'type':'radio'}, 
-	{'ch':'rd_91', 'index': 3, 'nameID': 30736, 'channelID':'91fm', 'mode': 11, 'image':'91fm.jpg', 'module':'radio', 'tvgID':'', 'type':'radio'}, 
+	{'ch':'rd_91', 'index': 3, 'nameID': 30736, 'channelID':'91fm', 'mode': 11, 'image':'91fm.jpg', 'module':'radio', 'tvgID':'91fm', 'type':'radio'}, 
 	{'ch':'rd_97', 'index': 4, 'nameID': 30725, 'channelID':'97fm', 'mode': 11, 'image':'97fm.jpg', 'module':'radio', 'tvgID':'97fm', 'type':'radio'}, 
 	{'ch':'rd_99', 'index': 5, 'nameID': 30704, 'channelID':'99fm', 'mode': 11, 'image':'99fm.png', 'module':'99fm', 'tvgID':'99fm', 'type':'radio'}, 
 	{'ch':'rd_100', 'index': 6, 'nameID': 30726, 'channelID':'100fm', 'mode': 11, 'image':'100fm.jpg', 'module':'radio', 'tvgID':'100fm', 'type':'radio'}, 

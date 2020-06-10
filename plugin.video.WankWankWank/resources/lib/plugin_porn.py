@@ -195,6 +195,33 @@ def choose_search():
 
 
 # Porn routing
+@plugin.route('/show_search_menu/<handler_id>/<args>')
+def show_search_menu(handler_id, args):
+    # import web_pdb
+    # web_pdb.set_trace()
+    items = []
+    u = plugin.url_for(perform_search, handler_id=handler_id, search_flag='new_search')
+    item = xbmcgui.ListItem('New Search')
+    item.setArt({'icon': 'DefaultAddonsSearch.png'})
+    item.setProperty('IsPlayable', 'false')
+    items.append((u, item, True))
+    for i, q in enumerate(search_history):
+        u = plugin.url_for(perform_search, handler_id=handler_id, search_flag=i)
+        item = xbmcgui.ListItem(q)
+        item.setArt({'icon': 'DefaultAddonsSearch.png'})
+        item.setProperty('IsPlayable', 'false')
+        items.append((u, item, True))
+
+    status = xbmcplugin.addDirectoryItems(handle=plugin.handle, items=items, totalItems=len(items))
+    xbmcplugin.endOfDirectory(plugin.handle)
+
+    # xbmcplugin.setContent(plugin.handle, 'episodes')
+    # xbmc.executebuiltin("Container.SetViewMode(504)")
+
+    handler_wrapper.handlers.store_data_for_handler(int(handler_id))
+    return status
+
+
 @plugin.route('/show_porn_programs/<handler_id>/<args>/<page_number>')
 def show_porn_programs(handler_id, args, page_number):
     if args == '_first_run':
@@ -217,7 +244,10 @@ def show_porn_programs(handler_id, args, page_number):
         # web_pdb.set_trace()
         show_list = handler.get_show_object(*())
 
-    if show_list.sub_objects is not None and len(show_list.sub_objects) == 1:
+    if (
+            show_list.sub_objects is not None and len(show_list.sub_objects) == 1 and
+            show_list.sub_objects[0].object_type in (PornCategories.PAGE, PornCategories.VIDEO_PAGE)
+    ):
         # We go straight ahead to its subcategory
         new_id = separator.join([str(y) for y in show_list.sub_objects[0].get_full_id_path()])
         return show_porn_programs(handler_id, new_id,
@@ -429,6 +459,11 @@ def prepare_list_items(show_list, handler_id):
             is_playable = 'true'
             is_folder = False
             icon = 'DefaultTVShows.png'
+        elif x.object_type in (PornCategories.SEARCH_MAIN, ):
+            func_call = show_search_menu
+            is_playable = 'false'
+            is_folder = True
+            icon = 'DefaultAddonsSearch.png'
         else:
             func_call = show_porn_programs
             is_playable = 'false'

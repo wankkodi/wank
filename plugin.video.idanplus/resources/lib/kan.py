@@ -79,10 +79,10 @@ def GetEpisodesList(catId, moreData=''):
 		text = common.OpenURL(url)
 		if 'ol' not in text:
 			break
-		matches = re.compile('w-clearfix">.*?url\(\'(.+?)\'.+?<iframe.+?src="(.+?)".+?"content_title">(.+?)</.+?<p>(.+?)</p>', re.S).findall(text)
-		for iconimage, url, name, description in matches:
+		matches = re.compile('w-clearfix">.*?url\(\'(.+?)\'.+?onclick="playVideo\(\'.*?\',\'.*?\',\'(\d*)\'.+?<iframe.+?src="(.+?)".+?"content_title">(.+?)</.+?<p>(.+?)</p>', re.S).findall(text)
+		for iconimage, id, url, name, description in matches:
 			name = common.GetLabelColor(name.strip(), keyColor="chColor")
-			common.addDir(name, url, 3, iconimage, infos={"Title": name, "Plot": description.replace('&nbsp;', '').strip()}, module=module, moreData=bitrate, isFolder=False, isPlayable=True, urlParamsData={'catName': catName})
+			common.addDir(name, '{0}|||{1}'.format(url, id), 3, iconimage, infos={"Title": name, "Plot": description.replace('&nbsp;', '').strip()}, module=module, moreData=bitrate, isFolder=False, isPlayable=True, urlParamsData={'catName': catName})
 
 def GetRadioCategoriesList(iconimage):
 	name = common.GetLabelColor("כאן ב", bold=True, color="none")
@@ -128,7 +128,15 @@ def PlayRadioProgram(url, name='', iconimage='', quality='best'):
 	Play(match[0], name, iconimage, quality)
 
 def Play(url, name='', iconimage='', quality='best'):
-	if 'youtube' in url:
+	u = url.split('|||')
+	url = u[0]
+	if (Addon.getSetting("kanPreferYoutube") != "true") and (len(u) > 1) and ('youtube' in url or 'youtu.be' in url):
+		text = common.OpenURL('{0}/Item/?itemId={1}'.format(baseUrl, u[1]))
+		match = re.compile('<script class="w-json" type="application/json">(.*?)</script>').findall(text)
+		match = re.compile('src=\\\\"(.*?)\\\\"').findall(match[0])
+		if len(match) == 1:
+			url = match[0]
+	if 'youtube' in url or 'youtu.be' in url:
 		if url.endswith('/'):
 			url = url[:-1]
 		video_id = url[url.rfind('/')+1:]

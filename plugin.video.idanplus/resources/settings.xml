@@ -108,6 +108,7 @@
 	<category label="30400">
 		<setting id="kanSortBy" type="enum" label="30001" lvalues="30002|30003" default="0" />
 		<setting id="kan_res" type="text" label="30023" default="" />
+		<setting id="kanPreferYoutube" type="bool" label="30401" default="true" />
 	</category>
 	<category label="30100">
 		<setting id="makoSortBy" type="enum" label="30001" lvalues="30002|30003" default="0" />

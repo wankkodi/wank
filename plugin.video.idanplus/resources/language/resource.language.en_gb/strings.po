@@ -195,6 +195,10 @@ msgctxt "#30400"
 msgid "כאן"
 msgstr ""
 
+msgctxt "#30401"
+msgid "העדפת מקורות יוטיוב"
+msgstr ""
+
 msgctxt "#30500"
 msgid "20"
 msgstr ""
