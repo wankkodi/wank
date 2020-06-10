@@ -18,7 +18,7 @@ from Fetchers.handlers.porn_handler import SourceHandler
 from Fetchers.handlers.handler_manager import HandlerManager
 
 # Types
-from Fetchers.catalogs.porn_catalog import PornCategories
+# from Fetchers.catalogs.porn_catalog import handler.categories_enum
 
 # import sys
 from os import path, makedirs
@@ -176,7 +176,7 @@ def choose_search():
     for handler_id, handler_data in handlers:
         handler = handler_wrapper.handlers.get_handler(handler_id=int(handler_id),
                                                        use_web_server=bool(ADDON.getSetting('is_send_data')))
-        if PornCategories.SEARCH_MAIN not in handler.object_urls:
+        if handler.categories_enum.SEARCH_MAIN not in handler.object_urls:
             continue
 
         u = plugin.url_for(prepare_search_sources, handler_id=handler_id)
@@ -246,7 +246,9 @@ def show_porn_programs(handler_id, args, page_number):
 
     if (
             show_list.sub_objects is not None and len(show_list.sub_objects) == 1 and
-            show_list.sub_objects[0].object_type in (PornCategories.PAGE, PornCategories.VIDEO_PAGE)
+            show_list.sub_objects[0].object_type in (handler.categories_enum.PAGE,
+                                                     handler.categories_enum.VIDEO_PAGE,
+                                                     handler.categories_enum.SEARCH_PAGE,)
     ):
         # We go straight ahead to its subcategory
         new_id = separator.join([str(y) for y in show_list.sub_objects[0].get_full_id_path()])
@@ -449,17 +451,17 @@ def prepare_list_items(show_list, handler_id):
         sub_objects = show_list.sub_objects
 
     for x in sub_objects:
-        if x.object_type in (PornCategories.VIDEO, ):
+        if x.object_type in (handler.categories_enum.VIDEO, ):
             func_call = play_episode
             is_playable = 'true'
             is_folder = False
             icon = 'DefaultTVShows.png'
-        elif x.object_type in (PornCategories.LIVE_VIDEO, ):
+        elif x.object_type in (handler.categories_enum.LIVE_VIDEO, ):
             func_call = play_live_stream
             is_playable = 'true'
             is_folder = False
             icon = 'DefaultTVShows.png'
-        elif x.object_type in (PornCategories.SEARCH_MAIN, ):
+        elif x.object_type in (handler.categories_enum.SEARCH_MAIN, ):
             func_call = show_search_menu
             is_playable = 'false'
             is_folder = True
