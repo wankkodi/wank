@@ -263,7 +263,7 @@ def GetLink(media, cdn, dv, headers, quality):
 	ticket = GetTicket(l, headers)
 	if url.startswith('//'):
 		url = 'http:{0}'.format(url) 
-	#xbmc.log('{0}?{1}'.format(url, ticket), 5)
+	xbmc.log('{0}?{1}'.format(url, ticket), 5)
 	session = common.GetSession()
 	link = common.GetStreams('{0}&{1}'.format(url, ticket) if '?' in url else '{0}?{1}'.format(url, ticket), headers=headers, session=session, quality=quality)
 	return link, session.cookies
