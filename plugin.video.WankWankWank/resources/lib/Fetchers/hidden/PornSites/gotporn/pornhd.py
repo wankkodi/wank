@@ -134,7 +134,7 @@ class PornHD(PornFetcher):
         :return: Object of all available shows (JSON).
         """
         return self._update_available_object(category_data,
-                                             './/section[@class="small-thumb-list lazy-load"]/article',
+                                             './/section[@class="small-thumb-list"]/article',
                                              PornCategories.CATEGORY)
 
     def _update_available_porn_stars(self, pornstar_data):
@@ -515,7 +515,7 @@ class PornHD(PornFetcher):
 
     @property
     def __version(self):
-        return 0
+        return 1
 
     @property
     def _version_stack(self):
