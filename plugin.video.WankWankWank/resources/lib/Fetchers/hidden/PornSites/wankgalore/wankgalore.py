@@ -217,6 +217,8 @@ class WankGalore(PornFetcher):
         elif true_object.object_type == PornCategories.SEARCH_MAIN:
             if page_number is not None and page_number != 1:
                 params['page'] = page_number
+        elif true_object.object_type == PornCategories.VIDEO:
+            pass
         else:
             split_url = split_url[:4]
             if page_filter.added_before.value is not None:
@@ -237,7 +239,7 @@ class WankGalore(PornFetcher):
 
     @property
     def __version(self):
-        return 0
+        return 1
 
     @property
     def _version_stack(self):

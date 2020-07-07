@@ -54,7 +54,7 @@
     </extension>
 </addon>
 
-<addon id="plugin.video.WankWankWank" name="WANK! WANK! WANK!" version="0.0.4" provider-name="A.B.A.">
+<addon id="plugin.video.WankWankWank" name="WANK! WANK! WANK!" version="0.0.5" provider-name="A.B.A.">
     <requires>
         <import addon="xbmc.python" version="2.25.0"/>
         <import addon="script.module.routing"/>

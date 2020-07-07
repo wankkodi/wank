@@ -456,7 +456,7 @@ class PornHD(PornFetcher):
             video_data = link_data[0].xpath('./picture/img')
             video_preview = urljoin(self.base_url, video_data[0].attrib['data-preview-url'].replace('webm', 'mp4'))
 
-            video_length = main_section[0].xpath('.//span[@class="meta"]/*[@class="video-duration"]')
+            video_length = main_section[0].xpath('.//span/*[@class="video-duration"]')
             assert len(video_length) == 1
             video_length = video_length[0].text
 
