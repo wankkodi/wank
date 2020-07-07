@@ -1,7 +1,7 @@
-from . import Base1
+from . import Base3
 
 
-class GhettoTube(Base1):
+class GhettoTube(Base3):
     @property
     def base_url(self):
         """

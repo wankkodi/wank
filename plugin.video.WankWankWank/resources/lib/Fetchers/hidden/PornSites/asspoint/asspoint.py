@@ -1,7 +1,7 @@
-from . import Base1
+from . import Base3
 
 
-class AssPoint(Base1):
+class AssPoint(Base3):
     @property
     def base_url(self):
         """

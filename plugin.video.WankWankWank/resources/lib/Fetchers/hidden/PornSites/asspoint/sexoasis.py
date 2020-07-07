@@ -1,7 +1,7 @@
-from . import Base1
+from . import Base3
 
 
-class SexOasis(Base1):
+class SexOasis(Base3):
     @property
     def base_url(self):
         """

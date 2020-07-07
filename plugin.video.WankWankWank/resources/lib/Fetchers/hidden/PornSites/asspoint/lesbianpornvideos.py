@@ -1,8 +1,8 @@
 from ....catalogs.porn_catalog import PornFilterTypes, PornFilter
-from . import Base1
+from . import Base3
 
 
-class LesbianPornVideos(Base1):
+class LesbianPornVideos(Base3):
     @property
     def base_url(self):
         """

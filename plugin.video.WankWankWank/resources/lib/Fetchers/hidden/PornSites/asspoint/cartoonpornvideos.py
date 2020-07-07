@@ -2,10 +2,10 @@ import re
 from .... import urljoin
 
 from ....catalogs.porn_catalog import PornCategories, PornFilterTypes, PornFilter, PornCatalogCategoryNode
-from . import Base1
+from . import Base3
 
 
-class CartoonPornVideos(Base1):
+class CartoonPornVideos(Base3):
     @property
     def object_urls(self):
         return {
