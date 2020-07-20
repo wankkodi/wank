@@ -253,7 +253,7 @@ class CumLouder(PornFetcher):
                                                   image_link=image,
                                                   number_of_views=number_of_views,
                                                   added_before=added_before,
-                                                  duration=video_length,
+                                                  duration=self._format_duration(video_length),
                                                   is_hd=is_hd,
                                                   object_type=PornCategories.VIDEO,
                                                   super_object=page_data,
@@ -269,7 +269,7 @@ class CumLouder(PornFetcher):
         :return:
         """
         raw_duration, suffix = raw_duration.split(' ')
-        split_duration = raw_duration.split(':')
+        split_duration = [int(x) for x in raw_duration.split(':')]
         assert len(split_duration) == 2
         if suffix == 'h':
             return split_duration[0] * 3600 + split_duration[1] * 60
@@ -320,7 +320,7 @@ class CumLouder(PornFetcher):
 
     @property
     def __version(self):
-        return 0
+        return 1
 
     @property
     def _version_stack(self):
