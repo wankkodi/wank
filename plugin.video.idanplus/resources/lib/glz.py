@@ -32,7 +32,11 @@ def WatchLive(url, name='', iconimage='', quality='best'):
 	try:
 		url = '{0}player/getplayerdata?rootId={1}'.format(apiUrl, channels[url]['rootId'])
 		data = common.OpenURL(url, headers=headers, responseMethod='json')
-		link = common.GetRedirect(data['liveBroadcast']['fileUrl'], headers=headers)
+		liveBroadcast = data['liveBroadcast']['fileUrl']
+		if liveBroadcast is not None:
+			liveBroadcast = common.GetRedirect(data['liveBroadcast']['fileUrl'], headers=headers)
+			if liveBroadcast is not None:
+				link = liveBroadcast
 	except Exception as ex:
 		xbmc.log(str(ex), 3)
 	final = '{0}|User-Agent={1}'.format(link, userAgent)

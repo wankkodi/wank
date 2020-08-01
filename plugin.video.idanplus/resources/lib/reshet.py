@@ -281,7 +281,7 @@ def Play(url, name='', iconimage='', quality='best'):
 		if result is not None:
 			source = json.loads(result)[0]
 			link = '{0}{1}{2}{3}{4}.mp4{5}{6}'.format(source['ProtocolType'], source['ServerAddress'], source['MediaRoot'], source['MediaFile'][:source['MediaFile'].find('.mp4')], source['Bitrates'], source['StreamingType'], source['Token'])
-			xbmc.log(link, 5)
+			#xbmc.log(link, 5)
 			session = common.GetSession()
 			link = common.GetStreams(link, headers=headers, session=session, quality=quality)
 			final = '{0}|User-Agent={1}'.format(link, userAgent)
@@ -305,7 +305,7 @@ def Play(url, name='', iconimage='', quality='best'):
 						if source['avg_bitrate'] > avg_bitrate:
 							link = source['src']
 							avg_bitrate = source['avg_bitrate']
-							xbmc.log('[{0}]  {1}'.format(avg_bitrate, link), 5)
+							#xbmc.log('[{0}]  {1}'.format(avg_bitrate, link), 5)
 			final = '{0}|User-Agent={1}'.format(link, userAgent)
 		common.PlayStream(final, quality, name, iconimage)
 	except Exception as ex:
@@ -313,7 +313,7 @@ def Play(url, name='', iconimage='', quality='best'):
 
 def WatchLive(url, name='', iconimage='', quality='best'):
 	channels = {
-		'13': {'ch': 'videoId', 'casttimeId': '1', 'referer': '{0}/live/'.format(baseUrl), 'link': 'http://reshet-live-il.ctedgecdn.net/13tv-desktop/r13.m3u8'},
+		'13': {'ch': 'videoId', 'casttimeId': '1', 'referer': '{0}/live/'.format(baseUrl), 'link': 'http://reshet-live-il.ctedgecdn.net/13tv-desktop/dvr/r13.m3u8'},
 		'13c': {'ch': 'accessibility_ref', 'casttimeId': '27', 'referer': '{0}/live/'.format(baseUrl), 'link': 'https://reshet-live-il.ctedgecdn.net/13tv-desktop/dvrsubs/r13.m3u8'},
 		'bb': {'ch': 'videoId', 'casttimeId': '26', 'referer': '{0}/home/bb-livestream/'.format(baseUrl), 'link': 'http://reshet-live-il.ctedgecdn.net/13tv-premium/bb/r13.m3u8'}
 	}

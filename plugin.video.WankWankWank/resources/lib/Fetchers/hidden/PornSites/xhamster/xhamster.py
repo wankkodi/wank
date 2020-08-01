@@ -384,7 +384,7 @@ class XHamster(PornFetcher):
         tmp_request = self.get_object_request(video_data)
         tmp_tree = self.parser.parse(tmp_request.text)
 
-        request_data = re.findall(r'(?:window.initials = )({.*})(?:;)',
+        request_data = re.findall(r'(?:window.initials *= *)({.*})(?:;)',
                                   [x for x in tmp_tree.xpath('.//script/text()') if 'window.initials' in x][0])
         # MP4
         new_video_data = json.loads(request_data[0])
@@ -671,7 +671,7 @@ class XHamster(PornFetcher):
 
     @property
     def __version(self):
-        return 0
+        return 1
 
     @property
     def _version_stack(self):

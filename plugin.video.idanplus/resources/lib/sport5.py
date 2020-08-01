@@ -107,15 +107,17 @@ def GetRadioData(node='data'):
 def WatchLive(url, name='', iconimage='', quality='best'):
 	channels = {
 		'5live': {'ch': 'liveurl', 'link': 'https://sport5-lh.akamaihd.net/i/radio5_0@65353/master.m3u8'},
-		'5studio': {'ch': 'studioUrl', 'link': 'https://sport5-lh.akamaihd.net/i/radiolivev_0@698733/master.m3u8'}
+		'5studio': {'ch': 'studioUrl', 'link': 'https://sport5-lh.akamaihd.net/i/radiolivev_0@698733/index_1_av-p.m3u8'}
 	}
 	link = channels[url]['link']
 	try:
 		link = GetRadioData(channels[url]['ch'])
 	except Exception as ex:
 		xbmc.log(str(ex), 3)
-	link = common.GetStreams(link, headers=headers, quality=quality)
-	final = '{0}|User-Agent={1}&Referer={2}'.format(link, userAgent, radioUrl)
+	link1 = common.GetStreams(link, headers=headers, quality=quality)
+	if link1 == link:
+		link1 = channels[url]['link']
+	final = '{0}|User-Agent={1}&Referer={2}'.format(link1, userAgent, radioUrl)
 	common.PlayStream(final, quality, name, iconimage)
 
 def GetRadioCategoriesList(iconimage):

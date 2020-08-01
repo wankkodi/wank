@@ -16,7 +16,7 @@ def WatchLive(name='', iconimage='', quality='best'):
 	match = re.compile('var videoSrc="(.*?)";').findall(text)
 	text = common.OpenURL(match[0], headers=headers)
 	match = re.compile("var\s*metadataURL\s*?=\s*?'(.+?)'").findall(text)
-	metadataURL = match[0]
+	metadataURL = match[0].replace('https://', 'http://').replace('https_streaming=true', 'https_streaming=false')
 	text = common.OpenURL(metadataURL, headers=headers)
 	match = re.compile("<SmilURL.*>(.+)</SmilURL>").findall(text)
 	smil = match[0].replace('amp;', '')

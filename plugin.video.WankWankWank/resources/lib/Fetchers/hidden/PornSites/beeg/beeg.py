@@ -143,7 +143,12 @@ class Beeg(PornFetcher):
             'User-Agent': self.user_agent
         }
         page_request = self.session.get(self.base_url, headers=headers)
-        self.user_id = re.findall(r'(?:beeg_version =* *)(\d+)(?:;)', page_request.text)[0]
+        tree = self.parser.parse(page_request.text)
+        script_urls = [x for x in tree.xpath('.//script') if 'src' in x.attrib]
+        script_url = urljoin(self.base_url, script_urls[-1].attrib['src'])
+        script_request = self.session.get(script_url, headers=headers)
+
+        self.user_id = re.findall(r'(?:"service-worker.js\?version="\).concat\(")(\d+)(?:")', script_request.text)[0]
 
     def _update_available_channels(self, channel_data):
         """
@@ -414,7 +419,7 @@ class Beeg(PornFetcher):
 
     @property
     def __version(self):
-        return 1
+        return 2
 
     @property
     def _version_stack(self):

@@ -22,9 +22,11 @@ try:
 except:
 	handle = -1
 
-def decode(text, dec):
+def decode(text, dec, force=False):
 	if py2:
 		text = text.decode(dec)
+	elif force:
+		text= bytearray(text, 'utf-8').decode(dec)
 	return text
 
 def encode(text, dec):
@@ -181,6 +183,9 @@ def OpenURL(url, headers={}, user_data=None, session=None, retries=1, responseMe
 			else:
 				response = session.get(url, headers=headers)
 			if responseMethod == 'text':
+				if int(response.status_code) > 400:
+					xbmc.log('{0}  -  response {1}.'.format(url, response.status_code), 3)
+					#return None
 				link = response.text
 			elif responseMethod == 'content':
 				link = response.content
@@ -197,6 +202,8 @@ def GetRedirect(url, headers={}):
 		response = requests.head(url, headers={}, allow_redirects=False)
 		if response.status_code in set([301, 302, 303, 307]) and 'location' in response.headers:
 			url = response.headers['location']
+		if response.status_code >= 400 and response.status_code < 500:
+			url = None
 	except Exception as ex:
 		xbmc.log(str(ex), 3)
 	return url

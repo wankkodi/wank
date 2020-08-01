@@ -1,5 +1,24 @@
+v2.7.0
+- Fixed some TV and Radio stations links.
+
+v2.6.9
+- Fixed Radio GLZ and GLGLZ.
+
+v2.6.8
+- Fixed Sport 1 VOD on Kodi 19.
+- New addon logo.
+
+v2.6.7
+- More results for Sport 1 VOD.
+
+v2.6.6
+- Fix for Sport 1 VOD. (Changes in website).
+
+v2.6.5
+- Add Sport 5 Studio channel.
+
 v2.6.4
-- Fix playing some Kan VOD links.- Fixed link for Knesset Tv.
+- Fixed link for Knesset Tv.
 - Remove Sport 5 Studio channel.
 
 v2.6.3
