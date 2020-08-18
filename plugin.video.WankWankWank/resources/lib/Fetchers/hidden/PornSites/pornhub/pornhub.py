@@ -15,6 +15,9 @@ from ....catalogs.porn_catalog import PornCategories, PornFilter, PornFilterType
 # JSON
 import json
 
+# Math
+import math
+
 
 class PornHub(PornFetcher):
     @property
@@ -90,8 +93,7 @@ class PornHub(PornFetcher):
                                              (PornFilterTypes.NumberOfVideosOrder, 'Number of Videos', 'o=nv'),
                                              ),
                               }
-        channels_filters = {'sort_order': ((PornFilterTypes.FeaturedOrder, 'All Channels', None),
-                                           (PornFilterTypes.PopularityOrder, 'Most Popular', 'o=rk'),
+        channels_filters = {'sort_order': ((PornFilterTypes.PopularityOrder, 'Most Popular', 'o=rk'),
                                            (PornFilterTypes.TrendingOrder, 'Trending', 'o=t'),
                                            (PornFilterTypes.FeaturedOrder, 'Featured Recently', 'o=mr'),
                                            (PornFilterTypes.AlphabeticOrder, 'Alphabetical', 'o=al'),
@@ -105,6 +107,11 @@ class PornHub(PornFetcher):
                                                    (PornFilterTypes.DateOrder, 'Newest', 'o=cm'),
                                                    ),
                                     }
+        single_channel_filters = {'sort_order': ((PornFilterTypes.FeaturedOrder, 'Most Recent', 'o=da'),
+                                                 (PornFilterTypes.ViewsOrder, 'Most Viewed', 'o=vi'),
+                                                 (PornFilterTypes.RatingOrder, 'Top Rated', 'o=ra'),
+                                                 ),
+                                  }
         video_filters = {'sort_order': ((PornFilterTypes.FeaturedOrder, 'Most Recent', 'o=mr'),
                                         (PornFilterTypes.ViewsOrder, 'Most Viewed', 'o=mv'),
                                         (PornFilterTypes.RatingOrder, 'Top Rated', 'o=tr'),
@@ -130,7 +137,7 @@ class PornHub(PornFetcher):
                                          single_category_args=video_filters,
                                          single_tag_args=video_filters,
                                          single_porn_star_args=single_porn_star_filters,
-                                         single_channel_args=video_filters,
+                                         single_channel_args=single_channel_filters,
                                          video_args=video_filters,
                                          search_args=video_filters,
                                          )
@@ -257,7 +264,7 @@ class PornHub(PornFetcher):
             assert len(link_data) == 1 and 'href' in link_data[0].attrib
             link = link_data[0].attrib['href']
 
-            is_verified = len(link_data[0].xpath('./span/i[@class="verifiedIcon"]')) > 0
+            is_verified = len(category.xpath('.//span/i[@class="verifiedIcon"]')) > 0
 
             rank_data = category.xpath('./a/span[@class="pornstar_label"]/span[@class="title-album"]/'
                                        'span[@class="rank_number"]/text()')
@@ -340,30 +347,47 @@ class PornHub(PornFetcher):
         """
         if category_data.object_type == PornCategories.CATEGORY_MAIN:
             return 1
-        # max_page = 1
-        # while 1:
-        #     page_request = self.get_object_request(category_data, override_page_number=max_page)
-        #     if self._check_is_available_page(category_data, page_request):
-        #         tree = self.parser.parse(page_request.text)
-        #         available_pages = self._get_available_pages_from_tree(tree)
-        #         if len(available_pages) > 0 and max(available_pages) > max_page:
-        #             max_page = max(available_pages)
-        #         else:
-        #             return max_page
-        #     else:
-        #         max_page -= 1
-        #         if max_page == 0:
-        #             # We reached the illegal page
-        #             error_module = self._prepare_porn_error_module(category_data, 0, page_request.url,
-        #                                                            'Reached page 0 for object {obj}'
-        #                                                            ''.format(obj=category_data.title))
-        #             raise PornFetchUrlError(page_request, error_module)
+        elif category_data.object_type == PornCategories.CHANNEL_MAIN:
+            # todo: Hard coded, need to update from time to time
+            return 79
+        elif category_data.object_type == PornCategories.PORN_STAR_MAIN:
+            # todo: Hard coded, need to update from time to time
+            return 1754
+
         page_request = self.get_object_request(category_data)
         tree = self.parser.parse(page_request.text)
-        available_pages = self._get_available_pages_from_tree(tree)
-        if len(available_pages) == 0:
-            return 1
-        return self._binary_search_max_number_of_pages_with_broken_pages(category_data, last_available_number_of_pages)
+        if category_data.object_type == PornCategories.CHANNEL:
+            # Private treatment
+            videos = tree.xpath('.//div[@class="info floatRight"]')
+            videos = int(re.sub(r'[ ,]', '', videos[-1].text))
+            videos_per_page = len(tree.xpath('.//div[@class="widgetContainer"]/ul/li'))
+            return math.ceil(videos / videos_per_page)
+        if category_data.object_type == PornCategories.PORN_STAR:
+            # Private treatment
+            videos = tree.xpath('.//div[@class="showingInfo"]')
+            if len(videos) > 0:
+                raw_res = re.findall(r'\d+', videos[-1].text)
+                # All pages has 40 videos
+                return math.ceil(int(raw_res[2]) / 40)
+            else:
+                videos = tree.xpath('.//div[@class="showingCounter pornstarVideosCounter"]')
+                raw_res = re.findall(r'\d+', videos[0].text)
+                # All pages has 36 videos
+                return math.ceil(int(raw_res[2]) / 36)
+        else:
+            videos = tree.xpath('.//div[@class="showingCounter"]')
+            if len(videos) > 0:
+                # New - try to fetch from general number of videos
+                raw_res = re.findall(r'\d+', videos[0].text)
+                # All pages has 44 videos except the first, which has 32
+                return math.ceil((int(raw_res[2]) - 32) / 44) + 1 if int(raw_res[2]) > 32 else 1
+            else:
+                # Old
+                available_pages = self._get_available_pages_from_tree(tree)
+                if len(available_pages) == 0:
+                    return 1
+                return self._binary_search_max_number_of_pages_with_broken_pages(category_data,
+                                                                                 last_available_number_of_pages)
 
     @property
     def _binary_search_page_threshold(self):
@@ -393,7 +417,8 @@ class PornHub(PornFetcher):
         except (PornValueError, PornFetchUrlError):
             return []
         tree = self.parser.parse(page_request.text)
-        videos = [x for x in tree.xpath('.//ul/li') if '_vkey' in x.attrib]
+        preview_videos = 4
+        videos = [x for x in tree.xpath('.//ul/li') if '_vkey' in x.attrib][preview_videos:]
         res = []
         for video_tree_data in videos:
             additional_data = {'_vkey': video_tree_data.attrib['_vkey']}
@@ -426,7 +451,9 @@ class PornHub(PornFetcher):
             assert len(video_length) == 1
 
             viewers = video_tree_data.xpath('.//div[@class="videoDetailsBlock"]/span[@class="views"]/var/text()')
-            assert len(viewers) == 1
+            if len(viewers) == 0:
+                # We have a premium video with no viewers
+                continue
 
             rating = video_tree_data.xpath('.//div[@class="videoDetailsBlock"]/'
                                            'div[@class="rating-container neutral"]/div[@class="value"]/text()')
@@ -488,7 +515,7 @@ class PornHub(PornFetcher):
             'User-Agent': self.user_agent
         }
         if page_number is not None and page_number != 1:
-            params['page'] = page_number
+            params['page'] = [page_number]
         if page_filter.sort_order.value is not None and true_object.object_type not in self._default_sort_by:
             params.update(parse_qs(page_filter.sort_order.value))
         if page_filter.length.value is not None:
