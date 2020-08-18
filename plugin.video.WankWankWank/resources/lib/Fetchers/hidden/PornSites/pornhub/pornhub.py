@@ -129,6 +129,11 @@ class PornHub(PornFetcher):
                                             ),
 
                          }
+        search_filters = {'sort_order': (((PornFilterTypes.RelevanceOrder, 'Most Relevant', None),) +
+                                         video_filters['sort_order']),
+                          'quality_filters': video_filters['quality_filters'],
+                          'length_filters': video_filters['length_filters'],
+                          }
         self._video_filters = PornFilter(data_dir=self.fetcher_data_dir,
                                          general_args=general_filter_params,
                                          categories_args=categories_filters,
@@ -139,7 +144,7 @@ class PornHub(PornFetcher):
                                          single_porn_star_args=single_porn_star_filters,
                                          single_channel_args=single_channel_filters,
                                          video_args=video_filters,
-                                         search_args=video_filters,
+                                         search_args=search_filters,
                                          )
 
     def __init__(self, source_name='Pornhub', source_id=0, store_dir='.', data_dir='../Data',
@@ -374,6 +379,15 @@ class PornHub(PornFetcher):
                 raw_res = re.findall(r'\d+', videos[0].text)
                 # All pages has 36 videos
                 return math.ceil(int(raw_res[2]) / 36)
+        if category_data.object_type == PornCategories.SEARCH_MAIN:
+            # Private treatment
+            videos = tree.xpath('.//div[@class="showingCounter"]')
+            if len(videos) > 0:
+                raw_res = re.findall(r'\d+', videos[-1].text)
+                # All pages has 20 videos
+                return math.ceil(int(raw_res[2]) / 20)
+            else:
+                return 0
         else:
             videos = tree.xpath('.//div[@class="showingCounter"]')
             if len(videos) > 0:
@@ -536,7 +550,7 @@ class PornHub(PornFetcher):
 
     @property
     def __version(self):
-        return 0
+        return 1
 
     @property
     def _version_stack(self):
