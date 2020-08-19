@@ -393,7 +393,7 @@ def play_video(handler, video_data):
     if len(video_data.video_sources) > 1:
         video_i = xbmcgui.Dialog().select('Please select the stream: ',
                                           ['; '.join(['{q}: {v}'.format(q=x, v=y.__dict__[x])
-                                                     for x in ('resolution', 'quality', 'codec', 'size',)
+                                                     for x in ('title', 'resolution', 'quality', 'codec', 'size',)
                                                      if y.__dict__[x] is not None])
                                            for y in video_data.video_sources])
     else:
