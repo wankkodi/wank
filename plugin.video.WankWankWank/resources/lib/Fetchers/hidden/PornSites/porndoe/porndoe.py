@@ -134,7 +134,8 @@ class PornDoe(PornFetcher):
             image_data = link_data[0].xpath('./img')
             assert len(image_data) == 1
             image = image_data[0].attrib['src'] \
-                if 'src' in image_data[0].attrib and 'data:image' not in image_data[0].attrib['src'] \
+                if ('src' in image_data[0].attrib and 'data:image' not in image_data[0].attrib['src'] and
+                    len(image_data[0].attrib['src']) > 0) \
                 else (image_data[0].attrib['data-src'] if 'data-src' in image_data[0].attrib else None)
             if image is not None:
                 image = urljoin(self.base_url, image)
@@ -179,7 +180,8 @@ class PornDoe(PornFetcher):
             image_data = link_data[0].xpath('./span[@class="thumb"]/img')
             assert len(image_data) == 1
             image = image_data[0].attrib['src'] \
-                if 'src' in image_data[0].attrib and 'data:image' not in image_data[0].attrib['src'] \
+                if ('src' in image_data[0].attrib and 'data:image' not in image_data[0].attrib['src'] and
+                    len(image_data[0].attrib['src']) > 0) \
                 else (image_data[0].attrib['data-src'] if 'data-src' in image_data[0].attrib else None)
             if image is not None:
                 image = urljoin(self.base_url, image)
@@ -225,7 +227,8 @@ class PornDoe(PornFetcher):
             image_data = link_data[0].xpath('./span[@class="thumb"]/img')
             assert len(image_data) == 1
             image = image_data[0].attrib['src'] \
-                if 'src' in image_data[0].attrib and 'data:image' not in image_data[0].attrib['src'] \
+                if ('src' in image_data[0].attrib and 'data:image' not in image_data[0].attrib['src'] and
+                    len(image_data[0].attrib['src']) > 0) \
                 else (image_data[0].attrib['data-src'] if 'data-src' in image_data[0].attrib else None)
             if image is not None:
                 image = urljoin(self.base_url, image)
@@ -337,7 +340,7 @@ class PornDoe(PornFetcher):
             image_data = link_data[0].xpath('./picture/source')
             assert len(image_data) == 2
             image = image_data[0].attrib['src'] if 'src' in image_data[1].attrib else None
-            if image is None or 'data:image' in image:
+            if image is None or 'data:image' in image or len(image_data[0].attrib['src']) == 0:
                 image = image_data[0].attrib['data-srcset']
 
             video_preview = link_data[0].attrib['ng-preview'] if 'ng-preview' in link_data[0].attrib else None
@@ -453,7 +456,7 @@ class PornDoe(PornFetcher):
 
     @property
     def __version(self):
-        return 0
+        return 1
 
     @property
     def _version_stack(self):
