@@ -404,9 +404,10 @@ class PornTube(PornFetcher):
                                                   obj_id=video_id,
                                                   url=urljoin(self.base_url, video_id),
                                                   title=x['title'],
-                                                  image_link=urljoin(self.base_url, x['videoThumbnail']),
+                                                  image_link=urljoin(self.base_url, x['thumbnailsList'][0]),
                                                   flip_images_link=[urljoin(self.base_url, y)
                                                                     for y in x['thumbnailsList']],
+                                                  preview_video_link=urljoin(self.base_url, x['videoThumbnail']),
                                                   duration=x['durationInSeconds'],
                                                   is_hd=x['isHD'],
                                                   number_of_views=x['playsQty'],

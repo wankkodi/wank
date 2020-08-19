@@ -286,6 +286,8 @@ class TubeEight(PornFetcher):
         :return:
         """
         # At first we try to check whether we have max page from the initial page.
+        if category_data.true_object.object_type == PornCategories.CATEGORY_MAIN:
+            return 1
         page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
         tree = self.parser.parse(page_request.text)
         pages = self._get_available_pages_from_tree(tree)
@@ -297,7 +299,7 @@ class TubeEight(PornFetcher):
         :param tree: Current page tree.
         :return: List of available trees
         """
-        return [int(x) for x in tree.xpath('.//ul[@id="pagination"]/li/strong//text()') if x.isdigit()]
+        return [int(x) for x in tree.xpath('.//ul[@id="pagination"]/li/strong///text()') if x.isdigit()]
 
     def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """
@@ -458,7 +460,7 @@ class TubeEight(PornFetcher):
 
     @property
     def __version(self):
-        return 0
+        return 1
 
     @property
     def _version_stack(self):

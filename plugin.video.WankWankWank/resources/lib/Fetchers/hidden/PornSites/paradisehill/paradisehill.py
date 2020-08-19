@@ -158,9 +158,16 @@ class ParadiseHill(PornFetcher):
             return 1
         page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
         tree = self.parser.parse(page_request.text)
-        pages = tree.xpath('.//ul[@class="pagination"]/li/*/@data-page')
-        pages = [int(x) for x in pages if x.isdigit()]
+        pages = self._get_available_pages_from_tree(tree)
         return max(pages) if len(pages) > 0 else 1
+
+    def _get_available_pages_from_tree(self, tree):
+        """
+        In binary looks for the available pages from current page tree.
+        :param tree: Current page tree.
+        :return: List of available trees
+        """
+        return [int(x) for x in tree.xpath('.//ul[@class="pagination"]/li/*/@data-page') if x.isdigit()]
 
     def get_videos_data(self, page_data):
         """

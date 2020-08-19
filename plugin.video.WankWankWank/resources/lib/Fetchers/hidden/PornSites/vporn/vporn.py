@@ -278,7 +278,7 @@ class VPorn(PornFetcher):
                                                 image_link=image,
                                                 flip_images_link=flip_image,
                                                 is_hd=len(is_hd) > 0,
-                                                duration=self._format_duration(video_length[0]),
+                                                duration=self._format_duration(video_length),
                                                 number_of_views=number_of_viewers,
                                                 rating=rating,
                                                 added_before=added_before,
@@ -418,7 +418,7 @@ class VPorn(PornFetcher):
 
     @property
     def __version(self):
-        return 0
+        return 1
 
     @property
     def _version_stack(self):

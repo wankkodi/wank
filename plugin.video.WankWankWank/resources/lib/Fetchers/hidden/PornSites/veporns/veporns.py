@@ -57,7 +57,7 @@ class VePorns(PornFetcher):
         Base site url.
         :return:
         """
-        return 'http://www.veporns.com/'
+        return 'http://www.veporno.net/'
 
     def __init__(self, source_name='VePorns', source_id=0, store_dir='.', data_dir='../Data',
                  source_type='Porn', use_web_server=True, session_id=None):

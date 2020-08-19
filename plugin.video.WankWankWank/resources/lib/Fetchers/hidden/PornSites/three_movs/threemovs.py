@@ -285,7 +285,7 @@ class ThreeMovs(PornFetcher):
             assert len(img) == 1
             image = img[0].attrib['src']
             if 'data:image' in image:
-                image = img[0].attrib['data-src']
+                image = img[0].attrib['data-src'] if 'data-src' in img[0].attrib else img[0].attrib['data-original']
 
             rating = video_tree_data.xpath('./span[@class="info"]/span[@class="item_rating"]/text()')
             assert len(rating) == 1
