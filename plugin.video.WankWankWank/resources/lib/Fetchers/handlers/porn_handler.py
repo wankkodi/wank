@@ -113,6 +113,7 @@ from ..hidden.PornSites.nubilefilmxxx import NubileFilmXXX
 from ..hidden.PornSites.nubilefilmxxx.plusone8 import PlusOne8
 from ..hidden.PornSites.okxxx import OkXXX
 from ..hidden.PornSites.palmtube import PalmTube
+from ..hidden.PornSites.paradisehill import ParadiseHill
 from ..hidden.PornSites.perfectgirls import PerfectGirls
 from ..hidden.PornSites.porn00 import Porn00
 from ..hidden.PornSites.porn300 import Porn300
@@ -341,12 +342,11 @@ class SourceHandler(object):
             # Not supported site, thus we return fake inactive result
             self.title = 'VePorn'
             self.main_module = None
-            self.image = path.join(unsupported_dir, 'paradisehill.png')
-        elif source_id == -39:
-            # Not supported site, thus we return fake inactive result
-            self.title = 'ParadiseHill'
-            self.main_module = None
             self.image = path.join(unsupported_dir, 'veporn.png')
+        elif source_id == -39:
+            self.title = 'ParadiseHill'
+            self.main_module = ParadiseHill
+            self.image = path.join(unsupported_dir, 'paradisehill.png')
         elif source_id == -40:
             self.title = 'PornHD8K'
             self.main_module = PornHDEightK

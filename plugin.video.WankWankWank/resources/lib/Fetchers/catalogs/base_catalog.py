@@ -652,11 +652,12 @@ class VideoSource(object):
     __video_types = list(VideoTypes)
 
     def __init__(self, link, video_type=VideoTypes.VIDEO_REGULAR, quality=None, resolution=None, fps=None, codec=None,
-                 size=None):
+                 size=None, title=None):
         self.link = link
         if video_type not in self.__video_types:
             raise TypeError('Video type must be one of the {s}.'.format(s=self.__video_types))
         self.video_type = video_type
+        self.title = title
         self.quality = int(quality) if quality is not None else None
         self.resolution = int(resolution) if resolution is not None else None
         self.fps = int(fps) if fps is not None else None
