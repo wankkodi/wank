@@ -9,7 +9,7 @@ import re
 
 # Nodes
 from ....catalogs.porn_catalog import PornCatalogCategoryNode, PornCatalogVideoPageNode, \
-    VideoSource, VideoNode
+    VideoSource, VideoNode, VideoTypes
 from ....catalogs.porn_catalog import PornCategories, PornFilter, PornFilterTypes
 
 # JSON
@@ -326,20 +326,30 @@ class PornHub(PornFetcher):
         tmp_dict = {x[0]: x[1][1:-1] for x in request_data2 if x[1][0] == '"' and x[1][-1] == '"'}
         urls = {x[0]: x[1] for x in request_data2 if x[1][0] != '"' and x[1][-1] != '"'}
         new_urls = []
-        for k, v in urls.items():
+        i = 0
+        while 1:
             # if 'flashvars' in k or 'qualityItems' in k:
             #     continue
-            if 'media' in k:
+            k = 'media_{i}'.format(i=i)
+            if k in urls:
+                v = urls[k]
                 correct_v = re.sub(r'/\*.*?\*/', '', v)
                 split_v = correct_v.split(' + ')
                 new_v = ''.join([tmp_dict[x] for x in split_v])
                 new_v = re.sub(r'[" +]', '', new_v)
                 new_urls.append(re.sub(r'[" +]', '', new_v))
+                i += 1
+            else:
+                break
 
         # todo: add support for dash
         assert len(raw_data['mediaDefinitions']) == len(new_urls)
-        res = sorted((VideoSource(quality=x['quality'], link=y) for x, y in zip(raw_data['mediaDefinitions'], new_urls)
-                      if len(y) > 0 and type(x['quality']) != list),
+        res = sorted((VideoSource(quality=x['quality'] if type(x['quality']) != list else max(x['quality']),
+                                  link=y,
+                                  video_type=VideoTypes.VIDEO_REGULAR if type(x['quality']) != list
+                                  else VideoTypes.VIDEO_DASH)
+                      for x, y in zip(raw_data['mediaDefinitions'], new_urls)
+                      if len(y) > 0),
                      key=lambda x: x.quality, reverse=True)
         return VideoNode(video_sources=res)
 
@@ -366,26 +376,26 @@ class PornHub(PornFetcher):
             videos = tree.xpath('.//div[@class="info floatRight"]')
             videos = int(re.sub(r'[ ,]', '', videos[-1].text))
             videos_per_page = len(tree.xpath('.//div[@class="widgetContainer"]/ul/li'))
-            return int(math.ceil(videos / videos_per_page))
+            return int(math.ceil((videos / videos_per_page)))
         if category_data.object_type == PornCategories.PORN_STAR:
             # Private treatment
             videos = tree.xpath('.//div[@class="showingInfo"]')
             if len(videos) > 0:
                 raw_res = re.findall(r'\d+', videos[-1].text)
                 # All pages has 40 videos
-                return int(math.ceil(int(raw_res[2]) / 40))
+                return int(math.ceil((int(raw_res[2]) / 40)))
             else:
                 videos = tree.xpath('.//div[@class="showingCounter pornstarVideosCounter"]')
                 raw_res = re.findall(r'\d+', videos[0].text)
                 # All pages has 36 videos
-                return int(math.ceil(int(raw_res[2]) / 36))
+                return int(math.ceil((int(raw_res[2]) / 36)))
         if category_data.object_type == PornCategories.SEARCH_MAIN:
             # Private treatment
             videos = tree.xpath('.//div[@class="showingCounter"]')
             if len(videos) > 0:
                 raw_res = re.findall(r'\d+', videos[-1].text)
                 # All pages has 20 videos
-                return int(math.ceil(int(raw_res[2]) / 20))
+                return int(math.ceil((int(raw_res[2]) / 20)))
             else:
                 return 0
         else:
@@ -394,7 +404,7 @@ class PornHub(PornFetcher):
                 # New - try to fetch from general number of videos
                 raw_res = re.findall(r'\d+', videos[0].text)
                 # All pages has 44 videos except the first, which has 32
-                return int(math.ceil((int(raw_res[2]) - 32) / 44)) + 1 if int(raw_res[2]) > 32 else 1
+                return int(math.ceil(((int(raw_res[2]) - 32) / 44) + 1 if int(raw_res[2]) > 32 else 1))
             else:
                 # Old
                 available_pages = self._get_available_pages_from_tree(tree)
@@ -550,7 +560,7 @@ class PornHub(PornFetcher):
 
     @property
     def __version(self):
-        return 1
+        return 2
 
     @property
     def _version_stack(self):
