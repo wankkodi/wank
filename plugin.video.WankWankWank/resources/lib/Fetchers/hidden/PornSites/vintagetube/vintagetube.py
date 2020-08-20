@@ -193,7 +193,7 @@ class VintageTube(PornFetcher):
         :return:
         """
         if category_data.number_of_videos is not None:
-            return math.ceil(category_data.number_of_videos / self.items_per_page)
+            return int(math.ceil(category_data.number_of_videos / self.items_per_page))
         page_request = self._get_object_request_no_exception_check(category_data) if fetched_request is None \
             else fetched_request
         if not self._check_is_available_page(category_data, page_request):
@@ -208,7 +208,7 @@ class VintageTube(PornFetcher):
         :param json_data: Current page json data.
         :return: List of available trees
         """
-        return [math.ceil(json_data['total'] / self.items_per_page)]
+        return [int(math.ceil(json_data['total'] / self.items_per_page))]
 
     def get_videos_data(self, page_data):
         """

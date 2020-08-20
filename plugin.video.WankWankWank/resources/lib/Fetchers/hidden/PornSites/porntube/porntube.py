@@ -369,7 +369,7 @@ class PornTube(PornFetcher):
         """
         # if category_data.number_of_videos is not None:
         #     # return category_data.number_of_videos
-        #     return math.ceil(category_data.number_of_videos / self.number_of_videos_per_video_page)
+        #     return int(math.ceil(category_data.number_of_videos / self.number_of_videos_per_video_page)
         # else:
         page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
         res_json = page_request.json()
@@ -378,7 +378,7 @@ class PornTube(PornFetcher):
         sub_category = parse_url[4] if len(parse_url) > 4 else ''
         if len(sub_category) > 0:
             # new_category = category[:-1]
-            # return math.ceil(res_json[new_category]['videoCount'] / self.number_of_videos_per_video_page)
+            # return int(math.ceil(res_json[new_category]['videoCount'] / self.number_of_videos_per_video_page)
             return res_json['embedded']['videos']['pages']
         elif category == 'search':
             return res_json['videos']['pages']

@@ -259,7 +259,7 @@ class GotPorn(PornFetcher):
                 total_number_of_videos = int(total_number_of_videos[0].attrib['data-videos-num'])
 
             videos = tree.xpath('.//span[@class="video-thumb"]')
-            return math.ceil(total_number_of_videos / len(videos))
+            return int(math.ceil(total_number_of_videos / len(videos)))
         else:
             page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
             tree = self.parser.parse(page_request.text)

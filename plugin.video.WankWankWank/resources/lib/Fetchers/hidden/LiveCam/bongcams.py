@@ -222,7 +222,7 @@ class BongCams(PornFetcher):
         page_request = self.get_object_request(category_data) if fetched_request is None else fetched_request
         raw_data = page_request.json()
 
-        return math.ceil(raw_data['online_count'] / self.number_of_videos_per_page)
+        return int(math.ceil(raw_data['online_count'] / self.number_of_videos_per_page))
 
     def get_videos_data(self, page_data):
         """

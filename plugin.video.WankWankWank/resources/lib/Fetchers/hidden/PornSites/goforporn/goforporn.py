@@ -212,7 +212,7 @@ class GoForPorn(PornFetcher):
         # max_videos = re.findall(r'([\d.]*)(K* *$)', max_videos[0].text)
         # max_videos = int(float(max_videos[0][0]) * (1000 if 'K' in max_videos[0][1] else 1))
         # videos_per_page = len(tree.xpath('.//div[@class="camp cow"]/div[@class="tightly"]'))
-        # return math.ceil(max_videos / videos_per_page)
+        # return int(math.ceil(max_videos / videos_per_page)
 
     def _get_available_pages_from_tree(self, tree):
         """

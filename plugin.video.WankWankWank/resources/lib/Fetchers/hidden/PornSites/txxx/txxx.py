@@ -289,11 +289,11 @@ class Txxx(PornFetcher):
         raw_data = page_request.json()
         number_of_videos = int(raw_data['total_count']) if 'total_count' in raw_data else 0
         if category_data.object_type in (PornCategories.CHANNEL_MAIN, ):
-            return math.ceil(number_of_videos / self.number_of_channels_per_page)
+            return int(math.ceil(number_of_videos / self.number_of_channels_per_page))
         elif category_data.object_type in (PornCategories.PORN_STAR_MAIN, ):
-            return math.ceil(number_of_videos / self.number_of_porn_stars_per_page)
+            return int(math.ceil(number_of_videos / self.number_of_porn_stars_per_page))
         else:
-            return min(math.ceil(number_of_videos / self.number_of_videos_per_page), self._max_pages)
+            return min(int(math.ceil(number_of_videos / self.number_of_videos_per_page)), self._max_pages)
 
     def _get_video_links_from_video_data_no_exception_check(self, video_data):
         """

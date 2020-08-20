@@ -214,7 +214,7 @@ class HQPorner(PornFetcher):
         num_of_videos = tree.xpath('.//p/i[@class="icon fa-film"]')
         if len(num_of_videos) == 1:
             num_of_videos = re.findall(r'\d+', num_of_videos[0].tail)
-            return math.ceil(int(num_of_videos[0]) / self.number_of_videos_per_page)
+            return int(math.ceil(int(num_of_videos[0]) / self.number_of_videos_per_page))
         else:
             # At first we try to check whether we have max page from the initial page.
             pages = self._get_available_pages_from_tree(tree)

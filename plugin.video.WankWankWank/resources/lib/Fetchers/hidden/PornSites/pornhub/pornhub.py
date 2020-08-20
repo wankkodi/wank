@@ -366,26 +366,26 @@ class PornHub(PornFetcher):
             videos = tree.xpath('.//div[@class="info floatRight"]')
             videos = int(re.sub(r'[ ,]', '', videos[-1].text))
             videos_per_page = len(tree.xpath('.//div[@class="widgetContainer"]/ul/li'))
-            return math.ceil(videos / videos_per_page)
+            return int(math.ceil(videos / videos_per_page))
         if category_data.object_type == PornCategories.PORN_STAR:
             # Private treatment
             videos = tree.xpath('.//div[@class="showingInfo"]')
             if len(videos) > 0:
                 raw_res = re.findall(r'\d+', videos[-1].text)
                 # All pages has 40 videos
-                return math.ceil(int(raw_res[2]) / 40)
+                return int(math.ceil(int(raw_res[2]) / 40))
             else:
                 videos = tree.xpath('.//div[@class="showingCounter pornstarVideosCounter"]')
                 raw_res = re.findall(r'\d+', videos[0].text)
                 # All pages has 36 videos
-                return math.ceil(int(raw_res[2]) / 36)
+                return int(math.ceil(int(raw_res[2]) / 36))
         if category_data.object_type == PornCategories.SEARCH_MAIN:
             # Private treatment
             videos = tree.xpath('.//div[@class="showingCounter"]')
             if len(videos) > 0:
                 raw_res = re.findall(r'\d+', videos[-1].text)
                 # All pages has 20 videos
-                return math.ceil(int(raw_res[2]) / 20)
+                return int(math.ceil(int(raw_res[2]) / 20))
             else:
                 return 0
         else:
@@ -394,7 +394,7 @@ class PornHub(PornFetcher):
                 # New - try to fetch from general number of videos
                 raw_res = re.findall(r'\d+', videos[0].text)
                 # All pages has 44 videos except the first, which has 32
-                return math.ceil((int(raw_res[2]) - 32) / 44) + 1 if int(raw_res[2]) > 32 else 1
+                return int(math.ceil((int(raw_res[2]) - 32) / 44)) + 1 if int(raw_res[2]) > 32 else 1
             else:
                 # Old
                 available_pages = self._get_available_pages_from_tree(tree)

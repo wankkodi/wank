@@ -181,7 +181,7 @@ class XBabe(AnyPorn):
         #                               (int(total_number_of_videos[1].text[1:])
         #                                if len(total_number_of_videos[1].text[1:]) > 0 else 0)
         #                               )
-        #     return math.ceil(total_number_of_videos / self.videos_per_video_page)
+        #     return int(math.ceil(total_number_of_videos / self.videos_per_video_page)
         else:
             # We have a porn star page
             return self._binary_search_max_number_of_pages(category_data, last_available_number_of_pages)
@@ -197,7 +197,7 @@ class XBabe(AnyPorn):
         left_page = 1
         right_page = self.max_pages
         page = last_available_number_of_pages if last_available_number_of_pages is not None \
-            else math.ceil((right_page + left_page) / 2)
+            else int(math.ceil((right_page + left_page) / 2))
         while 1:
             page_request = self._get_object_request_no_exception_check(category_data, override_page_number=page)
             if self._check_is_available_page(category_data, page_request):
@@ -207,7 +207,7 @@ class XBabe(AnyPorn):
             else:
                 # We moved too far...
                 right_page = page - 1
-            page = math.ceil((right_page + left_page) / 2)
+            page = int(math.ceil((right_page + left_page) / 2))
 
     def _get_available_pages_from_tree(self, tree):
         """

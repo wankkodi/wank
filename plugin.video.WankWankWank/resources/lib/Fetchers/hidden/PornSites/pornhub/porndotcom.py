@@ -295,7 +295,7 @@ class PornDotCom(PornFetcher):
                                     tree.xpath('.//div[@class="list-global__item has-player"]'))
         if len(total_number_of_items) > 0 and len(number_of_items_per_page) > 0:
             total_number_of_items = int(''.join(re.findall(r'\d+', total_number_of_items[0].text)))
-            return math.ceil(total_number_of_items / len(number_of_items_per_page))
+            return int(math.ceil(total_number_of_items / len(number_of_items_per_page)))
         else:
             return 1
 
