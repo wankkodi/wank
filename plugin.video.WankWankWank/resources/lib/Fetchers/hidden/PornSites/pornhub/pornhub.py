@@ -442,10 +442,10 @@ class PornHub(PornFetcher):
             return []
         tree = self.parser.parse(page_request.text)
         preview_videos = 4
-        videos = [x for x in tree.xpath('.//ul/li') if '_vkey' in x.attrib][preview_videos:]
+        videos = [x for x in tree.xpath('.//ul/li') if 'data-video-id' in x.attrib][preview_videos:]
         res = []
         for video_tree_data in videos:
-            additional_data = {'_vkey': video_tree_data.attrib['_vkey']}
+            additional_data = {'_vkey': video_tree_data.attrib['data-video-id']}
 
             link_data = [x for x in video_tree_data.xpath('.//a')
                          if 'class' in x.attrib and 'linkVideoThumb' in x.attrib['class']]
@@ -560,7 +560,7 @@ class PornHub(PornFetcher):
 
     @property
     def __version(self):
-        return 2
+        return 3
 
     @property
     def _version_stack(self):

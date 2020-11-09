@@ -140,10 +140,12 @@ class EPorner(PornFetcher):
             num_of_videos = [x for x in tree.xpath('.//div[@id="categories-list-left"]/ul/li/div[2]')
                              if 'href' in x.xpath('./a')[0].attrib and
                              x.xpath('./a')[0].attrib['href'] == link_data[0].attrib['href']]
-            assert len(num_of_videos) == 1
-            num_of_videos = num_of_videos[0].xpath('./div[@class="cllnumber"]/text()')
-            assert len(num_of_videos) == 1
-            num_of_videos = int(re.sub(r'[(),]', '', str(num_of_videos[0])))
+            # assert len(num_of_videos) == 1
+            if len(num_of_videos) == 1:
+                num_of_videos = num_of_videos[0].xpath('./div[@class="cllnumber"]/text()')
+                num_of_videos = int(re.sub(r'[(),]', '', str(num_of_videos[0])))
+            else:
+                num_of_videos = None
 
             object_data = PornCatalogCategoryNode(catalog_manager=self.catalog_manager,
                                                   obj_id=link_data[0].attrib['href'],
@@ -466,7 +468,7 @@ class EPorner(PornFetcher):
 
     @property
     def __version(self):
-        return 1
+        return 2
 
     @property
     def _version_stack(self):

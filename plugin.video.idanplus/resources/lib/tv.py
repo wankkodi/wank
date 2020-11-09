@@ -13,9 +13,9 @@ def WatchLive(url, name='', iconimage='', quality='best'):
 	channels = {
 		'891fm': { 'link': 'https://www.oles.tv/891fm/player/', 'regex': "streamSource\s*=\s*'(.*?)'"},
 		'100fm': { 'link': 'https://100fm.multix.co.il/', 'regex': "hls:\s*'(.*?)'", 'direct': 'https://video_cdn.streamgates.net/radios100fm/feed720/playlist.m3u8'},
-		'11b': { 'link': 'https://kanlivep2event-i.akamaihd.net/hls/live/747610/747610/source1_4k/chunklist.m3u8', 'final': True},
+		'11b': { 'link': 'https://kanlivep2event-i.akamaihd.net/hls/live/747610/747610/source1_2.5k/chunklist.m3u8', 'final': True},
 		'n12': { 'link': 'https://keshethlslive-lh.akamaihd.net/i/c2n_1@195269/index_3100_av-p.m3u8', 'final': True},
-		'13b': { 'link': 'http://reshet-live-net.ctedgecdn.net/13tv-desktop/dvr/r13.m3u8', 'referer': 'http://13tv.co.il/live/'},
+		'13b': { 'link': 'https://d18b0e6mopany4.cloudfront.net/out/v1/08bc71cf0a0f4712b6b03c732b0e6d25/index.m3u8', 'referer': 'http://13tv.co.il/live/'},
 		'bbb': { 'link': 'http://reshet-live-net.ctedgecdn.net/13tv-premium/bb/r13.m3u8', 'referer': 'http://13tv.co.il/home/bb-livestream/'},
 		'musayof': { 'link': 'http://wowza.media-line.co.il/Musayof-Live/livestream.sdp/playlist.m3u8', 'referer': 'http://media-line.co.il/Media-Line-Player/musayof/livePlayer.aspx'}
 	}

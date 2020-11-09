@@ -42,8 +42,13 @@ def GetSeriesList(url, catName):
 	AddSeries(matches, catName)
 	matches = re.compile('<a class="magazine_info_link w-inline-block.+?href=\'(.+?)\'.+?"background-image: url\(\'(.+?)\'\);.+?"magazine_info_title">(.*?)</h2>.*?"magazine_info_txt">(.*?)</div>', re.S|re.I).findall(text)
 	AddSeries(matches, catName)
-	matches = re.compile('<div class="it_small_pictgroup.+?"background-image: url\(\'(.+?)\'\);.+?href=".+?/Program/\?catId=(.+?)".+?class="it_small_title">(.*?)</div>.+?class="it_small_txt">(.*?)</div>', re.S).findall(text)
-	for iconimage, id, name, description in matches:
+	for match in matches:
+		item = match[0]
+		description = match[1]
+		m = re.compile('url\(\'(.+?)\'\);.+?href=".+?/Program/\?catId=(.+?)["\'].+?class="it_small_title">(.*?)</div>', re.S|re.I).findall(item)
+		if len(m) == 0:
+			continue
+		iconimage, id, name = m[0]
 		name = common.GetLabelColor(name.strip(), keyColor="prColor", bold=True)
 		common.addDir(name, id, 2, iconimage, infos={"Title": name, "Plot": description.strip()}, module=module, moreData='kan|||{0}'.format(catName), urlParamsData={'catName': catName})
 
@@ -219,7 +224,11 @@ def WatchLive(url, name='', iconimage='', quality='best', type='video'):
 		match = re.compile('<div class="player_content">.*?iframe src="(.*?)"', re.S).findall(text)
 		if len(match) == 0:
 			match = re.compile('iframeLink\s*?=\s*?"(.*?)"').findall(text)
-	link = GetPlayerKanUrl(match[0], headers=headers, quality=quality)
+	if 'dailymotion' in match[0]:
+		id = re.compile('.*?video/(.*?)\?').findall(match[0])
+		link = 'plugin://plugin.video.dailymotion_com/?url={0}&mode=playLiveVideo'.format(id[0])
+	else:
+		link = GetPlayerKanUrl(match[0], headers=headers, quality=quality)
 	common.PlayStream(link, quality, name, iconimage)
 
 def GetPodcastsList():

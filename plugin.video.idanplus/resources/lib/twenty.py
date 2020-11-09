@@ -8,6 +8,7 @@ AddonID = 'plugin.video.idanplus'
 Addon = xbmcaddon.Addon(AddonID)
 sortBy = int(Addon.getSetting("twentySortBy"))
 module = 'twenty'
+baseUrl = 'https://www.20il.co.il'
 userAgent = common.GetUserAgent()
 headers = {"User-Agent": userAgent}
 
@@ -19,73 +20,39 @@ def GetCategoriesList(iconimage):
 	common.addDir(name, '', 0, iconimage, infos={"Title": name, "Plot": "צפיה בתכניות ערוץ מורשת 20"}, module=module)
 
 def GetSeriesList(iconimage):
-	text = common.OpenURL('https://www.20il.co.il/%D7%AA%D7%95%D7%9B%D7%A0%D7%99%D7%95%D7%AA/')
-	matches = re.compile('<div class="show-thumb">\s*<a href="(.*?)"><img src="(.*?)".*?title=\'(.*?)\'></a></div>', re.S).findall(text)
+	text = common.OpenURL('https://www.20il.co.il/tochniot_haarutz/%d7%97%d7%93%d7%a9%d7%95%d7%aa-20/')
+	match = re.compile('tochniot-in-use-images(.*?)</div>', re.S).findall(text)
+	match = re.compile('<a href="(.*?)".*?<img src="(.*?)"', re.S).findall(match[0])
 	grids_arr = []
-	for link, iconimage, name in matches:
-		name = common.GetLabelColor(common.UnEscapeXML(name), keyColor="prColor", bold=True)
-		grids_arr.append((name, link, iconimage, {"Title": name}))
+	for link, iconimage in match:
+		name = iconimage[iconimage.rfind('/')+1:iconimage.rfind(".")]
+		i = name.find('-סופי')
+		if i > 0:
+			name = name[:i]
+		name = common.GetLabelColor(common.UnEscapeXML(name.replace('-', ' ')), keyColor="prColor", bold=True)
+		if iconimage.startswith('http') == False:
+			iconimage = '{0}{1}'.format(baseUrl, iconimage)
+		grids_arr.append((name, '{0}{1}'.format(baseUrl, link), iconimage, {"Title": name}))
 	grids_sorted = grids_arr if sortBy == 0 else sorted(grids_arr,key=lambda grids_arr: grids_arr[0])
 	for name, link, image, infos in grids_sorted:
 		common.addDir(name, link, 1, common.encode(image, 'utf-8'), infos=infos, module=module)
 
 def GetEpisodesList(url, image):
-	text = common.OpenURL(url)
-	i = url.find('/page/')
-	if i > 0:
-		j = url.find('/', i+6)
-		if j < 0:
-			j = len(url)
-		page = int(url[i+6:j])
-		_url = url[:i+1]
-	else:
-		page = 1
-		_url = url if url[len(url)-1] == '/' else '{0}/'.format(url)
-	match = re.compile('<div class="pagination">(.*)</div>', re.S).findall(text)
-	if len(match) > 0:
-		match = re.compile('<a href=".*?/page/(\d*)/".*?</a>').findall(match[0])
-	pages = 1 if len(match) < 1 else match[-1]
-	parts = text.split('<div id="catabpart"')
-	name = common.GetLabelColor("תכניות מלאות", keyColor="prColor") 
-	common.addDir(name, '', 99, image, infos={"Title": name, "Plot": name}, module=module, isFolder=False)
-	episodes = re.compile('<div class="post-thumbnail">\s+<a href="(.*?)</p>', re.S).findall(parts[0])
-	EpisodesToList(episodes)
-	if len(parts) < 2:
-		return
-	name = common.GetLabelColor("קטעים נבחרים", keyColor="prColor") 
-	common.addDir(name, '', 99, image, infos={"Title": name, "Plot": name}, module=module, isFolder=False)
-	episodes = re.compile('<div class="post-thumbnail">\s+<a href="(.*?)</p>', re.S).findall(parts[1][:parts[1].find("<p id='content_bottom'>")])
-	EpisodesToList(episodes)
-	if page > 1:
-		name = common.GetLabelColor(common.GetLocaleString(30011), color="green")
-		_url1 = _url if page == 2 else '{0}page/{1}/'.format(_url, page-1)
-		common.addDir(name, _url1, 1, image, infos={"Title": name, "Plot": name}, module=module)
-	if pages > page:
-		name = common.GetLabelColor(common.GetLocaleString(30012), color="green")
-		common.addDir(name, '{0}page/{1}/'.format(_url, page+1), 1, image, infos={"Title": name, "Plot": name}, module=module)
-	if pages > 1:
-		name = common.GetLabelColor(common.GetLocaleString(30013), color="green")
-		common.addDir(name, '{0}?pages={1}'.format(_url, pages), 3, image, infos={"Title": name, "Plot": name}, module=module)
-
-def EpisodesToList(episodes):
 	bitrate = Addon.getSetting('twenty_res')
 	if bitrate == '':
 		bitrate = 'best'
+	text = common.OpenURL(url)
+	episodes = re.compile('<div class="katan-unit(.*?)</div>\s*</div>\s*</div>', re.S).findall(text)
 	for episode in episodes:
-		ps = re.compile('^(.*?)" rel="bookmark">.*?src="(.*?)".*?</a>.*?<div class="entry">.*?rel="bookmark">(.*?)</a></h2>\s+<p>(.*?)$', re.S).findall(episode)
-		for link, iconimage, name, desc in ps:
-			name = common.GetLabelColor(common.UnEscapeXML(name), keyColor="chColor")
-			desc = common.UnEscapeXML(desc)
+		match = re.compile('data-videoid="(.*?)".*?src="(.*?)".*?<div class="the-title">(.*?)</div>', re.S).findall(episode)
+		for videoid, iconimage, name in match:
+			name = common.GetLabelColor(common.UnEscapeXML(name.strip()), keyColor="chColor")
 			iconimage = common.encode(iconimage, 'utf-8')
-			common.addDir(name, link, 2, iconimage, infos={"Title": name, "Plot": desc}, contextMenu=[(common.GetLocaleString(30005), 'RunPlugin({0}?url={1}&name={2}&mode=2&iconimage={3}&moredata=choose&module={4})'.format(sys.argv[0], common.quote_plus(link), name, common.quote_plus(iconimage), module)), (common.GetLocaleString(30023), 'RunPlugin({0}?url={1}&name={2}&mode=2&iconimage={3}&moredata=set_twenty_res&module={4})'.format(sys.argv[0], common.quote_plus(link), name, common.quote_plus(iconimage), module))], module=module, moreData=bitrate, isFolder=False, isPlayable=True)
+			link = 'https://cdn.ch20-cdnwiz.com/ch20/player.php?clipid={0}&autoplay=true&automute=false'.format(videoid)
+			common.addDir(name, link, 2, iconimage, infos={"Title": name}, contextMenu=[(common.GetLocaleString(30005), 'RunPlugin({0}?url={1}&name={2}&mode=2&iconimage={3}&moredata=choose&module={4})'.format(sys.argv[0], common.quote_plus(link), name, common.quote_plus(iconimage), module)), (common.GetLocaleString(30023), 'RunPlugin({0}?url={1}&name={2}&mode=2&iconimage={3}&moredata=set_twenty_res&module={4})'.format(sys.argv[0], common.quote_plus(link), name, common.quote_plus(iconimage), module))], module=module, moreData=bitrate, isFolder=False, isPlayable=True)
 
 def Play(name, url, iconimage, quality='best', live=None):
 	text = common.OpenURL(url, headers=headers)
-	match = re.compile('<div class="content">(.*?)<!-- .content -->', re.S).findall(text)
-	match = re.compile('<div id="cdnwizPlayerWrapper.*?<iframe.*?src="(.*?)"', re.S).findall(match[0])
-	text = common.OpenURL(match[0], headers=headers)
-	#match = re.compile('<iframe src="(.*?)"').findall(text)
-	#text = common.OpenURL(match[0], headers=headers)
 	match = re.compile('src:\s*"(.*?)"').findall(text)
 	if len(match) < 0:
 		match = re.compile('source\s*src="(.*?)"').findall(text)
@@ -96,6 +63,12 @@ def Play(name, url, iconimage, quality='best', live=None):
 	link = common.GetStreams(match[0], headers=headers, quality=quality)
 	final = '{0}|User-Agent={1}'.format(link, userAgent)
 	common.PlayStream(final, quality, name, iconimage)
+
+def Watch(name, iconimage, quality='best'):
+	url = 'https://www.20il.co.il/tochniot_meleot/%D7%A9%D7%99%D7%93%D7%95%D7%A8-%D7%97%D7%99/'
+	text = common.OpenURL(url, headers=headers)
+	match = re.compile('<div id="cdnwizPlayerWrapper.*?<iframe.*?src="(.*?)"', re.S).findall(text)
+	Play(name, match[0], iconimage, quality, live='https://dvr.ch20-cdnwiz.com/mobilehls/dvr.m3u8')
 
 def Run(name, url, mode, iconimage='', moreData=''):
 	if mode == -1:
@@ -115,6 +88,6 @@ def Run(name, url, mode, iconimage='', moreData=''):
 	elif mode == 4:		#------------- Toggle Lists' sorting method -----
 		common.ToggleSortMethod('twentySortBy', sortBy)
 	elif mode == 10:	#------------- Watch live channel  -------
-		Play(name, 'https://www.20il.co.il/vod/', iconimage, moreData, live='https://dvr.ch20-cdnwiz.com/mobilehls/dvr.m3u8')
+		Watch(name, iconimage, moreData)
 		
 	common.SetViewMode('episodes')

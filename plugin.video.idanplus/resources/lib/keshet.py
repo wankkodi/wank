@@ -18,9 +18,9 @@ if deviceID.strip() == '':
 	Addon.setSetting("makoDeviceID", deviceID)
 username = Addon.getSetting("makoUsername")
 password = Addon.getSetting("makoPassword")
-baseUrl = 'http://www.mako.co.il'
+baseUrl = 'https://www.mako.co.il'
 endings = 'type=service&device=desktop&strto=true'
-entitlementsServices = 'http://mass.mako.co.il/ClicksStatistics/entitlementsServicesV2.jsp'
+entitlementsServices = 'https://mass.mako.co.il/ClicksStatistics/entitlementsServicesV2.jsp'
 UA = common.GetUserAgent()
 bitrate = Addon.getSetting('mako_res')
 if bitrate == '':
@@ -144,11 +144,11 @@ def GetSeasonsList(url, iconimage):
 			url = "{0}{1}".format(baseUrl, prm["url"])
 			description = common.encode(prm.get('brief', ''), "utf-8")
 			infos = {"Title": name, "Plot": description}
-			common.addDir(name, url, 3, iconimage, infos, module=module)
+			common.addDir(name, url, 3, iconimage, infos, module=module, moreData=prm["id"])
 		except Exception as ex:
 			xbmc.log(str(ex), 3)
 
-def GetEpisodesList(url, icon):
+def GetEpisodesList(url, icon, moreData=""):
 	url = "{0}&{1}".format(url, endings) if "?" in url else "{0}?{1}".format(url, endings)
 	prms = GetJson(url)
 	if prms is None or "channelId" not in prms or "programData" not in  prms or "seasons" not in  prms["programData"]:
@@ -158,7 +158,7 @@ def GetEpisodesList(url, icon):
 	videoChannelId=prms["channelId"]
 	grids_arr = []
 	for prm in prms["programData"]["seasons"]:
-		if prm is None or "vods" not in prm or "current" not in prm or prm["current"].lower() != "true":
+		if prm is None or "vods" not in prm or "id" not in prm or prm["id"].lower() != moreData.lower():
 			continue
 		episodesCount = len(prm["vods"])
 		for episode in prm["vods"]:
@@ -220,18 +220,6 @@ def PlayItem(url, name='', iconimage='', quality='best'):
 	vcmid = prms["guid"]
 	url = "vcmid={0}&videoChannelId={1}".format(vcmid,videoChannelId)
 	Play(url, name, iconimage, quality)
-	'''
-	url = "{0}&{1}".format(url, endings) if "?" in url else "{0}?{1}".format(url, endings)
-	prms = GetJson(url)
-	if prms is None or "video" not in prms:
-		xbmc.log("Cannot get item", 2)
-		return
-	iconimage = GetImage(prms["video"], 'pic_I', iconimage)
-	videoChannelId=prms["channelId"]
-	vcmid = prms["video"]["guid"]
-	url = "vcmid={0}&videoChannelId={1}".format(vcmid,videoChannelId)
-	Play(url, name, iconimage, quality)
-	'''
 
 def Play(url, name='', iconimage='', quality='best'):
 	common.DelCookies()
@@ -262,7 +250,7 @@ def GetLink(media, cdn, dv, headers, quality):
 		l = '{0}?et=gt&na=2.0&da=6gkr2ks9-4610-392g-f4s8-d743gg4623k2&du={1}&dv={2}&rv={3}&lp={4}'.format(entitlementsServices, deviceID, dv, cdn, url)
 	ticket = GetTicket(l, headers)
 	if url.startswith('//'):
-		url = 'http:{0}'.format(url) 
+		url = 'https:{0}'.format(url) 
 	#xbmc.log('{0}?{1}'.format(url, ticket), 5)
 	session = common.GetSession()
 	link = common.GetStreams('{0}&{1}'.format(url, ticket) if '?' in url else '{0}?{1}'.format(url, ticket), headers=headers, session=session, quality=quality)
@@ -331,7 +319,7 @@ def Run(name, url, mode, iconimage='', moreData=''):
 	elif mode == 2:	#------------- Seasons: -----------------
 		GetSeasonsList(url, iconimage)
 	elif mode == 3:	#------------- Episodes: -----------------
-		GetEpisodesList(url, iconimage)
+		GetEpisodesList(url, iconimage, moreData)
 	elif mode == 4:	#------------- Playing episode  -----------------
 		Play(url, name, iconimage, moreData)
 	elif mode == 5:	#------------- Playing item: -----------------

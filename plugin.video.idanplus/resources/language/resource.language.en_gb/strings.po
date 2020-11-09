@@ -447,6 +447,10 @@ msgctxt "#30734"
 msgid "Первое Радио 89.1FM"
 msgstr ""
 
+msgctxt "#30737"
+msgid "Лучшее Радио 106.4FM"
+msgstr ""
+
 msgctxt "#30735"
 msgid "ספורט 5 אתר"
 msgstr ""

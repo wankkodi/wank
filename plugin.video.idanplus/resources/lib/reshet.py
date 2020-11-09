@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import xbmc, xbmcaddon
-import sys, re, json, collections
+import sys, re, json, collections, requests
 import resources.lib.common as common
 
 handle = int(sys.argv[1])
@@ -79,9 +79,20 @@ def GetGridList(iconimage, grid_id):
 				if postType == 'item':
 					mode = 3
 					video = post.get('video')
-					if video is None or video.get('videoID') is None:
+					if video is None:
 						continue
-					link = video['videoID']
+					link = ''
+					if video.get('kaltura_videoID') is not None:
+						link = '{0}--kaltura--{1}==='.format(link, video['kaltura_videoID'])
+					if video.get('cst_videoID') is not None:
+						if video['cst_videoID'] == '-1':
+							link = '{0}--cst--{1}==='.format(link, video['cst_videoID'])
+						else:
+							link = '{0}--cst--{1}==='.format(link, video.get('videoRef', link))
+					if video.get('brv_videoID') is not None:
+						link = '{0}--brv--{1}==='.format(link, video['brv_videoID'])	
+					if link == '':
+						continue
 				elif postType != 'page':
 					continue
 				else:
@@ -234,11 +245,20 @@ def GetLinks(url, result, iconimage):
 							page_4_level_heb = '' if page_4_level_heb is None else common.encode(page_4_level_heb, 'utf-8')
 							seasons[seasonsLink] = '{0} {1} {2}'.format(page_2_level_heb, page_3_level_heb, page_4_level_heb)
 					video = post.get('video')
-					if video is None or video.get('videoID') is None:
+					if video is None:
 						continue
-					videoID = video['videoID']
-					if videoID == '-1':
-						videoID = video.get('videoRef', videoID)
+					videoID = ''
+					if video.get('kaltura_videoID') is not None:
+						videoID = '{0}--kaltura--{1}==='.format(videoID, video['kaltura_videoID'])
+					if video.get('cst_videoID') is not None:
+						if video['cst_videoID'] == '-1':
+							videoID = '{0}--cst--{1}==='.format(videoID, video['cst_videoID'])
+						else:
+							videoID = '{0}--cst--{1}==='.format(videoID, video.get('videoRef', videoID))
+					if video.get('brv_videoID') is not None:
+						videoID = '{0}--brv--{1}==='.format(videoID, video['brv_videoID'])	
+					if videoID == '':
+						continue
 					icon =  common.encode(post['images'].get('app_16x9', iconimage), 'utf-8')
 					episodes.append((gridTitle, videoID, icon, common.encode(post.get('title', '').strip(), 'utf-8'), common.encode(post.get('subtitle', '').strip(), 'utf-8'), post.get('publishDate')))
 			except Exception as ex:
@@ -271,53 +291,89 @@ def ShowPaging(grids, page_url, iconimage, mode):
 		if max_page > paged:
 			common.addDir(common.GetLabelColor(common.GetLocaleString(30012), color="green"), page_url + 'page/' + str(paged+1) + '/', mode, iconimage, module=module)
 
-def Play(url, name='', iconimage='', quality='best'):
+def Play(video, name='', iconimage='', quality='best'):
 	try:
-		headers={"User-Agent": userAgent}
-		if common.isnumeric(url):
-			result = common.OpenURL('https://13tv-api.oplayer.io/api/getlink/getVideoById?userId=45E4A9FB-FCE8-88BF-93CC-3650C39DDF28&serverType=web&videoId={0}&callback=x'.format(url), headers=headers)
-		else:
-			result = common.OpenURL('https://13tv-api.oplayer.io/api/getlink/getVideoByFileName?userId=45E4A9FB-FCE8-88BF-93CC-3650C39DDF28&videoName={0}&serverType=web&callback=x'.format(url), headers=headers)
-		if result is not None:
-			source = json.loads(result)[0]
-			link = '{0}{1}{2}{3}{4}.mp4{5}{6}'.format(source['ProtocolType'], source['ServerAddress'], source['MediaRoot'], source['MediaFile'][:source['MediaFile'].find('.mp4')], source['Bitrates'], source['StreamingType'], source['Token'])
+		videos = video.split('===')
+		kaltura = ''
+		cst = ''
+		brv = ''
+		for vid in videos:
+			if '--kaltura--' in vid:
+				kaltura = vid.replace('--kaltura--', '')
+			elif '--cst--' in vid:
+				cst = vid.replace('--cst--', '')
+			elif '--brv--' in vid:
+				brv = vid.replace('--brv--', '')
+		if kaltura != '':
+			headers = {
+				'accept': '*/*',
+				'accept-language': 'en',
+				'content-type': 'application/json',
+				'sec-fetch-dest': 'empty',
+				'sec-fetch-mode': 'cors',
+				'sec-fetch-site': 'cross-site',
+				'referrer': 'https://13tv.co.il/',
+				'referrerPolicy': 'strict-origin-when-cross-origin',
+				'User-Agent': userAgent
+			}
+			payload = "{\"1\":{\"service\":\"session\",\"action\":\"startWidgetSession\",\"widgetId\":\"_2748741\"},\"2\":{\"service\":\"baseEntry\",\"action\":\"list\",\"ks\":\"{1:result:ks}\",\"filter\":{\"redirectFromEntryId\":\"$$$\"},\"responseProfile\":{\"type\":1,\"fields\":\"id,referenceId,name,description,thumbnailUrl,dataUrl,duration,msDuration,flavorParamsIds,mediaType,type,tags,dvrStatus,externalSourceType,status\"}},\"3\":{\"service\":\"baseEntry\",\"action\":\"getPlaybackContext\",\"entryId\":\"{2:result:objects:0:id}\",\"ks\":\"{1:result:ks}\",\"contextDataParams\":{\"objectType\":\"KalturaContextDataParams\",\"flavorTags\":\"all\"}},\"4\":{\"service\":\"metadata_metadata\",\"action\":\"list\",\"filter\":{\"objectType\":\"KalturaMetadataFilter\",\"objectIdEqual\":\"$$$\",\"metadataObjectTypeEqual\":\"1\"},\"ks\":\"{1:result:ks}\"},\"apiVersion\":\"3.3.0\",\"format\":1,\"ks\":\"\",\"clientTag\":\"html5:v0.56.1\",\"partnerId\":2748741}".replace("$$$", kaltura)
+			response = requests.post("https://cdnapisec.kaltura.com/api_v3/service/multirequest", headers=headers, data=payload)
+			link = ''
+			for s in response.json()[2]["sources"]:
+				if s["format"] == "applehttp":
+					link = s["url"]
+					break
 			#xbmc.log(link, 5)
-			session = common.GetSession()
-			link = common.GetStreams(link, headers=headers, session=session, quality=quality)
-			final = '{0}|User-Agent={1}'.format(link, userAgent)
-			cookies = "&".join(['Cookie={0}'.format(common.quote('{0}={1}'.format(_cookie.name, _cookie.value))) for _cookie in session.cookies])
-			if cookies != '':
-				final = '{0}&{1}'.format(final, cookies)
-		else:
-			result = common.OpenURL('{0}{1}'.format(api, url), headers={"Accept": pk, "User-Agent": userAgent})
-			if result is None:
-				link = 'https://c.brightcove.com/services/mobile/streaming/index/master.m3u8?videoId={0}'.format(url)
-				link = common.GetStreams(link, headers=headers, quality=quality)
+			link = common.GetStreams(link, quality=quality)
+		elif cst != '':
+			headers={"User-Agent": userAgent}
+			if common.isnumeric(cst):
+				result = common.OpenURL('https://13tv-api.oplayer.io/api/getlink/getVideoById?userId=45E4A9FB-FCE8-88BF-93CC-3650C39DDF28&serverType=web&videoId={0}&callback=x'.format(cst), headers=headers)
 			else:
-				sources = json.loads(result)['sources']
-				link = ''
-				avg_bitrate = 0
-				for source in sources:
-					if 'src' in source:
-						if source['container'] == 'M2TS':
-							link = common.GetStreams(source['src'], headers=headers, quality=quality)
-							break
-						if source['avg_bitrate'] > avg_bitrate:
-							link = source['src']
-							avg_bitrate = source['avg_bitrate']
-							#xbmc.log('[{0}]  {1}'.format(avg_bitrate, link), 5)
-			final = '{0}|User-Agent={1}'.format(link, userAgent)
+				result = common.OpenURL('https://13tv-api.oplayer.io/api/getlink/getVideoByFileName?userId=45E4A9FB-FCE8-88BF-93CC-3650C39DDF28&videoName={0}&serverType=web&callback=x'.format(cst), headers=headers)
+			if result is not None:
+				source = json.loads(result)[0]
+				link = '{0}{1}{2}{3}{4}.mp4{5}{6}'.format(source['ProtocolType'], source['ServerAddress'], source['MediaRoot'], source['MediaFile'][:source['MediaFile'].find('.mp4')], source['Bitrates'], source['StreamingType'], source['Token'])
+				#xbmc.log(link, 5)
+				session = common.GetSession()
+				link = common.GetStreams(link, headers=headers, session=session, quality=quality)
+				final = '{0}|User-Agent={1}'.format(link, userAgent)
+				cookies = "&".join(['Cookie={0}'.format(common.quote('{0}={1}'.format(_cookie.name, _cookie.value))) for _cookie in session.cookies])
+				if cookies != '':
+					final = '{0}&{1}'.format(final, cookies)
+			else:
+				result = common.OpenURL('{0}{1}'.format(api, brv), headers={"Accept": pk, "User-Agent": userAgent})
+				if result is None:
+					link = 'https://c.brightcove.com/services/mobile/streaming/index/master.m3u8?videoId={0}'.format(brv)
+					link = common.GetStreams(link, headers=headers, quality=quality)
+				else:
+					sources = json.loads(result)['sources']
+					link = ''
+					avg_bitrate = 0
+					for source in sources:
+						if 'src' in source:
+							if source['container'] == 'M2TS':
+								link = common.GetStreams(source['src'], headers=headers, quality=quality)
+								break
+							if source['avg_bitrate'] > avg_bitrate:
+								link = source['src']
+								avg_bitrate = source['avg_bitrate']
+								#xbmc.log('[{0}]  {1}'.format(avg_bitrate, link), 5)
+				final = '{0}|User-Agent={1}'.format(link, userAgent)
+		
+		final = '{0}|User-Agent={1}'.format(link, userAgent)
 		common.PlayStream(final, quality, name, iconimage)
 	except Exception as ex:
 		xbmc.log(str(ex), 3)
 
 def WatchLive(url, name='', iconimage='', quality='best'):
 	channels = {
-		'13': {'ch': 'videoId', 'casttimeId': '1', 'referer': '{0}/live/'.format(baseUrl), 'link': 'http://reshet-live-il.ctedgecdn.net/13tv-desktop/dvr/r13.m3u8'},
-		'13c': {'ch': 'accessibility_ref', 'casttimeId': '27', 'referer': '{0}/live/'.format(baseUrl), 'link': 'https://reshet-live-il.ctedgecdn.net/13tv-desktop/dvrsubs/r13.m3u8'},
+		'13': {'ch': 'videoId', 'casttimeId': '1', 'referer': '{0}/live/'.format(baseUrl), 'link': 'https://d18b0e6mopany4.cloudfront.net/out/v1/08bc71cf0a0f4712b6b03c732b0e6d25/index.m3u8'},
+		'13c': {'ch': 'accessibility_ref', 'casttimeId': '27', 'referer': '{0}/live/'.format(baseUrl), 'link': 'https://d198ztbnlup2iq.cloudfront.net/out/v1/2d9050c90fb94df8b78d1d98306a1a65/index.m3u8'},
 		'bb': {'ch': 'videoId', 'casttimeId': '26', 'referer': '{0}/home/bb-livestream/'.format(baseUrl), 'link': 'http://reshet-live-il.ctedgecdn.net/13tv-premium/bb/r13.m3u8'}
 	}
 	referer = channels[url]['referer']
+	'''
 	try:
 		result = GetUrlJson(referer)
 		provider = result['Header']['Live']['extras']['live_video_provider']
@@ -330,6 +386,8 @@ def WatchLive(url, name='', iconimage='', quality='best'):
 	except Exception as ex:
 		xbmc.log(str(ex), 3)
 		link = channels[url]['link']
+	'''
+	link = channels[url]['link']
 	link = common.GetStreams(link, headers={"User-Agent": userAgent, 'Referer': referer}, quality=quality)
 	final = '{0}|User-Agent={1}&Referer={2}'.format(link, userAgent, referer)
 	common.PlayStream(final, quality, name, iconimage)

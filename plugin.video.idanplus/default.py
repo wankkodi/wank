@@ -164,10 +164,13 @@ def Radios():
 def RadioVODs():
 	name = common.GetLabelColor("תכניות רדיו - כאן", bold=True, color="none")
 	common.addDir(name, '', 21, os.path.join(imagesDir, 'kan.jpg'), infos={"Title": name}, module='kan')
-	name = common.GetLabelColor("תכניות רדיו - 89.1fm", bold=True, color="none")
-	common.addDir(name, '', 0, os.path.join(imagesDir, '891fm.png'), infos={"Title": name}, module='891fm')
 	name = common.GetLabelColor("תכניות רדיו ספורט 5", bold=True, color="none")
 	common.addDir(name, '', 20, os.path.join(imagesDir, 'Sport5.png'), infos={"Title": name}, module='sport5')
+	name = common.GetLabelColor("תכניות רדיו - 89.1fm", bold=True, color="none")
+	common.addDir(name, '', 0, os.path.join(imagesDir, '891fm.png'), infos={"Title": name}, module='891fm')
+	name = common.GetLabelColor("תכניות רדיו - 106.4fm", bold=True, color="none")
+	common.addDir(name, '', 0, os.path.join(imagesDir, '1064fm.jpg'), infos={"Title": name}, module='1064fm')
+	
 
 def Musics():
 	name = common.GetLabelColor("מוזיקה - גלגל\"צ", bold=True, color="none")

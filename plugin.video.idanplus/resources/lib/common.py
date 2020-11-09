@@ -179,13 +179,19 @@ def OpenURL(url, headers={}, user_data=None, session=None, retries=1, responseMe
 	for i in range(retries):
 		try:
 			if session is None:
-				response = requests.get(url, headers=headers)
+				if user_data is None:
+					response = requests.get(url, headers=headers)
+				else:
+					response = requests.post(url, headers=headers, data=user_data)
 			else:
-				response = session.get(url, headers=headers)
+				if user_data is None:
+					response = session.get(url, headers=headers)
+				else:
+					response = session.post(url, data=user_data, headers=headers)
 			if responseMethod == 'text':
 				if int(response.status_code) > 400:
 					xbmc.log('{0}  -  response {1}.'.format(url, response.status_code), 3)
-					#return None
+					continue
 				link = response.text
 			elif responseMethod == 'content':
 				link = response.content
@@ -213,7 +219,7 @@ def addDir(name, url, mode, iconimage='DefaultFolder.png', infos=None, contextMe
 	u = '{0}?{1}'.format(sys.argv[0], urlencode(urlParams))
 	try:
 		listitem=xbmcgui.ListItem(name)
-		listitem.setArt({'thumb' : iconimage, 'fanart': iconimage, 'icon': 'DefaultFolder.png'})
+		listitem.setArt({'thumb' : iconimage, 'fanart': iconimage, 'icon': iconimage})
 	except:
 		listitem = xbmcgui.ListItem(name, iconImage=iconimage, thumbnailImage=iconimage)
 	if infos is not None:
@@ -299,13 +305,14 @@ def GetStreams(url, headers={}, user_data=None, session=None, retries=1, quality
 	return link
 
 def PlayStream(url, quality='best', name='', iconimage=''):
+	infos = {"title": name, "plot": xbmc.getInfoLabel("ListItem.Plot"), "year": xbmc.getInfoLabel("ListItem.Year")}
 	if (quality == 'choose' or quality.startswith('set')) and '.m3u8' in url:
 		listitem = xbmcgui.ListItem(name, path=url, iconImage=iconimage, thumbnailImage=iconimage)
-		listitem.setInfo(type="Video", infoLabels={"Title": name})
+		listitem.setInfo(type="Video", infoLabels=infos)
 		xbmc.Player().play(url, listitem)
 	else:
 		listitem = xbmcgui.ListItem(path=url)
-		listitem.setInfo(type="Video", infoLabels={"Title": name})
+		listitem.setInfo(type="Video", infoLabels=infos)
 		xbmcplugin.setResolvedUrl(handle=handle, succeeded=True, listitem=listitem)
 
 def GetLocaleString(id):

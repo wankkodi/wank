@@ -8,7 +8,7 @@ icon = Addon.getAddonInfo('icon')
 
 TvChannels = [
 	{'ch':'ch_11', 'index': 1, 'nameID': 30602, 'channelID':'11', 'mode': 10, 'image':'kan.jpg', 'module':'kan', 'resKey':'ch_11_res', 'tvgID':'11', 'type':'tv'}, 
-	#{'ch':'ch_11b', 'index': 1, 'nameID': 30633, 'channelID':'11b', 'mode': 10, 'image':'kan.jpg', 'module':'tv', 'resKey':'', 'tvgID':'11', 'type':'tv'}, 
+	{'ch':'ch_11b', 'index': 1, 'nameID': 30633, 'channelID':'11b', 'mode': 10, 'image':'kan.jpg', 'module':'tv', 'resKey':'', 'tvgID':'11', 'type':'tv'}, 
 	{'ch':'ch_12', 'index': 2, 'nameID': 30603, 'channelID':'12', 'mode': 10, 'image':'keshet.jpg', 'module':'keshet', 'resKey':'ch_12_res', 'tvgID':'12', 'type':'tv'}, 
 	{'ch':'ch_12c', 'index': 2, 'nameID': 30626, 'channelID':'12c', 'mode': 10, 'image':'keshet.jpg', 'module':'keshet', 'resKey':'ch_12c_res', 'tvgID':'12', 'type':'tv'}, 
 	{'ch':'ch_13', 'index': 3, 'nameID': 30604, 'channelID':'13', 'mode': 4, 'image':'13.png', 'module':'reshet', 'resKey':'ch_13_res', 'tvgID':'13', 'type':'tv'}, 
@@ -59,6 +59,7 @@ RadioChannels = [
 	{'ch':'rd_sport5', 'index': 20, 'nameID': 30632, 'channelID':'5live', 'mode': 10, 'image':'Sport5.png', 'module':'sport5', 'tvgID':'5radio', 'type':'radio'}, 
 	{'ch':'rd_reka', 'index': 21, 'nameID': 30713, 'channelID':'reka', 'mode': 11, 'image':'reka.png', 'module':'kan', 'tvgID':'reka', 'type':'radio'}, 
 	{'ch':'rd_891', 'index': 22, 'nameID': 30734, 'channelID':'891fm', 'mode': 11, 'image':'891fm.png', 'module':'radio', 'tvgID':'891fm', 'type':'radio'}, 
+	{'ch':'rd_1064', 'index': 22, 'nameID': 30737, 'channelID':'1064fm', 'mode': 11, 'image':'1064fm.jpg', 'module':'1064fm', 'tvgID':'', 'type':'radio'}, 
 	{'ch':'rd_makan', 'index': 23, 'nameID': 30714, 'channelID':'makan', 'mode': 11, 'image':'makan.png', 'module':'kan', 'tvgID':'makan', 'type':'radio'}, 
 	#{'ch':'rd_persian', 'index': 24, 'nameID': 30715, 'channelID':'persian', 'mode': 11, 'image':'persian.png', 'module':'kan', 'tvgID':'persian', 'type':'radio'}, 
 	{'ch':'rd_nos', 'index': 25, 'nameID': 30720, 'channelID':'nos', 'mode': 11, 'image':'nos.png', 'module':'kan', 'tvgID':'', 'type':'radio'}, 
