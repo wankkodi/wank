@@ -261,33 +261,33 @@ class EPorner(PornFetcher):
             'fallback': False,
             'embed': False,
             'supportedFormats': 'dash,mp4',
-            'tech': 'htmml5',
+            'tech': 'html5',
         }
-        video_web_id = video_data.url.split('/')[-3]
+        video_web_id = video_data.url.split('/')[-3].split('-')[1]
         fetch_url = 'https://www.eporner.com/xhr/video/{vid}'.format(vid=video_web_id)
 
         page_request = self.session.get(fetch_url, headers=headers, params=query)
-        video_data = page_request.json()
-        if not self._check_is_available_page(video_data, page_request) or video_data['available'] is False:
+        video_new_data = page_request.json()
+        if not self._check_is_available_page(video_new_data, page_request) or video_new_data['available'] is False:
             error_module = self._prepare_porn_error_module_for_video_page(
-                video_data, tmp_request.url,
-                'Cannot fetch video {t} from url {u}.'.format(t=video_data['title'], u=video_data.url)
+                video_new_data, tmp_request.url,
+                'Cannot fetch video {t} from url {u}.'.format(t=video_new_data['title'], u=video_data.url)
                                                                           )
             raise PornNoVideoError(error_module.message, error_module)
 
         # mp4 support
         res = []
-        if 'mp4' in video_data['sources']:
+        if 'mp4' in video_new_data['sources']:
             res.extend([VideoSource(link=v['src'], resolution=re.findall(r'(\d*)(?:p)', k)[0])
-                        for k, v in video_data['sources']['mp4'].items()
+                        for k, v in video_new_data['sources']['mp4'].items()
                         ])
         # dash support
-        if 'dash' in video_data['sources']:
-            res.append(VideoSource(link=video_data['sources']['dash']['auto']['src'],
+        if 'dash' in video_new_data['sources']:
+            res.append(VideoSource(link=video_new_data['sources']['dash']['auto']['src'],
                                    video_type=VideoTypes.VIDEO_DASH,
                                    resolution=max((int(x)
                                                    for x in re.findall(r'(?:,)([\d,]+)(?:,p)',
-                                                                       video_data['sources']['dash']['auto']['src'])
+                                                                       video_new_data['sources']['dash']['auto']['src'])
                                                   [0].split(',')))
                                    ))
         res.sort(key=lambda x: x.resolution, reverse=True)
