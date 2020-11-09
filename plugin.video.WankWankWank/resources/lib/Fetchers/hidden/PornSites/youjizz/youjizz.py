@@ -330,6 +330,8 @@ class YouJizz(PornFetcher):
             image_data = video_tree_data.xpath('./div[@class="frame-wrapper"]/a/img')
             assert len(image_data) >= 1
             image = urljoin(self.base_url, image_data[0].attrib['src'])
+            if re.findall(r'\.gif$', image):
+                image = urljoin(self.base_url, image_data[0].attrib['data-original'])
             flip_images = [re.sub(r'\d+.jpg', '{i}.jpg'.format(i=i), image)
                            for i in range(1, self.max_flip_images + 1)]
 
