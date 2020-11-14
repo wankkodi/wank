@@ -247,12 +247,15 @@ class EPorner(PornFetcher):
 
         tmp_tree = self.parser.parse(tmp_request.text)
 
-        request_data = re.findall(r'(?:\'EPvideo\', )( *{.*} *)(?:, function)',
-                                  [x for x in tmp_tree.xpath('.//script/text()') if 'EPinitPlayerVR' in x][0],
+        # request_data = re.findall(r'(?:\'EPvideo\', )( *{.*} *)(?:, function)',
+        #                           [x for x in tmp_tree.xpath('.//script/text()') if 'EP.video.player.hash' in x][0],
+        #                           re.DOTALL)
+        # request_data = prepare_json_from_not_formatted_text(request_data[0])
+        # request_hash = request_data['plugins']['EP']['hash']
+        request_hash = re.findall(r'(?:EP.video.player.hash = \')(.*?)(?:\';)',
+                                  [x for x in tmp_tree.xpath('.//script/text()') if 'EP.video.player.hash' in x][0],
                                   re.DOTALL)
-        request_data = prepare_json_from_not_formatted_text(request_data[0])
-        request_hash = request_data['plugins']['EP']['hash']
-        request_hash = _get_hash(request_hash)
+        request_hash = _get_hash(request_hash[0])
 
         query = {
             'hash': request_hash,
@@ -468,7 +471,7 @@ class EPorner(PornFetcher):
 
     @property
     def __version(self):
-        return 2
+        return 3
 
     @property
     def _version_stack(self):
